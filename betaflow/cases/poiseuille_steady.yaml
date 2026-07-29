@@ -1,0 +1,25 @@
+# Steady plane Poiseuille flow: laminar channel between parallel plates at
+# y = +/- half_height, driven by a constant mean pressure gradient.
+name: poiseuille_steady
+
+nondim:
+  # Re = u_mean * (2 * half_height) / nu — BULK velocity, FULL channel height.
+  # This must match the definition in betaflow/analytic/poiseuille.py; the test
+  # cross-checks the runner's (u_mean, nu) against it.
+  Re: 100
+
+geometry:
+  type: channel
+  half_height: 1.0   # h [m]; walls at y = +/- h
+  length: 0.5        # streamwise extent [m]; periodic, so entrance length is moot
+
+# Dotted path to the oracle. It returns u/u_max vs y/h, so the runner's u_ref
+# must be the analytic peak velocity u_max.
+oracle: betaflow.analytic.poiseuille.velocity_profile
+
+normalisation:
+  u_max_over_u_mean: 1.5   # exact for plane Poiseuille: u_mean = (2/3) u_max
+
+metrics:
+  - name: L2_velocity
+    tol: 1.0e-3

@@ -1,0 +1,31 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      sample;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+type            sets;
+libs            ("libsampling.so");
+
+interpolationScheme cellPoint;
+
+setFormat       raw;
+
+sets
+(
+    centreline
+    {
+        type    lineUniform;
+        axis    y;
+        start   ($x_mid $y_start $z_mid);
+        end     ($x_mid $y_end   $z_mid);
+        nPoints $n_points;
+    }
+);
+
+fields          (U);
+
+// ************************************************************************* //

@@ -1,0 +1,12 @@
+{
+  "case": "poiseuille_steady",
+  "runner": "openfoam",
+  "mesh_level": 80,
+  "n_cells": 320,
+  "error": 0.0003250437190837545,
+  "tol": 0.001,
+  "passed": true,
+  "timestamp": "2026-07-29T13:28:32+00:00",
+  "openfoam_version": "12",
+  "git_sha": "2cc192c921da"
+}

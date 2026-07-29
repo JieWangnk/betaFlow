@@ -1,0 +1,22 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvConstraints;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Drives the volume-averaged velocity to Ubar by adapting a uniform momentum
+// source — the periodic-channel equivalent of imposing a mean pressure
+// gradient, with no entrance-length effects.
+momentumForce
+{
+    type            meanVelocityForce;
+
+    select          all;
+
+    Ubar            ($u_mean 0 0);
+}
+
+// ************************************************************************* //
