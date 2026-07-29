@@ -40,7 +40,11 @@ def _git_sha():
         ).strip()
         # --porcelain also catches untracked files, unlike `git diff`.
         status = subprocess.check_output(["git", "status", "--porcelain"], cwd=REPO, text=True)
-        return sha + ("-dirty" if status.strip() else "")
+        # The harness's own output does not make the code dirty: a rerun always
+        # rewrites results/, and counting it would stamp every revalidation
+        # run "-dirty". Porcelain lines are "XY path" — path starts at col 3.
+        code_dirty = [l for l in status.splitlines() if l.strip() and not l[3:].startswith("results/")]
+        return sha + ("-dirty" if code_dirty else "")
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
 
