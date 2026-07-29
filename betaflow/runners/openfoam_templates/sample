@@ -15,7 +15,7 @@ interpolationScheme cellPoint;
 setFormat       raw;
 
 sets
-(
+{
     centreline
     {
         type    lineUniform;
@@ -24,7 +24,7 @@ sets
         end     ($x_mid $y_end   $z_mid);
         nPoints $n_points;
     }
-);
+}
 
 fields          (U);
 

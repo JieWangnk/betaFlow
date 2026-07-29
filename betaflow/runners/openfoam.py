@@ -1,4 +1,4 @@
-"""OpenFOAM 12 (Foundation) adapter — the only module that knows OpenFOAM exists.
+"""OpenFOAM 14 (Foundation) adapter — the only module that knows OpenFOAM exists.
 
 Channel cases are meshed one cell thick in z with `empty` front/back patches
 and cyclic streamwise patches. The flow is driven by a `meanVelocityForce`
@@ -23,7 +23,10 @@ import numpy as np
 
 TEMPLATE_DIR = Path(__file__).parent / "openfoam_templates"
 
-DEFAULT_BASHRC = "/opt/openfoam12/etc/bashrc"
+# Templates use OpenFOAM 14 Foundation syntax (cellZone in fvConstraints,
+# dictionary-form sets); pointing this at an older version will fail at
+# dictionary parse. Override with BETAFLOW_OPENFOAM_BASHRC.
+DEFAULT_BASHRC = "/opt/openfoam14/etc/bashrc"
 
 # template file -> destination inside the generated case directory
 _FILES = {

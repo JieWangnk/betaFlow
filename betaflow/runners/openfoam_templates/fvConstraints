@@ -14,7 +14,7 @@ momentumForce
 {
     type            meanVelocityForce;
 
-    select          all;
+    cellZone        all;
 
     Ubar            ($u_mean 0 0);
 }

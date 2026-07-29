@@ -7,8 +7,6 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     foamRun;
-
 solver          incompressibleFluid;
 
 startFrom       startTime;

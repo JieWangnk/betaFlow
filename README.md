@@ -47,8 +47,11 @@ physics.
 
 ## Running
 
-    source /opt/openfoam12/etc/bashrc   # or set BETAFLOW_OPENFOAM_BASHRC
     python3 -m pytest tests/ -v
+
+The runner sources `/opt/openfoam14/etc/bashrc` itself; set
+`BETAFLOW_OPENFOAM_BASHRC` to point elsewhere (the templates use OpenFOAM 14
+Foundation syntax, so older versions will fail at dictionary parse).
 
 Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 
@@ -62,6 +65,10 @@ The error is pure second-order discretisation + profile-interpolation error:
 5.18e-3 / 1.30e-3 / 3.25e-4 at 20/40/80 cells across the channel — ratio 4.0
 per doubling. Mesh level is a first-class parameter of every runner, so the
 three-level GCI study needs no refactor, just three calls.
+
+Cross-version check: the L2 error is identical to all logged digits under
+OpenFOAM 12 and OpenFOAM 14 (see the results history in git) — the upgrade
+changed dictionary syntax, not the discrete solution.
 
 ## Adding a case
 
@@ -85,7 +92,7 @@ it, the layering is broken.
 
 ## OpenFOAM runner notes
 
-OpenFOAM 12 (Foundation), `foamRun` with the `incompressibleFluid` module.
+OpenFOAM 14 (Foundation), `foamRun` with the `incompressibleFluid` module.
 Channel cases are one cell thick in z (`empty` front/back), cyclic streamwise
 patches, driven by a `meanVelocityForce` fvConstraint so there are no
 entrance-length effects and the domain stays short. Profiles are sampled with
