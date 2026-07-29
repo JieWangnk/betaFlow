@@ -38,8 +38,9 @@ def _git_sha():
         sha = subprocess.check_output(
             ["git", "rev-parse", "--short=12", "HEAD"], cwd=REPO, text=True
         ).strip()
-        dirty = subprocess.run(["git", "diff", "--quiet", "HEAD"], cwd=REPO).returncode != 0
-        return sha + ("-dirty" if dirty else "")
+        # --porcelain also catches untracked files, unlike `git diff`.
+        status = subprocess.check_output(["git", "status", "--porcelain"], cwd=REPO, text=True)
+        return sha + ("-dirty" if status.strip() else "")
     except (subprocess.CalledProcessError, FileNotFoundError):
         return None
 
