@@ -35,11 +35,20 @@ _FILES = {
     "fvSchemes": "system/fvSchemes",
     "fvSolution": "system/fvSolution",
     "fvConstraints": "system/fvConstraints",
-    "sample": "system/sample",
     "physicalProperties": "constant/physicalProperties",
     "momentumTransport": "constant/momentumTransport",
     "U": "0/U",
     "p": "0/p",
+}
+
+# sampling mode -> template rendered into system/sample
+_SAMPLINGS = {
+    # Fixed uniform stations, cellPoint (linear) interpolation — how a user
+    # typically extracts a profile; includes interpolation error.
+    "cellPoint": "sample_cellPoint",
+    # Raw cell-centre values via lineCell — the discrete solution where it is
+    # defined; isolates the solver's error from profile extraction.
+    "cell": "sample_cell",
 }
 
 _N_STREAMWISE = 4     # cyclic + uniform forcing => solution is x-invariant
@@ -54,7 +63,7 @@ def _end_time(n_cells):
     return max(1000, 50 * int(n_cells))
 
 
-def run(case, n_cells=40, u_mean=1.0, workdir=None):
+def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
     """Run the case in OpenFOAM and return the standard profile dict.
 
     Parameters
@@ -68,6 +77,9 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None):
     workdir : path-like, optional
         Where to generate the OpenFOAM case (default: ./_runs). The case
         directory is kept for inspection and recreated from scratch each run.
+    sampling : str
+        "cellPoint" (default): lineUniform stations with cellPoint
+        interpolation. "cell": raw cell-centre values, no interpolation.
 
     Returns
     -------
@@ -79,6 +91,8 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None):
     geom = case["geometry"]
     if geom["type"] != "channel":
         raise NotImplementedError(f"openfoam runner only supports 'channel', got '{geom['type']}'")
+    if sampling not in _SAMPLINGS:
+        raise ValueError(f"unknown sampling '{sampling}': expected one of {sorted(_SAMPLINGS)}")
 
     h = float(geom["half_height"])
     length = float(geom["length"])
@@ -92,7 +106,7 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None):
     u_ref = u_mean * float(case["normalisation"]["u_max_over_u_mean"])
 
     workdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
-    casedir = workdir / f"{case['name']}_openfoam_n{int(n_cells)}"
+    casedir = workdir / f"{case['name']}_openfoam_n{int(n_cells)}_{sampling}"
     if casedir.exists():
         shutil.rmtree(casedir)
 
@@ -113,7 +127,7 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None):
         "y_end": h - eps,
         "n_points": _N_SAMPLE_POINTS,
     }
-    _write_case(casedir, params)
+    _write_case(casedir, params, sampling)
 
     _foam(casedir, "blockMesh")
     _foam(casedir, "foamRun")
@@ -133,13 +147,16 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None):
             "n_cells_total": _N_STREAMWISE * int(n_cells),
             "nu": nu,
             "u_mean": u_mean,
+            "sampling": sampling,
             "case_dir": str(casedir),
         },
     }
 
 
-def _write_case(casedir, params):
-    for src, dest in _FILES.items():
+def _write_case(casedir, params, sampling):
+    files = dict(_FILES)
+    files[_SAMPLINGS[sampling]] = "system/sample"
+    for src, dest in files.items():
         target = casedir / dest
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(Template((TEMPLATE_DIR / src).read_text()).substitute(params))

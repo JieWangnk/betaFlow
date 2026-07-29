@@ -1,0 +1,33 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    object      sample;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Raw cell-centre values along the line — no interpolation. This samples the
+// discrete solution where it is defined, so it isolates the solver's error
+// from profile-extraction (interpolation) error.
+
+type            sets;
+libs            ("libsampling.so");
+
+interpolationScheme cell;
+
+setFormat       raw;
+
+sets
+{
+    centreline
+    {
+        type    lineCell;
+        axis    y;
+        start   ($x_mid $y_start $z_mid);
+        end     ($x_mid $y_end   $z_mid);
+    }
+}
+
+fields          (U);
+
+// ************************************************************************* //

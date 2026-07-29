@@ -6,15 +6,15 @@ tolerance, and logs a provenance-stamped record to results/.
 """
 
 import json
-import subprocess
 from datetime import datetime, timezone
-from importlib import import_module
 from pathlib import Path
 
 import numpy as np
 import yaml
 
+from betaflow.analytic import poiseuille, resolve
 from betaflow.metrics import METRICS
+from betaflow.provenance import git_sha
 from betaflow.runners import run_case
 
 REPO = Path(__file__).resolve().parents[1]
@@ -24,34 +24,13 @@ RESULTS_FILE = REPO / "results" / "poiseuille_steady.json"
 # Cells across the full channel height (2h). The L2 error is pure O(dy^2)
 # discretisation + profile-interpolation error: 5.18e-3 / 1.30e-3 / 3.25e-4 at
 # N = 20/40/80 (ratio 4.0 per doubling). N=80 meets the 1e-3 tolerance with 3x
-# margin; N=40 does not.
+# margin; N=40 does not. See results/poiseuille_steady_refinement.json.
 MESH_LEVEL = 80
-
-
-def _resolve(dotted):
-    module, _, attr = dotted.rpartition(".")
-    return getattr(import_module(module), attr)
-
-
-def _git_sha():
-    try:
-        sha = subprocess.check_output(
-            ["git", "rev-parse", "--short=12", "HEAD"], cwd=REPO, text=True
-        ).strip()
-        # --porcelain also catches untracked files, unlike `git diff`.
-        status = subprocess.check_output(["git", "status", "--porcelain"], cwd=REPO, text=True)
-        # The harness's own output does not make the code dirty: a rerun always
-        # rewrites results/, and counting it would stamp every revalidation
-        # run "-dirty". Porcelain lines are "XY path" — path starts at col 3.
-        code_dirty = [l for l in status.splitlines() if l.strip() and not l[3:].startswith("results/")]
-        return sha + ("-dirty" if code_dirty else "")
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        return None
 
 
 def test_poiseuille_steady():
     case = yaml.safe_load(CASE_FILE.read_text())
-    oracle = _resolve(case["oracle"])
+    oracle = resolve(case["oracle"])
 
     result = run_case(case, runner="openfoam", n_cells=MESH_LEVEL, workdir=REPO / "_runs")
     meta = result.get("meta", {})
@@ -59,7 +38,6 @@ def test_poiseuille_steady():
     # Guard against the classic silent failure: the runner converting Re into a
     # viscosity with a different (velocity, length) convention than the oracle.
     h = float(case["geometry"]["half_height"])
-    poiseuille = import_module("betaflow.analytic.poiseuille")
     np.testing.assert_allclose(
         poiseuille.reynolds(meta["u_mean"], h, meta["nu"]),
         case["nondim"]["Re"],
@@ -86,7 +64,7 @@ def test_poiseuille_steady():
         "passed": passed,
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "openfoam_version": meta.get("openfoam_version"),
-        "git_sha": _git_sha(),
+        "git_sha": git_sha(REPO),
     }
     RESULTS_FILE.parent.mkdir(exist_ok=True)
     RESULTS_FILE.write_text(json.dumps(record, indent=2) + "\n")

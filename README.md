@@ -19,6 +19,18 @@ future regression is attributable to a specific change. A failing case is
 diagnosed (oracle vs mesh vs boundary conditions), never "fixed" by loosening
 the tolerance.
 
+Two kinds of verification, deliberately distinguished (reviewers notice):
+
+- **Code verification** — the case has an exact solution. The harness measures
+  the *true* discretisation error and runs an **order-of-accuracy test**:
+  observed p = log2(e_coarse/e_fine) must match the formal order of the
+  scheme. This is stronger than any error-estimation procedure. All analytic
+  rungs (Poiseuille, later Womersley) get this treatment;
+  see `report/order_of_accuracy.md`.
+- **Solution verification** — no exact solution (Carreau rheology, patient
+  geometry). There the discretisation error can only be *estimated*, and GCI
+  enters. GCI is never used where an oracle exists.
+
 Non-dimensionalisation is where validation harnesses silently rot. The
 Reynolds-number definition (bulk velocity, full channel height:
 `Re = u_mean * 2h / nu`) is stated once in the oracle docstring
@@ -61,10 +73,27 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 |---|---|---|---|---|
 | poiseuille_steady | plane Poiseuille parabola | 80 cells across 2h | 3.25e-4 | 1e-3 |
 
-The error is pure second-order discretisation + profile-interpolation error:
-5.18e-3 / 1.30e-3 / 3.25e-4 at 20/40/80 cells across the channel — ratio 4.0
-per doubling. Mesh level is a first-class parameter of every runner, so the
-three-level GCI study needs no refactor, just three calls.
+Order-of-accuracy test (mesh levels 40/80/160, refinement ratio 2, logged in
+`results/poiseuille_steady_refinement.json`, tabulated in
+`report/order_of_accuracy.md`):
+
+| sampling | errors (40/80/160) | observed p |
+|---|---|---|
+| lineUniform + cellPoint interpolation | 1.30e-3 / 3.25e-4 / 8.13e-5 | 1.999, 2.000 |
+| lineCell raw cell values | 4.18e-4 / 1.05e-4 / 2.65e-5 | 1.986, 1.991 |
+
+Both sampling modes converge at the formal order (accepted band 1.8–2.2,
+asserted by `tests/test_refinement.py`). Profile interpolation contributes
+about 3× the raw-cell error but converges at the same rate — no plateau. The
+raw-cell error itself is the discrete bulk-flow normalisation effect: the
+`meanVelocityForce` constraint drives the *cell-centre mean* to Ubar, giving
+the exact parabola plus a uniform dy²/4 offset with a correspondingly adjusted
+pressure gradient (predicted RMS 4.3e-4 at N=40; measured 4.18e-4).
+
+A hand-picked tolerance is arbitrary; the observed order is what makes an
+error number meaningful. The N=40 cellPoint error (1.30e-3) *fails* the 1e-3
+tolerance — expected, and the reason the per-case tolerance is tied to a
+stated mesh level.
 
 Cross-version check: the L2 error is identical to all logged digits under
 OpenFOAM 12 and OpenFOAM 14 (see the results history in git) — the upgrade
@@ -96,7 +125,11 @@ OpenFOAM 14 (Foundation), `foamRun` with the `incompressibleFluid` module.
 Channel cases are one cell thick in z (`empty` front/back), cyclic streamwise
 patches, driven by a `meanVelocityForce` fvConstraint so there are no
 entrance-length effects and the domain stays short. Profiles are sampled with
-the `sets` functionObject via `foamPostProcess`. All dictionaries are rendered
+the `sets` functionObject via `foamPostProcess`, in one of two modes:
+`sampling="cellPoint"` (default; fixed lineUniform stations, cellPoint
+interpolation — what a user extracting a profile gets) or `sampling="cell"`
+(lineCell raw cell values — the discrete solution with no interpolation
+error). All dictionaries are rendered
 from `string.Template` files in `runners/openfoam_templates/` — mesh level,
 viscosity, and forcing are parameters, never hand edits.
 
