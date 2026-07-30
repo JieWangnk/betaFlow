@@ -23,3 +23,7 @@ normalisation:
 metrics:
   - name: L2_velocity
     tol: 1.0e-3
+  # Wall shear stress vs the exact tau_w = G*h, as a relative error. Kinematic
+  # units on both sides (incompressible OpenFOAM reports tau/rho).
+  - name: wss_relative
+    tol: 2.0e-2

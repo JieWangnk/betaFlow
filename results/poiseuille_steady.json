@@ -3,10 +3,22 @@
   "runner": "openfoam",
   "mesh_level": 80,
   "n_cells": 320,
-  "error": 0.0003250437190837545,
-  "tol": 0.001,
+  "metrics": [
+    {
+      "name": "L2_velocity",
+      "error": 0.0003250437190837545,
+      "tol": 0.001,
+      "passed": true
+    },
+    {
+      "name": "wss_relative",
+      "error": 0.0003124023741666223,
+      "tol": 0.02,
+      "passed": true
+    }
+  ],
   "passed": true,
-  "timestamp": "2026-07-29T13:51:50+00:00",
+  "timestamp": "2026-07-30T10:16:15+00:00",
   "openfoam_version": "14",
-  "git_sha": "0ce92d61aaff"
+  "git_sha": "4e2c5de4525d-dirty"
 }

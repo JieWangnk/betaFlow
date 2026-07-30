@@ -69,9 +69,10 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 
 ## Current cases
 
-| case | oracle | mesh level | L2 error | tol |
-|---|---|---|---|---|
-| poiseuille_steady | plane Poiseuille parabola | 80 cells across 2h | 3.25e-4 | 1e-3 |
+| case | metric | oracle | mesh level | error | tol |
+|---|---|---|---|---|---|
+| poiseuille_steady | L2_velocity | plane Poiseuille parabola | 80 cells across 2h | 3.25e-4 | 1e-3 |
+| poiseuille_steady | wss_relative | tau_w = G h (kinematic) | 80 cells across 2h | 3.12e-4 | 2e-2 |
 
 Order-of-accuracy test (mesh levels 40/80/160, refinement ratio 2, logged in
 `results/poiseuille_steady_refinement.json`, tabulated in
@@ -89,6 +90,17 @@ raw-cell error itself is the discrete bulk-flow normalisation effect: the
 `meanVelocityForce` constraint drives the *cell-centre mean* to Ubar, giving
 the exact parabola plus a uniform dy²/4 offset with a correspondingly adjusted
 pressure gradient (predicted RMS 4.3e-4 at N=40; measured 4.18e-4).
+
+Wall shear stress also converges at p = 2.0 (1.25e-3 / 3.12e-4 / 7.81e-5) —
+but NOT because the wall gradient is high-order. The functionObject uses the
+plain half-cell one-sided snGrad, formally O(dy). At steady state the discrete
+global momentum balance forces the wall flux to equal the imposed mean
+pressure-gradient source exactly (tau_num = G_disc * h to all digits of the
+solver log), and G_disc itself converges at O(dy²) — the O(dy) truncation of
+the one-sided difference cancels against the dy²/4 offset the discrete
+solution carries. This identity is a property of force-driven periodic flow;
+it will NOT hold for transient (Womersley) or non-periodic cases, where the
+wall-gradient order gets tested for real.
 
 A hand-picked tolerance is arbitrary; the observed order is what makes an
 error number meaningful. The N=40 cellPoint error (1.30e-3) *fails* the 1e-3
@@ -129,7 +141,10 @@ the `sets` functionObject via `foamPostProcess`, in one of two modes:
 `sampling="cellPoint"` (default; fixed lineUniform stations, cellPoint
 interpolation — what a user extracting a profile gets) or `sampling="cell"`
 (lineCell raw cell values — the discrete solution with no interpolation
-error). All dictionaries are rendered
+error). Wall shear stress is computed by the `wallShearStress` functionObject
+during the solve (`system/functions` is auto-read, so the momentum-transport
+model it needs exists) and parsed from the written field; incompressible
+OpenFOAM reports it in kinematic units [m²/s²]. All dictionaries are rendered
 from `string.Template` files in `runners/openfoam_templates/` — mesh level,
 viscosity, and forcing are parameters, never hand edits.
 

@@ -72,3 +72,25 @@ def reynolds(u_mean, h, nu):
     substituting any other convention.
     """
     return u_mean * (2.0 * h) / nu
+
+
+def pressure_gradient(u_mean, h, mu):
+    """Pressure gradient G = -dp/dx sustaining bulk velocity u_mean: 3 mu u_mean / h**2.
+
+    Unit-agnostic: pass dynamic viscosity mu [Pa s] for G in Pa/m, or kinematic
+    viscosity nu [m^2/s] for the kinematic G [m/s^2] used by incompressible
+    OpenFOAM. From u_mean = (2/3) u_max = G h**2 / (3 mu).
+    """
+    return 3.0 * mu * u_mean / h**2
+
+
+def tau_wall(pressure_gradient, h):
+    """Wall shear stress: tau_w = G * h, exact for plane Poiseuille.
+
+    From tau = mu du/dy at y = -h with du/dy = G h / mu; equivalently the
+    force balance on a channel slab, G * (2 h) = 2 tau_w. Unit-agnostic like
+    `pressure_gradient`: dynamic G [Pa/m] gives tau_w in Pa; kinematic G
+    [m/s^2] gives the kinematic tau_w [m^2/s^2] that incompressible OpenFOAM
+    reports.
+    """
+    return pressure_gradient * h

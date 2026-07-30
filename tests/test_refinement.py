@@ -20,7 +20,7 @@ from pathlib import Path
 import numpy as np
 import yaml
 
-from betaflow.analytic import resolve
+from betaflow.analytic import poiseuille, resolve
 from betaflow.metrics import METRICS
 from betaflow.provenance import git_sha
 from betaflow.runners import run_case
@@ -53,6 +53,7 @@ def test_order_of_accuracy():
 
     openfoam_version = None
     study = {}
+    tau_errors = []
     for sampling in SAMPLINGS:
         errors, n_cells = [], []
         for level in MESH_LEVELS:
@@ -64,8 +65,18 @@ def test_order_of_accuracy():
             errors.append(metric(u_nondim, oracle(y_over_h)))
             n_cells.append(result["meta"]["n_cells_total"])
             openfoam_version = result["meta"]["openfoam_version"]
+            # tau_w comes from the solve, not the profile sampling, so one
+            # sampling mode's runs suffice to measure its convergence.
+            if sampling == "cell":
+                meta = result["meta"]
+                tau_exact = poiseuille.tau_wall(
+                    poiseuille.pressure_gradient(meta["u_mean"], h, meta["nu"]), h
+                )
+                tau_errors.append(METRICS["wss_relative"](result["tau_w"], tau_exact))
         p = [math.log2(coarse / fine) for coarse, fine in zip(errors, errors[1:])]
         study[sampling] = {"n_cells": n_cells, "errors": errors, "p": p}
+
+    tau_p = [math.log2(coarse / fine) for coarse, fine in zip(tau_errors, tau_errors[1:])]
 
     record = {
         "case": case["name"],
@@ -74,6 +85,7 @@ def test_order_of_accuracy():
         "mesh_levels": list(MESH_LEVELS),
         "formal_order": FORMAL_ORDER,
         "samplings": study,
+        "tau_w": {"metric": "wss_relative", "errors": tau_errors, "p": tau_p},
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "openfoam_version": openfoam_version,
         "git_sha": git_sha(REPO),
@@ -94,6 +106,13 @@ def test_order_of_accuracy():
                 f"[{sampling}] observed order p={p:.3f} outside {P_BAND} "
                 f"for levels {pair[0]}->{pair[1]} (formal order {FORMAL_ORDER})"
             )
+
+    # tau_w: monotone decrease only. The formal order of the wall-flux
+    # extraction is exactly the question this study measures, so no p band is
+    # asserted until the observed order is established and reviewed.
+    assert all(c > f for c, f in zip(tau_errors, tau_errors[1:])), (
+        f"tau_w error does not decrease monotonically: {tau_errors}"
+    )
 
 
 def _write_report(record):
@@ -126,5 +145,16 @@ def _write_report(record):
             p = f"{data['p'][i - 1]:.3f}" if i > 0 else "—"
             lines.append(f"| {level} | {data['n_cells'][i]} | {data['errors'][i]:.3e} | {p} |")
         lines.append("")
+    tau = record["tau_w"]
+    lines += [
+        "## Wall shear stress (relative error vs exact tau_w = G h)",
+        "",
+        "| mesh level | rel error | p |",
+        "|---:|---:|---:|",
+    ]
+    for i, level in enumerate(record["mesh_levels"]):
+        p = f"{tau['p'][i - 1]:.3f}" if i > 0 else "—"
+        lines.append(f"| {level} | {tau['errors'][i]:.3e} | {p} |")
+    lines.append("")
     REPORT_FILE.parent.mkdir(exist_ok=True)
     REPORT_FILE.write_text("\n".join(lines))

@@ -49,18 +49,29 @@ def test_poiseuille_steady():
     u_nondim = np.asarray(result["u"]) / result["u_ref"]
     u_exact = oracle(y_over_h)
 
-    spec = case["metrics"][0]
-    error = METRICS[spec["name"]](u_nondim, u_exact)
-    tol = float(spec["tol"])
-    passed = bool(error < tol)
+    # Exact wall shear stress in kinematic units, matching the runner's tau_w.
+    tau_exact = poiseuille.tau_wall(poiseuille.pressure_gradient(meta["u_mean"], h, meta["nu"]), h)
+
+    evaluations = {
+        "L2_velocity": lambda: METRICS["L2_velocity"](u_nondim, u_exact),
+        "wss_relative": lambda: METRICS["wss_relative"](result["tau_w"], tau_exact),
+    }
+
+    metric_records = []
+    for spec in case["metrics"]:
+        error = evaluations[spec["name"]]()
+        tol = float(spec["tol"])
+        metric_records.append(
+            {"name": spec["name"], "error": error, "tol": tol, "passed": bool(error < tol)}
+        )
+    passed = all(m["passed"] for m in metric_records)
 
     record = {
         "case": case["name"],
         "runner": "openfoam",
         "mesh_level": MESH_LEVEL,
         "n_cells": meta.get("n_cells_total"),
-        "error": error,
-        "tol": tol,
+        "metrics": metric_records,
         "passed": passed,
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "openfoam_version": meta.get("openfoam_version"),
@@ -69,7 +80,9 @@ def test_poiseuille_steady():
     RESULTS_FILE.parent.mkdir(exist_ok=True)
     RESULTS_FILE.write_text(json.dumps(record, indent=2) + "\n")
 
+    failures = [m for m in metric_records if not m["passed"]]
     assert passed, (
-        f"L2 velocity error {error:.3e} exceeds tol {tol:.1e} "
-        f"(mesh_level={MESH_LEVEL}, case dir: {meta.get('case_dir')})"
+        f"metrics over tolerance: "
+        + ", ".join(f"{m['name']}={m['error']:.3e} (tol {m['tol']:.1e})" for m in failures)
+        + f" (mesh_level={MESH_LEVEL}, case dir: {meta.get('case_dir')})"
     )

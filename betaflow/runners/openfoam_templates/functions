@@ -1,0 +1,22 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Executed during the solve (system/functions is read automatically), so the
+// momentum-transport model the functionObject needs is guaranteed to exist.
+// Writes the kinematic wall shear stress R.n [m^2/s^2] as a volVectorField
+// at write times (i.e. once, at the converged end state).
+wallShearStress
+{
+    type            wallShearStress;
+    libs            ("libfieldFunctionObjects.so");
+    patches         (walls);
+    writeControl    writeTime;
+}
+
+// ************************************************************************* //

@@ -35,6 +35,7 @@ _FILES = {
     "fvSchemes": "system/fvSchemes",
     "fvSolution": "system/fvSolution",
     "fvConstraints": "system/fvConstraints",
+    "functions": "system/functions",
     "physicalProperties": "constant/physicalProperties",
     "momentumTransport": "constant/momentumTransport",
     "U": "0/U",
@@ -85,8 +86,10 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
     -------
     dict
         {"y": ndarray [m], "u": ndarray [m/s], "u_ref": float [m/s],
-         "meta": provenance dict}. u_ref is the analytic peak velocity implied
-        by the imposed bulk velocity and the case's normalisation entry.
+         "tau_w": float [m^2/s^2], "meta": provenance dict}. u_ref is the
+        analytic peak velocity implied by the imposed bulk velocity and the
+        case's normalisation entry; tau_w is the kinematic wall-shear-stress
+        magnitude from the wallShearStress functionObject.
     """
     geom = case["geometry"]
     if geom["type"] != "channel":
@@ -135,11 +138,13 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
     _foam(casedir, "foamPostProcess -func sample -latestTime")
 
     y, u = _read_profile(casedir)
+    tau_w = _read_tau_wall(casedir)
 
     return {
         "y": y,
         "u": u,
         "u_ref": u_ref,
+        "tau_w": tau_w,
         "meta": {
             "solver": "openfoam",
             "openfoam_version": _openfoam_version(),
@@ -209,6 +214,47 @@ def _openfoam_version():
         ["bash", "-c", f"source {_bashrc()} 2>/dev/null && echo -n $WM_PROJECT_VERSION"],
         text=True,
     ).strip()
+
+
+def _read_tau_wall(casedir):
+    """Mean kinematic wall-shear-stress magnitude over the wall patch faces.
+
+    Parses the volVectorField the wallShearStress functionObject wrote at the
+    final time. The flow is x-invariant, so every wall face must carry the
+    same magnitude — a spread larger than round-off means the solution is not
+    fully developed and is reported as an error rather than averaged away.
+    """
+    time_dir = max(
+        (d for d in casedir.iterdir() if d.is_dir() and _is_time(d.name) and float(d.name) > 0),
+        key=lambda d: float(d.name),
+    )
+    text = (time_dir / "wallShearStress").read_text()
+    walls = re.search(r"walls\s*\{([^}]*)\}", text, re.S)
+    if walls is None:
+        raise RuntimeError(f"no 'walls' patch in {time_dir}/wallShearStress")
+    vectors = np.array(
+        [[float(x) for x in triple.split()] for triple in re.findall(r"\(([^()]+)\)", walls.group(1))]
+    )
+    if vectors.size == 0:
+        raise RuntimeError(f"no wall values parsed from {time_dir}/wallShearStress")
+    magnitudes = np.linalg.norm(vectors, axis=1)
+    spread = magnitudes.max() - magnitudes.min()
+    # Allow iterative-convergence round-off (the Ux residual gate is 1e-9);
+    # a genuinely undeveloped flow shows O(1) face-to-face variation.
+    if spread > 1e-6 * magnitudes.mean():
+        raise RuntimeError(
+            f"wall shear stress varies across wall faces (spread {spread:.3e}); "
+            f"flow is not fully developed in {casedir}"
+        )
+    return float(magnitudes.mean())
+
+
+def _is_time(name):
+    try:
+        float(name)
+        return True
+    except ValueError:
+        return False
 
 
 def _read_profile(casedir):

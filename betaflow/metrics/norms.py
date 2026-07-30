@@ -16,3 +16,14 @@ def l2_velocity(numerical, analytic):
     if num.shape != ana.shape:
         raise ValueError(f"shape mismatch: numerical {num.shape} vs analytic {ana.shape}")
     return float(np.sqrt(np.mean((num - ana) ** 2)))
+
+
+def relative_error_scalar(numerical, analytic):
+    """|numerical - analytic| / |analytic| for a scalar quantity.
+
+    Both values must be in the same units; the result is dimensionless.
+    """
+    ana = float(analytic)
+    if ana == 0.0:
+        raise ValueError("analytic reference is zero; relative error undefined")
+    return abs(float(numerical) - ana) / abs(ana)
