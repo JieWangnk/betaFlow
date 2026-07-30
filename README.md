@@ -237,7 +237,7 @@ Predictions were committed before the case was built. Outcomes:
 
 | prediction | outcome |
 |---|---|
-| tau_w = G_disc·h to round-off, rheology-independent | **confirmed** — exactly 0 at two grid points, ≤3.8e-11 across the converged set |
+| tau_w = G_disc·h to round-off, rheology-independent | **confirmed** — exactly 0 at two grid points and ≤3.8e-11 on the four-point asserted subset (2.1e-7 at the fifth converged point) |
 | plug-width bias = 2·sqrt(nu_c/nuMax), plug WIDER than true | **confirmed where measurable**: bias → +0.2185 at N=320 vs continuum +0.2346 |
 | residual plug creep ∝ 1/nuMax | **confirmed** — factor 9.97 per decade; matches G·y_p²/(2·nuMax) to 0.3% |
 | L2 error floors on nuMax, p ≈ 2 → 0 | **confirmed** — p = 1.46 then 0.04 at ratio 1e2, while ratio 1e3 still gives 1.79, 2.09 |
@@ -253,9 +253,9 @@ Resolving a cap defect of relative size `eps` needs `N > 1/(xi·sqrt(nu_c/nuMax)
 — 50, 158, 500, 1581 cells at ratios 1e2…1e5 — so a *larger* cap needs a
 *finer* mesh to see its own (smaller) defect. Meanwhile convergence cost grows
 roughly as `N^2 · nuMax`: at nuMax/nu_c = 1e4, N = 40 needs ~180k iterations
-for the identity to close, and the 1e5 column does not converge at any mesh
-here. Measurability pushes toward fine meshes and high caps; convergence cost
-forbids exactly that corner. Only 5 of 12 grid points converged, all with
+for the identity to close (20k leaves it at 1.8e-4), and the 1e5 column does
+not converge at any mesh here. Measurability pushes toward fine meshes and high caps; convergence cost
+forbids exactly that corner. Only 6 of 13 grid points converged, all with
 nuMax/nu_c ≤ 1e3 — so the plug-width exponent could be verified at ONE cap
 ratio, not swept. Reporting the exponent as "verified" from a sweep would
 require a mesh nobody runs.
