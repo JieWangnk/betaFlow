@@ -1,0 +1,163 @@
+{
+  "case": "womersley_pulsatile",
+  "runner": "openfoam",
+  "main": {
+    "tols": {
+      "L2_amplitude": 0.01,
+      "L2_phase": 0.02,
+      "wss_amp_relative": 0.02
+    },
+    "errors": {
+      "L2_amplitude": 0.0008938033945156811,
+      "L2_phase": 0.0002909466455915437,
+      "wss_amp_relative": 0.00041706892791286036
+    },
+    "passed": true
+  },
+  "sweep_fixed_cells_per_stokes_layer": [
+    {
+      "alpha": 5.0,
+      "n_cells": 56,
+      "cells_per_stokes_layer": 7.92,
+      "n_steps": 128,
+      "ddt": "backward",
+      "L2_amplitude": 0.0011470154944851067,
+      "L2_phase": 0.0005938623116451634,
+      "wss_amp_relative": 0.0004103380662512882,
+      "wss_phase_error": 0.003997011085769997,
+      "cycles_to_periodic": 7,
+      "final_periodicity": 1.1679039679389347e-07,
+      "identity_max_rel": 1.170955185842548e-10
+    },
+    {
+      "alpha": 10.0,
+      "n_cells": 112,
+      "cells_per_stokes_layer": 7.92,
+      "n_steps": 128,
+      "ddt": "backward",
+      "L2_amplitude": 0.0009784429229013757,
+      "L2_phase": 0.0004181289343228917,
+      "wss_amp_relative": 0.0004171128005848683,
+      "wss_phase_error": 0.0039742969521843205,
+      "cycles_to_periodic": null,
+      "final_periodicity": 1.3056125721468373e-06,
+      "identity_max_rel": 2.2791290996907467e-10
+    },
+    {
+      "alpha": 20.0,
+      "n_cells": 224,
+      "cells_per_stokes_layer": 7.92,
+      "n_steps": 128,
+      "ddt": "backward",
+      "L2_amplitude": 0.0008938033945156811,
+      "L2_phase": 0.0002909466455915437,
+      "wss_amp_relative": 0.00041706892791286036,
+      "wss_phase_error": 0.003974286433437779,
+      "cycles_to_periodic": 8,
+      "final_periodicity": 8.124116710465598e-07,
+      "identity_max_rel": 4.4895116549630553e-10
+    }
+  ],
+  "fixed_mesh_alpha20_N80": {
+    "alpha": 20.0,
+    "n_cells": 80,
+    "cells_per_stokes_layer": 2.828,
+    "n_steps": 128,
+    "ddt": "backward",
+    "L2_amplitude": 0.0030673902927737663,
+    "L2_phase": 0.0013140848087583466,
+    "wss_amp_relative": 0.0013773049106654653,
+    "wss_phase_error": 0.031219545143611468,
+    "cycles_to_periodic": 6,
+    "final_periodicity": 7.436295178829241e-07,
+    "identity_max_rel": 4.893491886748056e-10
+  },
+  "order_study": {
+    "alpha": 5.0,
+    "levels": [
+      [
+        32,
+        64
+      ],
+      [
+        64,
+        128
+      ],
+      [
+        128,
+        256
+      ]
+    ],
+    "runs": [
+      {
+        "alpha": 5.0,
+        "n_cells": 32,
+        "cells_per_stokes_layer": 4.525,
+        "n_steps": 64,
+        "ddt": "backward",
+        "L2_amplitude": 0.0037413706648964182,
+        "L2_phase": 0.0014903854448226328,
+        "wss_amp_relative": 0.0017234558857031046,
+        "wss_phase_error": 0.01219567284104306,
+        "cycles_to_periodic": 10,
+        "final_periodicity": 8.628886728217199e-07,
+        "identity_max_rel": 5.5043388429008264e-11
+      },
+      {
+        "alpha": 5.0,
+        "n_cells": 64,
+        "cells_per_stokes_layer": 9.051,
+        "n_steps": 128,
+        "ddt": "backward",
+        "L2_amplitude": 0.0009808881084155268,
+        "L2_phase": 0.0004803218721896906,
+        "wss_amp_relative": 0.0004037115824796117,
+        "wss_phase_error": 0.003056859571117565,
+        "cycles_to_periodic": 7,
+        "final_periodicity": 1.2616790363999082e-07,
+        "identity_max_rel": 1.1933448959478586e-10
+      },
+      {
+        "alpha": 5.0,
+        "n_cells": 128,
+        "cells_per_stokes_layer": 18.102,
+        "n_steps": 256,
+        "ddt": "backward",
+        "L2_amplitude": 0.00025130688969190047,
+        "L2_phase": 0.00013633956818144815,
+        "wss_amp_relative": 9.925744648084697e-05,
+        "wss_phase_error": 0.00076559390121822,
+        "cycles_to_periodic": 4,
+        "final_periodicity": 2.0318181135503492e-08,
+        "identity_max_rel": 2.2393245507499884e-10
+      }
+    ],
+    "p_amplitude": [
+      1.9314064233322088,
+      1.964638351242001
+    ],
+    "p_wss": [
+      2.093907487927557,
+      2.0240777331811217
+    ],
+    "euler": {
+      "alpha": 5.0,
+      "n_cells": 64,
+      "cells_per_stokes_layer": 9.051,
+      "n_steps": 128,
+      "ddt": "Euler",
+      "L2_amplitude": 0.002740548458623041,
+      "L2_phase": 0.023729821824010393,
+      "wss_amp_relative": 3.1092183650936736e-05,
+      "wss_phase_error": 0.009009936010230146,
+      "cycles_to_periodic": null,
+      "final_periodicity": 7.455901106676047e-05,
+      "identity_max_rel": 6.299084237728816e-11
+    }
+  },
+  "identity_tol": 1e-06,
+  "identity_worst": 4.893491886748056e-10,
+  "timestamp": "2026-07-30T12:41:02+00:00",
+  "openfoam_version": "14",
+  "git_sha": "1b3862128e67-dirty"
+}

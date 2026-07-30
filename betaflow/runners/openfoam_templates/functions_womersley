@@ -1,0 +1,92 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Executed every timestep so the surfaceFieldValue series below sees the
+// updated field; the field itself is never written.
+wallShearStress
+{
+    type            wallShearStress;
+    libs            ("libfieldFunctionObjects.so");
+    executeControl  timeStep;
+    writeControl    none;
+}
+
+// Per-timestep wall-shear time series on each wall (for the momentum-balance
+// identity tau_w(t) = h (G(t) - d<u>/dt) and the WSS amplitude/phase).
+tauBottom
+{
+    type            surfaceFieldValue;
+    libs            ("libfieldFunctionObjects.so");
+    log             no;
+    writeFields     false;
+    patch           bottomWall;
+    operation       areaAverage;
+    fields          (wallShearStress);
+    executeControl  timeStep;
+    writeControl    timeStep;
+    writeInterval   1;
+}
+
+tauTop
+{
+    type            surfaceFieldValue;
+    libs            ("libfieldFunctionObjects.so");
+    log             no;
+    writeFields     false;
+    patch           topWall;
+    operation       areaAverage;
+    fields          (wallShearStress);
+    executeControl  timeStep;
+    writeControl    timeStep;
+    writeInterval   1;
+}
+
+// Per-timestep bulk velocity <u>(t) for the identity's d<u>/dt.
+uBulk
+{
+    type            volFieldValue;
+    libs            ("libfieldFunctionObjects.so");
+    log             no;
+    writeFields     false;
+    cellZone        all;
+    operation       volAverage;
+    fields          (U);
+    executeControl  timeStep;
+    writeControl    timeStep;
+    writeInterval   1;
+}
+
+// Raw cell-value wall-normal profiles at fixed phases of every cycle (16 per
+// cycle): consecutive-cycle pairs give the periodicity criterion, the final
+// cycle gives amplitude and phase by single-harmonic DFT.
+profile
+{
+    type            sets;
+    libs            ("libsampling.so");
+    writeControl    runTime;
+    writeInterval   $phase_interval;
+
+    interpolationScheme cell;
+    setFormat       raw;
+
+    sets
+    {
+        centreline
+        {
+            type    lineCell;
+            axis    y;
+            start   ($x_mid $y_start $z_mid);
+            end     ($x_mid $y_end   $z_mid);
+        }
+    }
+
+    fields          (U);
+}
+
+// ************************************************************************* //

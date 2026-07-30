@@ -1,0 +1,47 @@
+# Pulsatile plane-channel (Womersley-type) flow: walls at y = +/- half_height,
+# driven by a uniform oscillatory kinematic pressure gradient G cos(omega t).
+# The flow is linear (convection vanishes identically for u = u(y)), so no
+# Reynolds number enters; alpha alone fixes the non-dimensional solution.
+name: womersley_pulsatile
+
+nondim:
+  # alpha = half_height * sqrt(omega / nu) — HALF-height. Stokes layer
+  # delta / h = sqrt(2) / alpha. Must match betaflow/analytic/womersley.py.
+  alpha: 20
+
+geometry:
+  type: womersley
+  half_height: 1.0
+  length: 0.5
+
+# Complex profile uhat/u_ref vs y/h; u_ref = G/omega (core oscillation
+# amplitude); wall shear normalised by tau_ref = G*half_height.
+oracle: betaflow.analytic.womersley.complex_profile
+
+normalisation:
+  u_ref: G_over_omega
+  tau_ref: G_times_h
+
+resolution:
+  # Mesh level is CELLS PER STOKES LAYER, not a raw cell count: an
+  # alpha-sweep at fixed mesh cannot distinguish high-alpha amplification
+  # from under-resolution (both grow with alpha). Held fixed across the
+  # sweep, mesh refining with alpha.
+  cells_per_stokes_layer: 8
+  n_steps_per_cycle: 128
+
+convergence:
+  # Cycle-to-cycle periodicity, NOT residual-to-steady:
+  #   max over phases of ||u(t+T) - u(t)|| / max ||u|| < tol
+  periodicity_tol: 1.0e-6
+  max_cycles: 10
+
+# A-priori tolerances (never adjusted to pass). Phase in radians,
+# amplitude-weighted — phase error is what no steady case can test.
+metrics:
+  - name: L2_amplitude
+    tol: 1.0e-2
+  - name: L2_phase
+    tol: 2.0e-2
+  - name: wss_amp_relative
+    tol: 2.0e-2

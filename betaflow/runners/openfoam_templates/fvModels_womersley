@@ -1,0 +1,41 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      fvModels;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Uniform oscillatory kinematic pressure gradient G cos(omega t), applied as
+// an explicit specific momentum source. The sine Function1 is evaluated at
+// the CURRENT time each step (exact at time nodes — unlike the
+// 'acceleration' fvModel, which finite-differences its velocity Function1
+// and would impose a half-step phase lag on the forcing).
+// cos(omega t) = sin(2 pi f (t - start)) with start = -T/4.
+momentumSource
+{
+    type            semiImplicitSource;
+
+    cellZone        all;
+
+    volumeMode      specific;
+
+    sources
+    {
+        U
+        {
+            explicit
+            {
+                type            sine;
+                amplitude       ($g_amp 0 0);
+                frequency       $frequency;
+                start           $sine_start;
+                level           (0 0 0);
+            }
+            implicit        0;
+        }
+    }
+}
+
+// ************************************************************************* //

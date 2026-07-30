@@ -18,6 +18,22 @@ def l2_velocity(numerical, analytic):
     return float(np.sqrt(np.mean((num - ana) ** 2)))
 
 
+def l2_phase(numerical, analytic, weights):
+    """Amplitude-weighted RMS phase error [radians] at the sample points.
+
+    Phase differences are wrapped to (-pi, pi] before averaging, and weighted
+    (typically by the squared analytic amplitude) because phase is
+    ill-conditioned where the amplitude vanishes.
+    """
+    num = np.asarray(numerical, dtype=float)
+    ana = np.asarray(analytic, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    if not (num.shape == ana.shape == w.shape):
+        raise ValueError("shape mismatch between phases and weights")
+    diff = np.angle(np.exp(1j * (num - ana)))
+    return float(np.sqrt(np.sum(w * diff**2) / np.sum(w)))
+
+
 def relative_error_scalar(numerical, analytic):
     """|numerical - analytic| / |analytic| for a scalar quantity.
 

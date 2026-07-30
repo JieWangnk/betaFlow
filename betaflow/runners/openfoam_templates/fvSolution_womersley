@@ -1,0 +1,51 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      fvSolution;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+solvers
+{
+    p
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-10;
+        relTol          0.01;
+    }
+
+    pFinal
+    {
+        solver          GAMG;
+        smoother        GaussSeidel;
+        tolerance       1e-10;
+        relTol          0;
+    }
+
+    "U.*"
+    {
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        // Tight absolute tolerance so the per-timestep momentum-balance
+        // identity closes to round-off; maxIter caps wasted sweeps.
+        tolerance       1e-14;
+        relTol          0;
+        maxIter         1000;
+    }
+}
+
+PIMPLE
+{
+    nOuterCorrectors 1;
+    nCorrectors     2;
+    nNonOrthogonalCorrectors 0;
+
+    // All-cyclic pressure boundaries: fix the level at one cell.
+    pRefCell        0;
+    pRefValue       0;
+}
+
+// ************************************************************************* //

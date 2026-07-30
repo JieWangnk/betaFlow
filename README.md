@@ -75,6 +75,19 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 | poiseuille_steady | wss_relative | tau_w = G h (kinematic) | 80 cells across 2h | 3.12e-4 | 2e-2 |
 | couette_steady | L2_velocity | linear Couette profile | 40/80/160 (null test) | 0 / 0 / 1.6e-14 | 1e-8 |
 | couette_steady | wss_relative | tau_w = nu u_wall / H | 40/80/160 (null test) | 0 / 0 / 5.0e-13 | 1e-8 |
+| womersley_pulsatile | L2_amplitude | plane-channel Womersley (complex cosh) | alpha=20, 8 cells/delta | 8.9e-4 | 1e-2 |
+| womersley_pulsatile | L2_phase [rad] | same, amplitude-weighted | alpha=20, 8 cells/delta | 2.9e-4 | 2e-2 |
+| womersley_pulsatile | wss_amp_relative | tau_hat = G h tanh(K)/K | alpha=20, 8 cells/delta | 4.2e-4 | 2e-2 |
+
+womersley_pulsatile's mesh level is CELLS PER STOKES LAYER (mesh refines
+with alpha): a fixed-mesh alpha-sweep cannot distinguish high-alpha error
+amplification from under-resolution. Its convergence notion is
+cycle-to-cycle periodicity (tol 1e-6, cap 10 cycles, logged per cycle), not
+residual-to-steady; runs start from the analytic t=0 profile, without which
+the O(1) startup transient decays on the (2/pi^3) alpha^2 T homogeneous-mode
+timescale and no cap is meaningful. The plane-channel oracle kernel is the
+complex cosh — NOT the J0 Bessel function, which is the circular-pipe
+Womersley solution; see betaflow/analytic/womersley.py.
 
 couette_steady is a NULL TEST: the exact profile is linear and every operator
 in the chain (second-order interior scheme, half-cell wall gradient, linear
@@ -127,14 +140,26 @@ by the global balance, so a formally first-order wall gradient can return a
 flux with no first-order error at all.
 
 For Womersley the identity itself survives — telescoping gives
-tau_w(t) = h·(G(t) − d⟨u⟩/dt) — but two things change. The quadratic
-cancellation is special (central differences are exact for parabolas; a
-Bessel profile's spatially non-uniform discrete deviation cannot be absorbed
-into a constant), and at high Womersley number tau_w is a small difference of
-two large terms: tau_w/(G h) ~ 1/alpha, so relative errors in the balance are
-amplified ~alpha-fold. Prediction, recorded before the case exists: p ≈ 2
-preserved, coefficient roughly alpha× the steady value (~6e-3 at N=80,
-alpha=20), scaling visibly with alpha at fixed mesh.
+tau_w(t) = h·(G(t) − d⟨u⟩/dt) — and the a-priori prediction (p ≈ 2
+preserved; WSS error ~alpha× the steady value, ~6e-3 at N=80/alpha=20,
+scaling with alpha) was recorded here before the case existed. MEASURED
+OUTCOME: half held. p ≈ 2 confirmed (1.93/1.97 amplitude, 2.09/2.02 WSS
+under combined space-time refinement). The alpha-amplification is ABSENT:
+at fixed cells-per-Stokes-layer the WSS relative error is flat in alpha
+(4.10e-4 / 4.17e-4 / 4.17e-4 at alpha = 5/10/20), and the fixed-mesh
+prediction point measured 1.38e-3, not 6e-3 — the increase over the
+resolved value is under-resolution (2.8 cells/delta), not amplification.
+The reason is the same conservation mechanism as the steady case, now
+per-timestep: the discrete balance pins tau_w(t) = h(G(t) − d⟨u⟩/dt)
+exactly (measured closure ≤ 4.9e-10 with the scheme-matching discrete
+derivative), so tau_w is never computed as a small difference of
+independently-errored large terms — catastrophic cancellation applies to
+non-conservative post-processing estimates of WSS, not to the solver's own
+flux. Meanwhile Euler time-stepping puts its first-order error where only a
+pulsatile case can see it: velocity phase 2.4e-2 rad vs backward's 4.8e-4
+at identical resolution (49×), while its WSS amplitude error crosses
+fortuitously through zero — a warning against validating a time scheme on
+amplitude alone.
 
 A hand-picked tolerance is arbitrary; the observed order is what makes an
 error number meaningful. The N=40 cellPoint error (1.30e-3) *fails* the 1e-3
