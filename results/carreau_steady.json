@@ -151,6 +151,116 @@
       "iterations_to_residual_1e10": 1587
     }
   ],
+  "cost_mechanism": {
+    "runs": [
+      {
+        "n_cells": 40,
+        "Cu": 0.9985500463280946,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.0005185121493288941,
+        "wss_relative": 1.9325602489718587e-12,
+        "identity": 1.9325602489718587e-12,
+        "centreline_flatness": 1.46346673779,
+        "centreline_flatness_exact": 1.4654613231991285,
+        "iterations_to_residual_1e10": 635,
+        "ux_residual": 4.44161372848e-15,
+        "nu_inf_over_nu0_set": 0.01,
+        "contrast": 1.267060026809313,
+        "cost_vs_newtonian": 1.2378167641325537,
+        "contrast_exponent": 0.9013510988444134
+      },
+      {
+        "n_cells": 40,
+        "Cu": 9.993373510770372,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.000950186710245888,
+        "wss_relative": 0.0,
+        "identity": 0.0,
+        "centreline_flatness": 1.34503148413,
+        "centreline_flatness_exact": 1.3469968714304692,
+        "iterations_to_residual_1e10": 3154,
+        "ux_residual": 6.83011288485e-16,
+        "nu_inf_over_nu0_set": 0.01,
+        "contrast": 8.536089188620537,
+        "cost_vs_newtonian": 6.148148148148148,
+        "contrast_exponent": 0.8469656359842067
+      },
+      {
+        "n_cells": 40,
+        "Cu": 99.93701824436202,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.0008386550480021459,
+        "wss_relative": 0.0,
+        "identity": 0.0,
+        "centreline_flatness": 1.38747900204,
+        "centreline_flatness_exact": 1.3897687307369204,
+        "iterations_to_residual_1e10": 14421,
+        "ux_residual": 4.25642234969e-16,
+        "nu_inf_over_nu0_set": 0.01,
+        "contrast": 38.54011916519896,
+        "cost_vs_newtonian": 28.11111111111111,
+        "contrast_exponent": 0.9135923365144405
+      },
+      {
+        "n_cells": 40,
+        "Cu": 0.9985425118004306,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.0,
+        "L2_velocity": 0.0005209844216424221,
+        "wss_relative": 0.0,
+        "identity": 0.0,
+        "centreline_flatness": 1.46291540994,
+        "centreline_flatness_exact": 1.4649147441140793,
+        "iterations_to_residual_1e10": 637,
+        "ux_residual": 6.02173650648e-16,
+        "nu_inf_over_nu0_set": 0.0,
+        "contrast": 1.272019649514069,
+        "cost_vs_newtonian": 1.2417153996101364,
+        "contrast_exponent": 0.8997859118469443
+      },
+      {
+        "n_cells": 40,
+        "Cu": 9.992811414654854,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.0,
+        "L2_velocity": 0.001009251595868308,
+        "wss_relative": 1.2515846555061153e-12,
+        "identity": 1.2515846555061153e-12,
+        "centreline_flatness": 1.33315766917,
+        "centreline_flatness_exact": 1.3351628732489618,
+        "iterations_to_residual_1e10": 3563,
+        "ux_residual": 2.01417442175e-15,
+        "nu_inf_over_nu0_set": 0.0,
+        "contrast": 10.000499937513123,
+        "cost_vs_newtonian": 6.94541910331384,
+        "contrast_exponent": 0.8416801831271653
+      },
+      {
+        "n_cells": 40,
+        "Cu": 99.9327576854759,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.0,
+        "L2_velocity": 0.0010653878796356676,
+        "wss_relative": 1.1195031595859445e-10,
+        "identity": 1.1195031595859445e-10,
+        "centreline_flatness": 1.33101470424,
+        "centreline_flatness_exact": 1.333335859827013,
+        "iterations_to_residual_1e10": 31435,
+        "ux_residual": 6.9917179121e-14,
+        "nu_inf_over_nu0_set": 0.0,
+        "contrast": 100.00000050000003,
+        "cost_vs_newtonian": 61.27680311890838,
+        "contrast_exponent": 0.8936480488169289
+      }
+    ],
+    "cu_exponent_capped": 0.67798995665014,
+    "cu_exponent_uncapped": 0.8464925567515523,
+    "contrast_exponent_capped": 0.8873030237810203,
+    "contrast_exponent_uncapped": 0.8783713812636794
+  },
   "stiffness_ratio_vs_newtonian": [
     6.148148148148148,
     5.12565445026178,
@@ -167,7 +277,7 @@
     },
     "passed": true
   },
-  "timestamp": "2026-07-30T19:31:31+00:00",
+  "timestamp": "2026-07-30T20:08:58+00:00",
   "openfoam_version": "14",
-  "git_sha": "1cf8233a59be"
+  "git_sha": "e39164ce6c13-dirty"
 }

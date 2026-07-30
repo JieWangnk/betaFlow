@@ -128,7 +128,7 @@ def _end_time(n_cells, gtype="channel"):
     return max(2000, (4 * int(n_cells) ** 2) // 5)
 
 
-def _setup_carreau(case, u_drive, cu=None, fluid=None):
+def _setup_carreau(case, u_drive, cu=None, fluid=None, nu_inf_over_nu0=None):
     """Carreau-Yasuda channel: same drive and geometry as 'channel'.
 
     Two parameterisations. With `cu`, the Carreau number is TARGETED: since
@@ -158,7 +158,8 @@ def _setup_carreau(case, u_drive, cu=None, fluid=None):
         # Re uses nu0, the ZERO-shear viscosity. Must match
         # betaflow/analytic/carreau.py; the test cross-checks meta.
         nu0 = u_drive * (2.0 * h) / float(nd["Re"])
-        nu_inf = float(nd["nu_inf_over_nu0"]) * nu0
+        ratio = nd["nu_inf_over_nu0"] if nu_inf_over_nu0 is None else nu_inf_over_nu0
+        nu_inf = float(ratio) * nu0
         cu = float(nd["Cu"] if cu is None else cu)
         g_pred, k = _carreau.drive_for_carreau_number(u_drive, h, nu0, nu_inf, n, cu, a)
 
@@ -301,7 +302,7 @@ def run(case, **kwargs):
     meshing, template rendering, and execution machinery but differ in time
     controls, convergence verification, and post-processing.
     """
-    if case["geometry"]["type"] == "womersley":
+    if case["geometry"]["type"] in ("womersley", "womersley_carreau"):
         return _run_womersley(case, **kwargs)
     return _run_steady(case, **kwargs)
 
@@ -688,6 +689,11 @@ def _read_profile(casedir):
 # Transient (womersley) path: convergence is cycle-to-cycle periodicity.
 # --------------------------------------------------------------------------
 
+_WOMERSLEY_TRANSPORT = {
+    "womersley": "momentumTransport",
+    "womersley_carreau": "momentumTransport_carreau",
+}
+
 _WOMERSLEY_FILES = {
     "blockMeshDict": "system/blockMeshDict",
     "controlDict_womersley": "system/controlDict",
@@ -696,7 +702,6 @@ _WOMERSLEY_FILES = {
     "functions_womersley": "system/functions",
     "fvModels_womersley": "constant/fvModels",
     "physicalProperties": "constant/physicalProperties",
-    "momentumTransport": "constant/momentumTransport",
     "p": "0/p",
 }
 
@@ -709,6 +714,7 @@ def _run_womersley(
     case,
     n_cells=None,
     alpha=None,
+    cu=None,
     n_steps=None,
     ddt="backward",
     g_amp=1.0,
@@ -750,12 +756,48 @@ def _run_womersley(
     max_cycles = int(max_cycles if max_cycles is not None else conv["max_cycles"])
     periodicity_tol = float(conv["periodicity_tol"])
 
+    gtype = geom["type"]
     period = 1.0  # s; with power-of-two n_steps all write times are binary-exact
     omega = 2.0 * np.pi / period
     # alpha = h sqrt(omega/nu) => nu = omega h^2 / alpha^2 — must match
-    # betaflow/analytic/womersley.py (half-height h).
+    # betaflow/analytic/womersley.py (half-height h). For the Carreau variant
+    # this nu is nu0, so alpha here is the NOMINAL Womersley number.
     nu = omega * h**2 / alpha**2
-    delta = np.sqrt(2.0 * nu / omega)
+
+    rheology = {}
+    if gtype == "womersley_carreau":
+        from betaflow.analytic import carreau as _carreau
+
+        nd = case["nondim"]
+        cu = float(nd["Cu"] if cu is None else cu)
+        n_index = float(nd["n"])
+        a_index = float(nd.get("a", 2.0))
+        nu_inf = float(nd["nu_inf_over_nu0"]) * nu
+        # Cu = k G h / nu0 with G PRESCRIBED here (unlike the steady case,
+        # where the meanVelocityForce constraint made G an output), so k
+        # follows directly — no coupled solve.
+        k = cu * nu / (g_amp * h)
+        # Size the mesh on the WALL viscosity, not nu0: shear thinning makes
+        # the Stokes layer THINNER and the effective Womersley number HIGHER
+        # than nominal. Estimated quasi-steadily at the peak wall stress G h.
+        gdot_wall = _carreau.shear_rate(g_amp * h, nu, nu_inf, k, n_index, a_index)
+        nu_wall = float(_carreau.viscosity(gdot_wall, nu, nu_inf, k, n_index, a_index))
+        rheology = {
+            "nu0": nu,
+            "nu_inf": nu_inf,
+            "k": k,
+            "n": n_index,
+            "a": a_index,
+            "Cu": cu,
+            "nu_wall_estimate": nu_wall,
+            "alpha_nominal": alpha,
+            "alpha_eff": float(h * np.sqrt(omega / nu_wall)),
+        }
+        nu_sizing = nu_wall
+    else:
+        nu_sizing = nu
+
+    delta = np.sqrt(2.0 * nu_sizing / omega)
     if n_cells is None:
         # Mesh level = cells per Stokes layer, rounded to a multiple of 8.
         cpd = float(res["cells_per_stokes_layer"])
@@ -765,7 +807,10 @@ def _run_womersley(
     tau_ref = g_amp * h
 
     workdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
-    casedir = workdir / f"{case['name']}_openfoam_a{alpha:g}_n{n_cells}_nt{n_steps}_{ddt}"
+    tag = f"_cu{rheology['Cu']:g}" if rheology else ""
+    casedir = (
+        workdir / f"{case['name']}_openfoam_a{alpha:g}{tag}_n{n_cells}_nt{n_steps}_{ddt}"
+    )
     if casedir.exists():
         shutil.rmtree(casedir)
 
@@ -791,12 +836,28 @@ def _run_womersley(
         "z_mid": 0.025 * gap,
         "y_start": -h + eps,
         "y_end": h - eps,
+        # The nonlinear viscosity must be converged WITHIN each timestep, or
+        # the lagged nu injects an O(dt) error into exactly the quantities
+        # this case measures. Newtonian needs no outer loop.
+        "n_outer": 3 if rheology else 1,
+        "nu_inf": rheology.get("nu_inf", 0.0),
+        "k": rheology.get("k", 0.0),
+        "n": rheology.get("n", 1.0),
+        "a": rheology.get("a", 2.0),
     }
-    for src, dest in _WOMERSLEY_FILES.items():
+    files = dict(_WOMERSLEY_FILES)
+    files[_WOMERSLEY_TRANSPORT[gtype]] = "constant/momentumTransport"
+    for src, dest in files.items():
         target = casedir / dest
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_text(Template((TEMPLATE_DIR / src).read_text()).substitute(params))
-    _write_womersley_ic(casedir, h, n_cells, alpha, u_ref, _wom)
+    # Initial condition: the linear Womersley profile at the EFFECTIVE alpha.
+    # Exact for the Newtonian case; for Carreau it is only a good guess, which
+    # is all an initial condition has to be — periodicity is measured, not
+    # assumed.
+    _write_womersley_ic(
+        casedir, h, n_cells, rheology.get("alpha_eff", alpha), u_ref, _wom
+    )
 
     _foam(casedir, "blockMesh")
     _foam(casedir, "foamRun")
@@ -827,6 +888,7 @@ def _run_womersley(
             "nu": nu,
             "alpha": alpha,
             "cells_per_stokes_layer": n_cells * delta / (2.0 * h),
+            **rheology,
             "n_steps_per_cycle": n_steps,
             "ddt": ddt,
             "cycles_run": max_cycles,

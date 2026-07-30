@@ -39,7 +39,7 @@ solvers
 
 PIMPLE
 {
-    nOuterCorrectors 1;
+    nOuterCorrectors $n_outer;
     nCorrectors     2;
     nNonOrthogonalCorrectors 0;
 

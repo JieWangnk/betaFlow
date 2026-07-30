@@ -1,0 +1,73 @@
+# Pulsatile Carreau flow in a plane channel: oscillatory pressure gradient
+# G cos(omega t) driving a shear-thinning fluid.
+#
+# THE FIRST CASE WITH NO EXACT ORACLE, and that is the point. The unsteady
+# term breaks the force balance every previous oracle rested on:
+#     tau(y,t) = integral_0^y (du/dt + G(t)) dy'
+# The integral depends on the solution, so there is no pointwise rootfind; and
+# superposition is gone, so Womersley's Bessel/cosh construction does not
+# apply to a nonlinear nu(gammadot). No closed form.
+#
+# What survives EXACTLY, and is used in full:
+#   1. tau_w(t) = h (G(t) - d<u>/dt)  — pure force balance, independent of
+#      both rheology and unsteadiness. Convergence gate and exact check.
+#   2. Half-wave symmetry u(y, t+T/2) = -u(y, t): G is odd under t -> t+T/2
+#      and nu(|gammadot|) is even, so the periodic state must be odd. Any
+#      violation is a bug or incomplete periodicity, never physics.
+#   3. Two limits, each against an oracle already in the repo.
+# The profile itself has no oracle and is bounded by GCI (ASME V&V 20).
+name: womersley_carreau
+
+nondim:
+  # NOMINAL Womersley number, defined on nu0: alpha = h sqrt(omega/nu0).
+  # The EFFECTIVE value on the wall viscosity is much higher — reported by
+  # the runner as alpha_eff, and what the mesh is actually sized on.
+  alpha: 10.0
+  # Cu = k G h / nu0. Here G is PRESCRIBED (a forcing amplitude, not an
+  # output of a mean-velocity constraint), so k follows directly.
+  Cu: 10.0
+  n: 0.5
+  nu_inf_over_nu0: 0.01
+  a: 2.0
+
+geometry:
+  type: womersley_carreau
+  half_height: 1.0
+  length: 0.5
+
+resolution:
+  # Cells per Stokes layer, with the layer computed from the WALL viscosity
+  # (nu_wall < nu0 under thinning => thinner layer => finer mesh). Sizing on
+  # nu0 would under-resolve and look like a discretisation problem rather
+  # than a mesh-sizing mistake.
+  cells_per_stokes_layer: 8
+  n_steps_per_cycle: 128
+
+convergence:
+  periodicity_tol: 1.0e-6
+  max_cycles: 10
+
+limits:
+  # Cu -> 0 recovers linear Womersley (exact cosh oracle).
+  cu_zero: 0.01
+  # alpha -> 0 is quasi-steady: at each instant the profile must equal the
+  # STEADY Carreau profile for the instantaneous G(t) (exact rootfind oracle).
+  alpha_small: 0.3
+  alpha_small_cells: 80
+
+gci:
+  # ASME V&V 20 on the profile, which has no oracle. Combined space-time
+  # refinement, as in womersley: refining time alone at fixed mesh hits the
+  # spatial phase floor and reports a meaningless order.
+  levels: [[112, 64], [224, 128], [336, 192]]
+  safety_factor: 1.25
+  # If the observed order leaves this band the sequence is not in the
+  # asymptotic range and Fs reverts to 3, reported explicitly.
+  order_band: [1.5, 2.5]
+  fallback_safety_factor: 3.0
+
+metrics:
+  - name: identity_max_rel
+    tol: 1.0e-6
+  - name: half_wave_symmetry
+    tol: 1.0e-6

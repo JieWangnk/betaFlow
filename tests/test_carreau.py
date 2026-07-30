@@ -133,6 +133,37 @@ def test_carreau_steady():
             / carreau.u_mean(g, h, 0.02, 0.0, k, n_index)
         )
 
+    # 3b. COST MECHANISM. Claim: iteration cost tracks the viscosity CONTRAST
+    #     nu_0/nu_wall, not Cu directly, and nu_inf caps that contrast. The
+    #     counterintuitive consequence — removing nu_inf makes the problem
+    #     HARDER — is the discriminating test.
+    contrast_arm = []
+    for ratio in (float(case["nondim"]["nu_inf_over_nu0"]), 0.0):
+        for cu in cu_sweep[1:]:  # Cu=0.1 is Newtonian for either ratio
+            g, k = carreau.drive_for_carreau_number(1.0, h, 0.02, ratio * 0.02, n_index, cu)
+            gdot_w = carreau.shear_rate(g * h, 0.02, ratio * 0.02, k, n_index)
+            nu_w = carreau.viscosity(gdot_w, 0.02, ratio * 0.02, k, n_index)
+            run = _evaluate(_run(n_cells=levels[0], cu=cu, nu_inf_over_nu0=ratio), h)
+            run["nu_inf_over_nu0_set"] = ratio
+            run["contrast"] = 0.02 / float(nu_w)
+            run["cost_vs_newtonian"] = (
+                run["iterations_to_residual_1e10"]
+                / newtonian[0]["iterations_to_residual_1e10"]
+            )
+            run["contrast_exponent"] = math.log(run["cost_vs_newtonian"]) / math.log(
+                run["contrast"]
+            )
+            contrast_arm.append(run)
+
+    def _cu_exponent(arm):
+        lo, hi = arm[0], arm[-1]
+        return math.log(
+            hi["iterations_to_residual_1e10"] / lo["iterations_to_residual_1e10"]
+        ) / math.log(hi["Cu"] / lo["Cu"])
+
+    capped = [r for r in contrast_arm if r["nu_inf_over_nu0_set"] > 0]
+    uncapped = [r for r in contrast_arm if r["nu_inf_over_nu0_set"] == 0]
+
     main = refinement[-1]
     passed = main["L2_velocity"] < tols["L2_velocity"] and main["wss_relative"] < tols["wss_relative"]
 
@@ -152,6 +183,13 @@ def test_carreau_steady():
         "power_law_limit_asymptote": (2 * n_index + 1) / (n_index + 1),
         "blood_point": blood,
         "newtonian_reference": newtonian,
+        "cost_mechanism": {
+            "runs": contrast_arm,
+            "cu_exponent_capped": _cu_exponent(capped),
+            "cu_exponent_uncapped": _cu_exponent(uncapped),
+            "contrast_exponent_capped": sum(r["contrast_exponent"] for r in capped) / len(capped),
+            "contrast_exponent_uncapped": sum(r["contrast_exponent"] for r in uncapped) / len(uncapped),
+        },
         "stiffness_ratio_vs_newtonian": stiffness,
         "main": {"tols": tols, "errors": {k: main[k] for k in tols}, "passed": passed},
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -201,6 +239,23 @@ def test_carreau_steady():
     assert sweep_iters[0] < STIFFNESS_RATIO_MAX * newtonian[0]["iterations_to_residual_1e10"], (
         f"at the lowest Cu the cost must approach Newtonian; got "
         f"{sweep_iters[0]} vs {newtonian[0]['iterations_to_residual_1e10']}"
+    )
+
+    # 3b. Cost tracks contrast, not Cu. Removing nu_inf UNCAPS the contrast,
+    #     so the apparent Cu-exponent must RISE; and the exponent measured
+    #     against contrast must be the same for both, which is the claim that
+    #     the two are one mechanism.
+    cu_capped = _cu_exponent(capped)
+    cu_uncapped = _cu_exponent(uncapped)
+    assert cu_uncapped > cu_capped, (
+        f"removing nu_inf should uncap the viscosity contrast and make the "
+        f"problem harder; Cu-exponent went {cu_capped:.3f} -> {cu_uncapped:.3f}"
+    )
+    q_capped = sum(r["contrast_exponent"] for r in capped) / len(capped)
+    q_uncapped = sum(r["contrast_exponent"] for r in uncapped) / len(uncapped)
+    assert abs(q_capped - q_uncapped) < 0.1, (
+        f"cost should collapse onto a single power law in contrast regardless "
+        f"of how the contrast arose; exponents {q_capped:.3f} vs {q_uncapped:.3f}"
     )
 
     # 4. Shear-thinning signature. The committed prediction was that
