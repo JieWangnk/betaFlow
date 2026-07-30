@@ -44,6 +44,43 @@ ORDER_ALPHA = 5.0
 
 IDENTITY_TOL = 1e-6  # bounded by linear-solver tolerances, not the identity
 
+# Phase-metric calibration: Euler at fixed mesh, refining only in time. The
+# semi-discrete theory replaces i*omega by the scheme's symbol lambda, so the
+# phase error is predictable in closed form — if the metric measures the time
+# scheme and nothing else, measurement matches prediction.
+CALIBRATION_STEPS = (64, 128, 256)
+CALIBRATION_CELLS = 64
+# A-priori band: the symbol prediction neglects SPATIAL error, whose
+# standalone phase contribution is measured by the backward arm of the same
+# sweep (~4.5e-4, which plateaus once temporal error falls below it). That is
+# under 4% of the Euler phase error at the finest level, so 5% is the honest
+# theory-derived band — not a fitted one.
+CALIBRATION_RTOL = 0.05
+
+
+def _symbol_phase_error(n_steps, alpha, scheme, h=1.0, period=1.0):
+    """Phase error predicted by the ddt scheme's discrete symbol.
+
+    Semi-discrete in time: the scheme replaces i*omega by
+    lambda = (1 - z)/dt (Euler) or (3 - 4z + z^2)/(2 dt) (backward),
+    z = exp(-i omega dt), so the profile becomes
+    (g/lambda)(1 - cosh(sqrt(lambda/nu) y)/cosh(sqrt(lambda/nu) h)).
+    Both the 1/lambda prefactor (the leading omega*dt/2 lag for Euler) and
+    the modified Stokes wavenumber contribute.
+    """
+    omega = 2.0 * np.pi / period
+    nu = omega * h**2 / alpha**2
+    dt = period / n_steps
+    z = np.exp(-1.0j * omega * dt)
+    lam = (1.0 - z) / dt if scheme == "Euler" else (3.0 - 4.0 * z + z * z) / (2.0 * dt)
+    y = np.linspace(-0.999 * h, 0.999 * h, 400)
+    k = np.sqrt(lam / nu)
+    discrete = (1.0 / lam) * (1.0 - np.cosh(k * y) / np.cosh(k * h))
+    exact = womersley.complex_profile(y / h, alpha)
+    return METRICS["L2_phase"](
+        np.angle(discrete), np.angle(exact), np.abs(exact) ** 2
+    )
+
 
 def _evaluate(result, alpha, h):
     """Amplitude/phase/WSS errors of one run against the oracle."""
@@ -60,6 +97,14 @@ def _evaluate(result, alpha, h):
         np.abs(np.angle(np.exp(1j * (result["tau_phase"] - np.angle(tau_exact)))))
     )
     meta = result["meta"]
+    # Per-cycle transient decay: once the fast Stokes-layer modes die (one
+    # cycle), the ratios decay geometrically at the slowest channel mode's
+    # rate exp(-nu pi^2 T / 4h^2) = exp(-pi^3 / 2 alpha^2). Logged in full —
+    # the ratios ARE the evidence for the convergence claim, so storing only
+    # the last value (as an earlier revision did) discards it.
+    ratios = np.asarray(meta["periodicity"])
+    late = ratios[1:][-4:]
+    decay_observed = float(np.mean(late[1:] / late[:-1])) if late.size > 1 else None
     return {
         "alpha": alpha,
         "n_cells": meta["mesh_level"],
@@ -71,7 +116,9 @@ def _evaluate(result, alpha, h):
         "wss_amp_relative": wss_amp_err,
         "wss_phase_error": wss_phase_err,
         "cycles_to_periodic": meta["cycles_to_periodic"],
-        "final_periodicity": meta["periodicity"][-1],
+        "periodicity": meta["periodicity"],
+        "decay_observed": decay_observed,
+        "decay_predicted": float(np.exp(-np.pi**3 / (2.0 * alpha**2))),
         "identity_max_rel": meta["identity_max_rel"],
     }
 
@@ -119,6 +166,27 @@ def test_womersley_pulsatile():
         h,
     )
 
+    # 5. Phase-metric calibration: fixed mesh, time refinement only.
+    calibration = []
+    for scheme in ("Euler", "backward"):
+        for nt in CALIBRATION_STEPS:
+            run = _evaluate(
+                _run(alpha=ORDER_ALPHA, n_cells=CALIBRATION_CELLS, n_steps=nt, ddt=scheme),
+                ORDER_ALPHA,
+                h,
+            )
+            predicted = _symbol_phase_error(nt, ORDER_ALPHA, scheme)
+            calibration.append(
+                {
+                    "ddt": scheme,
+                    "n_steps": nt,
+                    "measured": run["L2_phase"],
+                    "leading_order_pi_over_nt": math.pi / nt if scheme == "Euler" else None,
+                    "symbol_prediction": predicted,
+                    "ratio": run["L2_phase"] / predicted,
+                }
+            )
+
     main = sweep[-1]  # alpha = 20 at case-default resolution
     passed = all(main[name] < tol for name, tol in tols.items())
 
@@ -135,6 +203,12 @@ def test_womersley_pulsatile():
             "p_amplitude": p_amplitude,
             "p_wss": p_wss,
             "euler": euler,
+        },
+        "phase_metric_calibration": {
+            "n_cells": CALIBRATION_CELLS,
+            "alpha": ORDER_ALPHA,
+            "rtol": CALIBRATION_RTOL,
+            "runs": calibration,
         },
         "identity_tol": IDENTITY_TOL,
         "identity_worst": identity_worst,
@@ -162,3 +236,15 @@ def test_womersley_pulsatile():
     assert euler["L2_amplitude"] > order[1]["L2_amplitude"], (
         "Euler should be less accurate than backward at the same resolution"
     )
+    # The phase metric must measure the time scheme's symbol and nothing else.
+    # Asserted for Euler only: backward's temporal phase error falls below the
+    # fixed mesh's spatial floor within this sweep (visible as a plateau in the
+    # logged backward arm), so its ratio is not a metric-calibration signal.
+    for entry in calibration:
+        if entry["ddt"] != "Euler":
+            continue
+        assert abs(entry["ratio"] - 1.0) < CALIBRATION_RTOL, (
+            f"phase metric off symbol prediction by {abs(entry['ratio'] - 1):.1%} "
+            f"at n_steps={entry['n_steps']} (band {CALIBRATION_RTOL:.0%}): "
+            f"measured {entry['measured']:.4e} vs predicted {entry['symbol_prediction']:.4e}"
+        )

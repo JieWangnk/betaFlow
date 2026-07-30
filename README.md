@@ -139,6 +139,31 @@ discrete solution can be; in a conservative FV scheme the wall flux is pinned
 by the global balance, so a formally first-order wall gradient can return a
 flux with no first-order error at all.
 
+### When error-accumulation reasoning applies — and when it does not
+
+Two a-priori predictions were made here from operator-level reasoning, and
+both were wrong the same way: **quantities linked by a discrete balance were
+treated as if independently computed.** They are not. The balance is an
+identity on the discrete solution, so errors in the linked quantities are
+perfectly correlated by construction — they cannot accumulate independently,
+and cancellation analysis does not apply.
+
+| prediction | reasoning | outcome |
+|---|---|---|
+| steady WSS p ≈ 1 | one-sided wall gradient is formally O(dy) | wrong — p = 2.00, balance pins the wall flux |
+| unsteady WSS error ~alpha× | tau_w is a small difference of two large terms | wrong — flat in alpha, balance pins it per timestep |
+
+The transferable rule: **catastrophic cancellation is a real hazard for
+non-conservative post-processing estimates built from separately measured
+terms — not for a solver's own conserved flux.** The distinction has direct
+clinical bite. WSS from 4D flow MRI *is* the hazardous case: a gradient
+reconstructed from independently noisy velocity measurements, with no
+balance locking it to anything, so the ~1/alpha amplification predicted above
+is a genuine concern there. The same solver-side immunity should be expected
+— and checked, not assumed — for every other balance-locked quantity:
+branch flow splits at a bifurcation, pressure drop across a stenosis, outlet
+flux distribution.
+
 For Womersley the identity itself survives — telescoping gives
 tau_w(t) = h·(G(t) − d⟨u⟩/dt) — and the a-priori prediction (p ≈ 2
 preserved; WSS error ~alpha× the steady value, ~6e-3 at N=80/alpha=20,
@@ -158,8 +183,35 @@ non-conservative post-processing estimates of WSS, not to the solver's own
 flux. Meanwhile Euler time-stepping puts its first-order error where only a
 pulsatile case can see it: velocity phase 2.4e-2 rad vs backward's 4.8e-4
 at identical resolution (49×), while its WSS amplitude error crosses
-fortuitously through zero — a warning against validating a time scheme on
-amplitude alone.
+fortuitously through zero and *beats* backward. Amplitude-only validation
+does not merely fail to catch first-order time stepping here — it actively
+prefers it. That is the concrete reason phase metrics are mandatory rather
+than nice-to-have.
+
+**Phase-metric calibration** (`phase_metric_calibration` in the results
+JSON, asserted in the test). Refining time only at fixed mesh, the measured
+Euler phase error matches the closed-form discrete-symbol prediction — the
+scheme replaces i·omega by lambda = (1 − z)/dt, z = exp(−i·omega·dt), which
+shifts both the 1/lambda prefactor and the Stokes wavenumber — to within
+0.2/0.4/0.7% at n_t = 64/128/256. The leading-order lag omega·dt/2 = pi/n_t
+alone accounts for 96.7% of it, constant across a 4× range; the missing 3.3%
+is the profile-shape term. So the metric measures the time scheme's symbol
+and nothing else. The backward arm of the same sweep does the complementary
+job: its phase error plateaus at ~4.5e-4 instead of following its own
+symbol prediction down, which *is* the fixed mesh's spatial phase floor —
+and the reason the order study refines space and time together.
+
+**Transient-convergence mechanism** (`decay_observed` vs `decay_predicted`
+per sweep run). Once the fast Stokes-layer modes die within one cycle
+(ratios drop ~50× between cycle 2 and 3), the cycle-to-cycle ratios decay
+geometrically at the slowest channel mode's rate exp(−pi³/2alpha²):
+predicted 0.5379 / 0.8564 / 0.9620 at alpha = 5/10/20, measured 0.5380 /
+0.8564 / 0.9179 — four-digit agreement at alpha = 5 and 10, while alpha = 20
+is still approaching its asymptote from below within 10 cycles (faster modes
+have not fully separated). The post-fast-transient amplitude *decreases*
+with alpha (8.99e-6 / 4.43e-6 / 3.08e-6), so slower decay and smaller
+starting amplitude compete: `cycles_to_periodic` is non-monotonic (7 / not
+met / 8), which is a measured mechanism rather than an inferred one.
 
 A hand-picked tolerance is arbitrary; the observed order is what makes an
 error number meaningful. The N=40 cellPoint error (1.30e-3) *fails* the 1e-3
@@ -169,6 +221,29 @@ stated mesh level.
 Cross-version check: the L2 error is identical to all logged digits under
 OpenFOAM 12 and OpenFOAM 14 (see the results history in git) — the upgrade
 changed dictionary syntax, not the discrete solution.
+
+## Committed prediction: casson_steady (not yet built)
+
+Recorded before the case exists, as the Womersley prediction was — a
+prediction written after seeing the data is worth much less.
+
+Yield-stress models are singular: effective viscosity → ∞ as shear rate → 0.
+OpenFOAM regularises with a `nuMax` cap, so the plug never becomes rigid; it
+creeps at gamma_dot ≈ tau/(rho·nuMax). The exact plug half-width is
+y_p = tau_y/G, but the computed one is set by where nu saturates against the
+cap.
+
+**Prediction: plug-width error scales as 1/nuMax and does NOT converge under
+mesh refinement** — the error is the regularisation floor, not
+discretisation. Above some nuMax the system stiffens and the linear solver
+degrades, giving a practical ceiling.
+
+If it holds, the finding travels beyond this repo: `nuMax` is an unreported
+degree of freedom in published Casson haemodynamics. Rheology parameters are
+reported; the regularisation cap is not — so plug-region results are not
+reproducible from the stated method. Testing it needs a **two-dimensional
+study (mesh × nuMax)**, which is a new shape for the refinement machinery:
+the existing helpers assume one refinement axis with a single observed order.
 
 ## Adding a case
 
