@@ -865,12 +865,32 @@ def _run_womersley(
     profiles = _read_phase_profiles(casedir)
     ratios, cycles_to_periodic = _periodicity(profiles, period, max_cycles, periodicity_tol)
     y, u_hat = _harmonic_profile(profiles, period, max_cycles)
+    _, u_hat3 = _harmonic_profile(profiles, period, max_cycles, harmonic=3)
+    half_wave = _half_wave_residual(profiles, period, max_cycles)
 
     t_series, tau_b, tau_t, u_bulk = _read_wall_series(casedir)
     identity_max, sign_b, sign_t, tau_series = _wall_identity(
         t_series, tau_b, tau_t, u_bulk, h, g_amp, omega, ddt, period / n_steps
     )
+    # The momentum-balance identity is the convergence gate for the transient
+    # generalised-Newtonian case, exactly as it is for the steady ones — and
+    # here it is also the ONLY exact pointwise check available. A run can
+    # complete without crashing yet be numerically worthless: the variable-nu
+    # explicit deviatoric term seeds a spurious wall-normal velocity, the two
+    # wall shears diverge from each other, and the identity opens to O(1)
+    # while the solver reports nothing. Refuse such a run rather than report
+    # its profile.
+    if gtype == "womersley_carreau" and identity_max > _IDENTITY_GATE_TOL:
+        fourier = nu * (period / n_steps) / (2.0 * h / n_cells) ** 2
+        raise RuntimeError(
+            f"momentum-balance identity open by {identity_max:.3e} > "
+            f"{_IDENTITY_GATE_TOL:.0e} in {casedir}. The viscous Fourier "
+            f"number nu0*dt/dy^2 is {fourier:.1f}; the variable-viscosity "
+            f"explicit term is stable only for O(1) values, so n_steps must "
+            f"scale as n_cells^2. See log.foamRun."
+        )
     tau_hat = _harmonic_scalar(t_series, tau_series, period, max_cycles)
+    tau_hat3 = _harmonic_scalar(t_series, tau_series, period, max_cycles, harmonic=3)
 
     return {
         "y": y,
@@ -879,6 +899,8 @@ def _run_womersley(
         "u_ref": u_ref,
         "tau_amp": float(np.abs(tau_hat)),
         "tau_phase": float(np.angle(tau_hat)),
+        "u_amp3": np.abs(u_hat3),
+        "tau_amp3": float(np.abs(tau_hat3)),
         "tau_ref": tau_ref,
         "meta": {
             "solver": "openfoam",
@@ -895,6 +917,8 @@ def _run_womersley(
             "cycles_to_periodic": cycles_to_periodic,
             "periodicity": ratios,
             "identity_max_rel": identity_max,
+            "half_wave_residual": half_wave,
+            "viscous_fourier": float(nu * (period / n_steps) / (2.0 * h / n_cells) ** 2),
             "wss_sign_convention": [sign_b, sign_t],
             "sampling": "cell",
             "case_dir": str(casedir),
@@ -970,7 +994,26 @@ def _periodicity(profiles, period, max_cycles, tol):
     return ratios, cycles_to_periodic
 
 
-def _harmonic_profile(profiles, period, max_cycles):
+def _half_wave_residual(profiles, period, max_cycles):
+    """max ||u(t+T/2) + u(t)|| / max ||u|| over the final cycle.
+
+    G(t) = G cos(wt) is odd under t -> t + T/2 and nu(|gammadot|) is even in
+    gammadot, so the periodic state MUST satisfy u(y, t+T/2) = -u(y, t)
+    exactly. Any violation is a bug or incomplete periodicity, never physics
+    — it holds for a nonlinear rheology just as it does for a linear one.
+    """
+    half = _N_PHASES // 2
+    diffs, norms = [], []
+    for m in range(1, half + 1):
+        t = (max_cycles - 1) * period + m * period / _N_PHASES
+        _, u_a = _profile_at(profiles, t)
+        _, u_b = _profile_at(profiles, t + period / 2.0)
+        diffs.append(np.linalg.norm(u_a + u_b))
+        norms.append(np.linalg.norm(u_a))
+    return float(max(diffs) / max(norms))
+
+
+def _harmonic_profile(profiles, period, max_cycles, harmonic=1):
     """First-harmonic complex profile from the final cycle's phase samples.
 
     The discrete problem is linear and time-invariant under single-harmonic
@@ -982,17 +1025,19 @@ def _harmonic_profile(profiles, period, max_cycles):
     for m in range(1, _N_PHASES + 1):
         t = (max_cycles - 1) * period + m * period / _N_PHASES
         y, u = _profile_at(profiles, t)
-        term = u * np.exp(-2.0j * np.pi * t / period)
+        term = u * np.exp(-2.0j * np.pi * harmonic * t / period)
         acc = term if acc is None else acc + term
     return y, 2.0 / _N_PHASES * acc
 
 
-def _harmonic_scalar(t, series, period, max_cycles):
-    """First-harmonic complex amplitude of a per-timestep scalar series,
-    evaluated over the final cycle."""
+def _harmonic_scalar(t, series, period, max_cycles, harmonic=1):
+    """Complex amplitude of one harmonic of a per-timestep scalar series,
+    over the final cycle. Half-wave symmetry admits ONLY odd harmonics, and
+    a linear (Newtonian) response has none above the first — so the third
+    harmonic is a direct measure of the constitutive nonlinearity."""
     mask = t > (max_cycles - 1) * period + 1e-9
     tt, ss = t[mask], series[mask]
-    return 2.0 / tt.size * np.sum(ss * np.exp(-2.0j * np.pi * tt / period))
+    return 2.0 / tt.size * np.sum(ss * np.exp(-2.0j * np.pi * harmonic * tt / period))
 
 
 def _read_vector_series(path):

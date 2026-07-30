@@ -1,0 +1,116 @@
+{
+  "case": "womersley_carreau",
+  "runner": "openfoam",
+  "cycles_run": 20,
+  "verified_exactly": {
+    "momentum_identity": {
+      "definition": "tau_w(t) = h (G(t) - d<u>/dt), per timestep",
+      "max_over_all_runs": 2.715438152325586e-07,
+      "tol": 1e-06
+    },
+    "half_wave_symmetry": {
+      "definition": "u(y, t+T/2) = -u(y, t) on the periodic state",
+      "residual": 0.002672485364120531,
+      "periodicity_residual": 0.0002208218851647177,
+      "ratio": 12.102447916912961
+    },
+    "limit_womersley": {
+      "Cu": 0.01,
+      "n_cells": 112,
+      "L2_amplitude": 0.0010170442232055792,
+      "L2_phase": 0.0004169081691655282,
+      "A3_over_A1_tau": 3.95032039962303e-06,
+      "identity_max_rel": 2.333536132211156e-10
+    },
+    "limit_quasi_steady": {
+      "alpha": 0.3,
+      "n_cells": 32,
+      "viscous_fourier": 2.181661564992912,
+      "L2_vs_steady_carreau": 0.001989725621353286,
+      "amplitude_ratio": 0.81227805763689,
+      "identity_max_rel": 2.9612005783137512e-08
+    }
+  },
+  "estimated_by_gci": {
+    "A1_peak": {
+      "p": 3.549786188521175,
+      "monotone": true,
+      "extrapolated": 1.068054452813134,
+      "gci_fine": 8.764423975767245e-05,
+      "safety_factor": 3.0,
+      "asymptotic": false,
+      "note": "NOT in the asymptotic range (p=3.55, monotone=True) \u2014 Fs raised to 3.0"
+    },
+    "tau_amp": {
+      "p": 2.580327841074213,
+      "monotone": true,
+      "extrapolated": 0.09513519757343104,
+      "gci_fine": 0.00028747157550498245,
+      "safety_factor": 3.0,
+      "asymptotic": false,
+      "note": "NOT in the asymptotic range (p=2.58, monotone=True) \u2014 Fs raised to 3.0"
+    }
+  },
+  "gci_ladder": [
+    {
+      "n_cells": 84,
+      "n_steps": 64,
+      "alpha_nominal": 10.0,
+      "alpha_eff": 29.216586365659726,
+      "Cu": 10.0,
+      "nu_wall_over_nu0": 0.11714966630539662,
+      "cells_per_stokes_layer": 2.0329880047000755,
+      "viscous_fourier": 1.7318029502913739,
+      "identity_max_rel": 1.190224946167303e-10,
+      "half_wave_residual": 0.007686782889144871,
+      "final_periodicity": 0.0006321708887508615,
+      "cycles_to_periodic": null,
+      "cycles_run": 20,
+      "A1_peak": 1.0637752085930694,
+      "A3_over_A1_velocity": 0.006698861240578273,
+      "A3_over_A1_tau": 0.01916871093073473,
+      "tau_amp": 0.09480914665887094
+    },
+    {
+      "n_cells": 168,
+      "n_steps": 256,
+      "alpha_nominal": 10.0,
+      "alpha_eff": 29.216586365659726,
+      "Cu": 10.0,
+      "nu_wall_over_nu0": 0.11714966630539662,
+      "cells_per_stokes_layer": 4.065976009400151,
+      "viscous_fourier": 1.7318029502913739,
+      "identity_max_rel": 4.99007674021794e-10,
+      "half_wave_residual": 0.0036695657785415906,
+      "final_periodicity": 0.0003029061049239916,
+      "cycles_to_periodic": null,
+      "cycles_run": 20,
+      "A1_peak": 1.0676890474209675,
+      "A3_over_A1_velocity": 0.006650018226771185,
+      "A3_over_A1_tau": 0.018626224326557337,
+      "tau_amp": 0.09508068090046623
+    },
+    {
+      "n_cells": 336,
+      "n_steps": 1024,
+      "alpha_nominal": 10.0,
+      "alpha_eff": 29.216586365659726,
+      "Cu": 10.0,
+      "nu_wall_over_nu0": 0.11714966630539662,
+      "cells_per_stokes_layer": 8.131952018800302,
+      "viscous_fourier": 1.7318029502913739,
+      "identity_max_rel": 2.715438152325586e-07,
+      "half_wave_residual": 0.002672485364120531,
+      "final_periodicity": 0.0002208218851647177,
+      "cycles_to_periodic": null,
+      "cycles_run": 20,
+      "A1_peak": 1.0680232507845144,
+      "A3_over_A1_velocity": 0.006625347776803324,
+      "A3_over_A1_tau": 0.01857427253175748,
+      "tau_amp": 0.09512608222518808
+    }
+  ],
+  "timestamp": "2026-07-30T20:40:09+00:00",
+  "openfoam_version": "14",
+  "git_sha": "aec6a337ecc9-dirty"
+}

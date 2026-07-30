@@ -53,13 +53,27 @@ limits:
   # alpha -> 0 is quasi-steady: at each instant the profile must equal the
   # STEADY Carreau profile for the instantaneous G(t) (exact rootfind oracle).
   alpha_small: 0.3
-  alpha_small_cells: 80
+  # nu0 = omega/alpha^2 is LARGE at small alpha, so the viscous Fourier limit
+  # (see gci below) bites hard: nt >= 7.9*N^2 here. N=32 with nt=8192 sits at
+  # Fourier 2.2; N=80 would need nt > 50000. The Stokes layer spans the whole
+  # channel in this limit, so a coarse mesh is physically adequate.
+  alpha_small_cells: 32
+  alpha_small_steps: 8192
+  alpha_small_cycles: 3
 
 gci:
   # ASME V&V 20 on the profile, which has no oracle. Combined space-time
-  # refinement, as in womersley: refining time alone at fixed mesh hits the
-  # spatial phase floor and reports a meaningless order.
-  levels: [[112, 64], [224, 128], [336, 192]]
+  # refinement: refining time alone at fixed mesh hits the spatial phase
+  # floor and reports a meaningless order.
+  #
+  # n_steps scales as n_cells^2, NOT n_cells. Under a variable viscosity the
+  # explicit deviatoric term div(nu (grad u)^T) — which vanishes identically
+  # for constant nu — imposes a viscous-Fourier limit nu0*dt/dy^2 = O(1).
+  # Measured: stable at 1.5 and 3.3, divergent at 13.2. Every level below
+  # sits at Fourier 1.73, so the sequence refines space at r = 2 with the
+  # temporal error falling as N^-4 and therefore negligible: the observed
+  # order is effectively the spatial one.
+  levels: [[84, 64], [168, 256], [336, 1024]]
   safety_factor: 1.25
   # If the observed order leaves this band the sequence is not in the
   # asymptotic range and Fs reverts to 3, reported explicitly.

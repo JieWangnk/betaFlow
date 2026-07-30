@@ -102,6 +102,7 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 | womersley_pulsatile | wss_amp_relative | tau_hat = G h tanh(K)/K | alpha=20, 8 cells/delta | 4.2e-4 | 2e-2 |
 | casson_steady | L2_velocity | Casson channel profile | N=160, nuMax/nu_c=1e2 | 7.3e-4 | 1e-2 |
 | casson_steady | wss_relative | tau_w = G h (rheology-independent) | N=160, nuMax/nu_c=1e2 | 3.8e-11 | 1e-6 |
+| womersley_carreau | identity_max_rel | tau_w(t) = h(G - d<u>/dt) — NO profile oracle | N=336, nt=1024 | 2.7e-7 | 1e-6 |
 | carreau_steady | L2_velocity | Carreau-Yasuda channel (rootfind + quadrature) | N=160, Cu=10 | 6.1e-5 | 1e-2 |
 | carreau_steady | wss_relative | tau_w = G h (rheology-independent) | N=160, Cu=10 | 0.0 | 1e-6 |
 
@@ -361,6 +362,74 @@ nu_inf = 3.255e-6 m²/s, k = 3.313 s, n = 0.3568; h = 10 mm, u_mean = 0.3 m/s):
 than the n = 0.5 sweep point at Cu = 10 despite the lower power-law index,
 because its viscosity ratio (0.0616) is six times larger — the same finite-plateau
 effect, at physiological parameters.
+
+## womersley_carreau: verification without an oracle
+
+The first case with NO exact solution — the point of it. The unsteady term
+breaks the force balance every previous oracle rested on, and nu(gammadot)
+kills superposition, so the profile has no closed form. Patient geometry has
+no oracle either; this is the rehearsal for that.
+
+**Verified EXACTLY** (measured, not estimated):
+
+| quantity | result |
+|---|---|
+| momentum identity tau_w(t) = h(G(t) - d<u>/dt), per timestep | 2.72e-07 |
+| half-wave symmetry u(y,t+T/2) = -u(y,t) | 12.1x the periodicity residual (see below) |
+| Cu -> 0 vs the exact Womersley cosh oracle | L2 amp 1.02e-03, phase 4.17e-04 rad |
+| alpha -> 0 vs the exact steady Carreau oracle | L2 1.99e-03 |
+
+**ESTIMATED by GCI** (ASME V&V 20, the first in this repo):
+
+| functional | p | GCI (fine) | Fs | asymptotic |
+|---|---|---|---|---|
+| peak first-harmonic amplitude | 3.55 | 8.76e-05 | 3.0 | NO |
+| wall-shear amplitude | 2.58 | 2.88e-04 | 3.0 | NO |
+
+Neither sequence is in the asymptotic range, so the safety factor is raised
+from 1.25 to 3 and that is reported rather than a tight band being quoted on
+an unconverged sequence. The cause is understood: the stability limit below
+forces n_t ~ N^2, so the temporal error falls as dy^4 while the spatial error
+falls as dy^2, and a mixed A dy^2 + B dy^4 error gives an apparent order
+between 2 and 4. Both sequences are monotone and the three solutions differ by
+under 0.1% across a 4x mesh range.
+
+**A stability limit with no Newtonian analogue.** The explicit deviatoric term
+div(nu (grad u)^T) vanishes identically for constant nu, so Newtonian runs
+never feel it. Under a variable viscosity it does not, and it imposes
+nu0*dt/dy^2 = O(1): measured stable at Fourier 1.5 and 3.3, divergent at 13.2.
+So **n_t must scale as N^2, not N**. Worse, the failure is not always a crash —
+at Fourier 279 a run completed normally while producing garbage (the two wall
+shears disagreed, -1.06 vs +3.27, and <u> oscillated violently). Nothing in
+the solver output flagged it; only the identity did, opening to 3.18. That is
+why the identity is the transient convergence gate.
+
+**Mesh sizing must use nu_wall, not nu0.** Shear thinning gives
+nu_wall/nu0 = 0.117 here, so the Stokes layer is thinner and the EFFECTIVE
+Womersley number is alpha_eff = 29.2 against a nominal 10. Sizing on nu0 would
+have given N=112 instead of N=336 and looked like a discretisation problem
+rather than a sizing mistake.
+
+**Odd-harmonic content** is the signature of the nonlinearity and the analogue
+of the phase metric in womersley: half-wave symmetry admits only odd
+harmonics, and a linear response has none above the first, so A3/A1 measures
+the constitutive nonlinearity directly. Measured 0.0066 (velocity) and 0.0186
+(tau_w) at Cu = 10, collapsing to 3.95e-06 at Cu = 0.01 — a factor of 4700.
+
+**Periodicity costs 10x more than the linear case.** The transient decays at
+0.865/cycle, set by nu0 (the NOMINAL alpha) rather than nu_wall, because the
+slow mode lives in the low-shear core. Reaching a 1e-6 periodicity residual
+would take ~90 cycles (~30 min at the finest level), so the budget is capped
+at 20 and the ACHIEVED periodicity is reported: cycles_to_periodic is None at
+every level. Half-wave symmetry is then bounded against it — the ratio is 12.1
+here and was 11.7/12.6/12.4/12.2 at 4/8/12/16 cycles, so the symmetry residual
+is incomplete periodicity and not an independent violation.
+
+In the alpha -> 0 limit the first-harmonic amplitude is 0.81 of the steady
+peak. That is not an error: a shear-thinning fluid driven by G cos(wt)
+responds non-sinusoidally, so the fundamental carries less than the full
+amplitude. It is the A3/A1 nonlinearity seen from the other side, and the
+profile SHAPE still matches the steady oracle to 2e-3.
 
 ## Adding a case
 
