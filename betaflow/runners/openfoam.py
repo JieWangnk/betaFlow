@@ -48,14 +48,28 @@ _SHARED_FILES = {
     "fvSolution": "system/fvSolution",
     "functions": "system/functions",
     "physicalProperties": "constant/physicalProperties",
-    "momentumTransport": "constant/momentumTransport",
     "p": "0/p",
 }
 
-# case-type-specific templates on top of the shared set
+# Case-type-specific templates on top of the shared set. Each type names its
+# own constant/momentumTransport: adding a constitutive model must not mean
+# silently overriding a shared entry (dict-merge order is not a contract).
 _TYPE_FILES = {
-    "channel": {"fvConstraints": "system/fvConstraints", "U_channel": "0/U"},
-    "couette": {"U_couette": "0/U"},
+    "channel": {
+        "fvConstraints": "system/fvConstraints",
+        "U_channel": "0/U",
+        "momentumTransport": "constant/momentumTransport",
+    },
+    "couette": {
+        "U_couette": "0/U",
+        "momentumTransport": "constant/momentumTransport",
+    },
+    "casson": {
+        "fvConstraints": "system/fvConstraints",
+        "U_channel": "0/U",
+        "momentumTransport_casson": "constant/momentumTransport",
+        "functions_casson": "system/functions",
+    },
 }
 
 # sampling mode -> template rendered into system/sample
@@ -74,6 +88,14 @@ _N_SAMPLE_POINTS = 101
 # round-off, and unrelaxed SIMPLEC reaches this floor in tens of iterations.
 _UX_RESIDUAL_TOL = 1e-12
 
+# Casson's nonlinear viscosity fixed point converges algebraically, not
+# geometrically: at nuMax/nu_c = 1e5 the Ux residual is still ~1e-6 after
+# 60k iterations, and this is NOT a linear-solver artefact (PBiCGStab/DILU
+# and smoothSolver stall at bit-identical values). The measured plug width
+# and profile stabilise far earlier — by residual ~1e-5 — so these runs are
+# given a fixed budget and gated on measurement drift instead.
+_CASSON_ITERATIONS = 20000
+
 
 def _end_time(n_cells):
     """SIMPLE iteration budget. The slowest error mode is diffusive, so
@@ -84,6 +106,49 @@ def _end_time(n_cells):
     value (1e-9) makes inner solves quit early and stalls the outer loop
     three decades above the floor."""
     return max(2000, (4 * int(n_cells) ** 2) // 5)
+
+
+def _setup_casson(case, u_drive, nu_max_ratio=1.0e4):
+    """Casson channel: identical drive and geometry to 'channel'; what differs
+    is the constitutive model and its regularisation cap.
+
+    The yield stress is set so the case realises its target xi = tau_y/(G h)
+    at the analytic G for this bulk velocity. G_disc read back from the solver
+    is what the plug width is actually computed from — never the prescribed G.
+    """
+    from betaflow.analytic import casson as _casson
+
+    h = float(case["geometry"]["half_height"])
+    xi = float(case["nondim"]["xi"])
+    # Re uses nu_c, the Casson consistency (infinite-shear limit), matching
+    # the poiseuille convention. Must match betaflow/analytic/casson.py.
+    nu_c = u_drive * (2.0 * h) / float(case["nondim"]["Re"])
+    g_pred = _casson.pressure_gradient_for_bulk(u_drive, h, nu_c, xi)
+    tau0 = xi * g_pred * h
+    nu_max = nu_max_ratio * nu_c
+    u_ref = g_pred * h**2 / nu_c * _casson.u_max_over_U0(xi)
+    return {
+        "y_min": -h,
+        "y_max": h,
+        "nu": nu_c,
+        "u_ref": u_ref,
+        "params": {
+            "u_mean": u_drive,
+            "u_init": u_drive,
+            "nu_c": nu_c,
+            "tau0": tau0,
+            "nu_max": nu_max,
+        },
+        "meta": {
+            "u_mean": u_drive,
+            "xi": xi,
+            "nu_c": nu_c,
+            "tau0": tau0,
+            "nu_max": nu_max,
+            "nu_max_ratio": nu_max_ratio,
+            "g_predicted": g_pred,
+        },
+    }
 
 
 def _setup_channel(case, u_drive):
@@ -120,7 +185,10 @@ def _setup_couette(case, u_drive):
     }
 
 
-_SETUPS = {"channel": _setup_channel, "couette": _setup_couette}
+_SETUPS = {"channel": _setup_channel, "couette": _setup_couette, "casson": _setup_casson}
+
+# Case types whose drive is a mean force, so meta carries pressure_gradient.
+_FORCE_DRIVEN = {"channel", "casson"}
 
 
 def run(case, **kwargs):
@@ -137,7 +205,16 @@ def run(case, **kwargs):
     return _run_steady(case, **kwargs)
 
 
-def _run_steady(case, n_cells=40, u_drive=1.0, workdir=None, sampling="cellPoint"):
+def _run_steady(
+    case,
+    n_cells=40,
+    u_drive=1.0,
+    workdir=None,
+    sampling="cellPoint",
+    require_converged=True,
+    iterations=None,
+    **setup_kwargs,
+):
     """Run the case in OpenFOAM and return the standard profile dict.
 
     Parameters
@@ -173,12 +250,13 @@ def _run_steady(case, n_cells=40, u_drive=1.0, workdir=None, sampling="cellPoint
     if sampling not in _SAMPLINGS:
         raise ValueError(f"unknown sampling '{sampling}': expected one of {sorted(_SAMPLINGS)}")
 
-    setup = _SETUPS[gtype](case, u_drive)
+    setup = _SETUPS[gtype](case, u_drive, **setup_kwargs)
     length = float(case["geometry"]["length"])
     gap = setup["y_max"] - setup["y_min"]
 
     workdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
-    casedir = workdir / f"{case['name']}_openfoam_n{int(n_cells)}_{sampling}"
+    suffix = "".join(f"_{k}{v:g}" for k, v in sorted(setup_kwargs.items()))
+    casedir = workdir / f"{case['name']}_openfoam_n{int(n_cells)}{suffix}_{sampling}"
     if casedir.exists():
         shutil.rmtree(casedir)
 
@@ -191,20 +269,50 @@ def _run_steady(case, n_cells=40, u_drive=1.0, workdir=None, sampling="cellPoint
         "nx": _N_STREAMWISE,
         "ny": int(n_cells),
         "nu": setup["nu"],
-        "end_time": _end_time(n_cells),
+        "end_time": (
+            _end_time(n_cells)
+            if gtype != "casson"
+            else int(iterations or _CASSON_ITERATIONS)
+        ),
+        # Casson writes a second, half-way state: its nonlinear fixed point
+        # converges too slowly for a residual gate, so convergence is judged
+        # on the drift of the measured profile between the two states.
+        "write_interval": (
+            _end_time(n_cells)
+            if gtype != "casson"
+            else int(iterations or _CASSON_ITERATIONS) // 2
+        ),
         "x_mid": 0.5 * length,
         "z_mid": 0.025 * gap,
         "y_start": setup["y_min"] + eps,
         "y_end": setup["y_max"] - eps,
         "n_points": _N_SAMPLE_POINTS,
+        # Casson also samples the effective viscosity: the cap-active region
+        # is exactly where it equals nuMax. The generalisedNewtonian model
+        # registers it under this name (not "nuEff", which is not in the
+        # registry).
+        "fields": "U strainRateViscosityModel:nu" if gtype == "casson" else "U",
         **setup["params"],
     }
     _write_case(casedir, params, sampling, gtype)
 
     _foam(casedir, "blockMesh")
+    if gtype == "casson":
+        # Start from the analytic Casson profile. The nonlinear viscosity
+        # fixed point converges algebraically from a uniform start, so a
+        # good initial nu field is worth orders of magnitude in iterations;
+        # only the regularisation correction then has to develop.
+        _write_channel_ic(casedir, setup, params, case, n_cells)
     _foam(casedir, "foamRun")
-    _check_converged(casedir)
-    _foam(casedir, "foamPostProcess -func sample -latestTime")
+    residual = _final_ux_residual(casedir)
+    if require_converged and residual > _UX_RESIDUAL_TOL:
+        raise RuntimeError(
+            f"foamRun finished with Ux initial residual {residual:.3e} > "
+            f"{_UX_RESIDUAL_TOL:.0e} in {casedir}; profile is not a converged "
+            f"steady solution. See log.foamRun."
+        )
+    latest = "" if gtype == "casson" else " -latestTime"
+    _foam(casedir, f"foamPostProcess -func sample{latest}")
 
     y, u = _read_profile(casedir)
     tau_w = _read_tau_wall(casedir)
@@ -216,14 +324,21 @@ def _run_steady(case, n_cells=40, u_drive=1.0, workdir=None, sampling="cellPoint
         "n_cells_total": _N_STREAMWISE * int(n_cells),
         "nu": setup["nu"],
         "sampling": sampling,
+        "ux_residual": residual,
         "case_dir": str(casedir),
         **setup["meta"],
     }
-    if gtype == "channel":
+    if gtype in _FORCE_DRIVEN:
         # Provenance of the driving force; only exists where a mean force does.
         meta["pressure_gradient"] = _read_pressure_gradient(casedir)
 
-    return {"y": y, "u": u, "u_ref": setup["u_ref"], "tau_w": tau_w, "meta": meta}
+    result = {"y": y, "u": u, "u_ref": setup["u_ref"], "tau_w": tau_w, "meta": meta}
+    if gtype == "casson":
+        # Effective viscosity at the sampled cell centres, as the solver
+        # computed it — needed to locate the cap-active (nu == nuMax) region.
+        result["nu_eff"] = _read_nu_eff(casedir)
+        meta["measurement_drift"] = _measurement_drift(casedir)
+    return result
 
 
 def _write_case(casedir, params, sampling, gtype):
@@ -254,8 +369,38 @@ def _foam(casedir, cmd):
         raise RuntimeError(f"'{cmd}' failed in {casedir} (see {logfile}):\n{tail}")
 
 
-def _check_converged(casedir):
-    """Refuse to sample a run whose streamwise momentum has not converged.
+def _write_channel_ic(casedir, setup, params, case, n_cells):
+    """Overwrite 0/U with the case's analytic profile at the cell centres.
+
+    blockMesh orders cells x-fastest, so each y-row's value repeats
+    _N_STREAMWISE times consecutively.
+    """
+    from betaflow.analytic import casson as _casson
+
+    h = float(case["geometry"]["half_height"])
+    dy = 2.0 * h / n_cells
+    y = -h + dy * (np.arange(n_cells) + 0.5)
+    u0 = _casson.velocity(y, params["tau0"] / (setup["meta"]["xi"] * h), params["tau0"],
+                          params["nu_c"], h)
+    values = np.repeat(u0, _N_STREAMWISE)
+    entries = "\n".join(f"({v:.12g} 0 0)" for v in values)
+    (casedir / "0" / "U").write_text(
+        "FoamFile\n{\n    format      ascii;\n    class       volVectorField;\n"
+        "    object      U;\n}\n\n"
+        "dimensions      [0 1 -1 0 0 0 0];\n\n"
+        f"internalField   nonuniform List<vector>\n{values.size}\n(\n{entries}\n);\n\n"
+        "boundaryField\n{\n"
+        "    inlet        { type cyclic; }\n"
+        "    outlet       { type cyclic; }\n"
+        "    bottomWall   { type noSlip; }\n"
+        "    topWall      { type noSlip; }\n"
+        "    frontAndBack { type empty; }\n"
+        "}\n"
+    )
+
+
+def _final_ux_residual(casedir):
+    """Final initial-residual of the Ux equation, parsed from the solver log.
 
     fvSolution deliberately has no residualControl: the wall-normal velocity
     and pressure are identically zero here, so their normalised residuals
@@ -267,14 +412,22 @@ def _check_converged(casedir):
     residuals = re.findall(r"Solving for Ux, Initial residual = ([0-9eE.+-]+)", log)
     if not residuals:
         raise RuntimeError(f"no Ux residuals found in {casedir}/log.foamRun")
-    final = float(residuals[-1])
-    if final > _UX_RESIDUAL_TOL:
-        raise RuntimeError(
-            f"foamRun finished with Ux initial residual {final:.3e} > "
-            f"{_UX_RESIDUAL_TOL:.0e} after {len(residuals)} iterations in "
-            f"{casedir}; profile is not a converged steady solution. "
-            f"See log.foamRun."
-        )
+    return float(residuals[-1])
+
+
+def _measurement_drift(casedir):
+    """Relative change in the sampled profile between the last two written
+    states — a measurement-directed convergence criterion for the Casson
+    fixed point, whose residual decays too slowly to gate on."""
+    sample_root = casedir / "postProcessing" / "sample"
+    times = sorted(
+        (d for d in sample_root.iterdir() if d.is_dir()), key=lambda d: float(d.name)
+    )
+    if len(times) < 2:
+        raise RuntimeError(f"need two sampled states for a drift check in {casedir}")
+    late = np.loadtxt(times[-1] / "centreline.xy")[:, 1]
+    early = np.loadtxt(times[-2] / "centreline.xy")[:, 1]
+    return float(np.max(np.abs(late - early)) / np.max(np.abs(late)))
 
 
 def _openfoam_version():
@@ -341,6 +494,27 @@ def _is_time(name):
         return True
     except ValueError:
         return False
+
+
+def _read_nu_eff(casedir):
+    """Effective viscosity at the sampled stations, from the solver's own field.
+
+    The sets FO writes one file per field; nuEff is a scalar so its file has
+    columns y, nuEff.
+    """
+    sample_root = casedir / "postProcessing" / "sample"
+    times = sorted(
+        (d for d in sample_root.iterdir() if d.is_dir()), key=lambda d: float(d.name)
+    )
+    data = np.loadtxt(times[-1] / "centreline.xy")
+    # The sets writer emits ONE file per set with every requested field
+    # side by side: y, U_x, U_y, U_z, then the scalar viscosity.
+    if data.shape[1] < 5:
+        raise RuntimeError(
+            f"expected 5 columns (y, U, nu) in {times[-1]}/centreline.xy, "
+            f"got {data.shape[1]} — was the viscosity field requested?"
+        )
+    return data[:, 4]
 
 
 def _read_profile(casedir):

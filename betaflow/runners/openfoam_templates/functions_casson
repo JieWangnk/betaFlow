@@ -1,0 +1,25 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      functions;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+wallShearStress
+{
+    type            wallShearStress;
+    libs            ("libfieldFunctionObjects.so");
+    writeControl    writeTime;
+}
+
+// NOTE: the effective viscosity needs no writeObjects functionObject — the
+// generalisedNewtonian model registers it as an AUTO_WRITE field named
+// "strainRateViscosityModel:nu", so it appears in the time directory and is
+// sampled directly by system/sample. ("nuEff" is constructed on demand and
+// is NOT in the registry; asking writeObjects for it only logs a warning.)
+// That field IS the regularisation mechanism: the cap-active region is
+// exactly where it equals nuMax.
+
+// ************************************************************************* //

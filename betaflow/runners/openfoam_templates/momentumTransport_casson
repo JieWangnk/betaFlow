@@ -1,0 +1,29 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      momentumTransport;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+simulationType  laminar;
+
+laminar
+{
+    model           generalisedNewtonian;
+
+    viscosityModel  Casson;
+
+    // KINEMATIC units throughout (incompressible OpenFOAM):
+    //   m     = nu_c    = mu_c/rho   Casson consistency [m^2/s]
+    //   tau0  = tau_y/rho            yield stress       [m^2/s^2]
+    // nu(gammadot) = max(nuMin, min(nuMax, [sqrt(tau0/gammadot) + sqrt(m)]^2))
+    // nuMax is the REGULARISATION CAP — the study's second axis.
+    m               $nu_c;
+    tau0            $tau0;
+    nuMax           $nu_max;
+    nuMin           $nu_c;
+}
+
+// ************************************************************************* //

@@ -1,0 +1,47 @@
+# Steady Casson flow in the SAME force-driven periodic channel as
+# poiseuille_steady: walls at y = +/- half_height, meanVelocityForce drive,
+# cyclic streamwise patches. Only the constitutive model changes.
+#
+# What is new: a REGULARISATION PARAMETER (nuMax) that changes the answer.
+# Yield-stress viscosity is singular as shear rate -> 0, so OpenFOAM caps it;
+# the plug therefore never becomes rigid and its computed width is set by
+# where nu saturates, not by the physics. That makes nuMax a second study
+# axis alongside the mesh.
+name: casson_steady
+
+nondim:
+  # Yield parameter xi = tau_y/(G h) = y_p/h. 0.2 makes the plug measurable.
+  # PHYSIOLOGICAL NOTE: blood in a large artery has xi ~ 0.001-0.005 — the
+  # plug is under 1% of the lumen, which is why Casson is indistinguishable
+  # from Newtonian in the aorta at peak systole. 0.2 is a verification
+  # setting, not a physiological one.
+  xi: 0.2
+  # Re = u_mean * (2 h) / nu_c, with nu_c the CASSON CONSISTENCY (the
+  # infinite-shear viscosity limit), matching the poiseuille convention.
+  Re: 100
+
+geometry:
+  type: casson
+  half_height: 1.0
+  length: 0.5
+
+oracle: betaflow.analytic.casson.velocity_profile
+
+normalisation:
+  # u_ref = u_max = plug velocity, computed from xi by the oracle (not a
+  # constant as in poiseuille, where u_max/u_mean = 3/2 exactly).
+  u_ref: u_max_from_xi
+
+regularisation:
+  # nuMax/nu_c values swept. The cap is an unreported degree of freedom in
+  # published Casson haemodynamics: rheology parameters get reported, the
+  # regularisation cap does not.
+  nu_max_ratios: [1.0e2, 1.0e3, 1.0e4, 1.0e5]
+
+metrics:
+  - name: L2_velocity
+    tol: 1.0e-2
+  # tau_w = G h from force balance alone — rheology-INDEPENDENT, so a failure
+  # means the transport model is wired in wrongly, not that Casson is wrong.
+  - name: wss_relative
+    tol: 1.0e-6

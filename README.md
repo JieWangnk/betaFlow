@@ -59,7 +59,8 @@ physics.
 
 ## Running
 
-    python3 -m pytest tests/ -v
+    python3 -m pytest tests/ -v          # ~15 min; casson_steady is ~9 of it
+    python3 -m pytest tests/ -v --ignore=tests/test_casson.py   # ~5 min
 
 The runner sources `/opt/openfoam14/etc/bashrc` itself; set
 `BETAFLOW_OPENFOAM_BASHRC` to point elsewhere (the templates use OpenFOAM 14
@@ -78,6 +79,8 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 | womersley_pulsatile | L2_amplitude | plane-channel Womersley (complex cosh) | alpha=20, 8 cells/delta | 8.9e-4 | 1e-2 |
 | womersley_pulsatile | L2_phase [rad] | same, amplitude-weighted | alpha=20, 8 cells/delta | 2.9e-4 | 2e-2 |
 | womersley_pulsatile | wss_amp_relative | tau_hat = G h tanh(K)/K | alpha=20, 8 cells/delta | 4.2e-4 | 2e-2 |
+| casson_steady | L2_velocity | Casson channel profile | N=160, nuMax/nu_c=1e2 | 7.3e-4 | 1e-2 |
+| casson_steady | wss_relative | tau_w = G h (rheology-independent) | N=160, nuMax/nu_c=1e2 | 3.8e-11 | 1e-6 |
 
 womersley_pulsatile's mesh level is CELLS PER STOKES LAYER (mesh refines
 with alpha): a fixed-mesh alpha-sweep cannot distinguish high-alpha error
@@ -222,28 +225,72 @@ Cross-version check: the L2 error is identical to all logged digits under
 OpenFOAM 12 and OpenFOAM 14 (see the results history in git) — the upgrade
 changed dictionary syntax, not the discrete solution.
 
-## Committed prediction: casson_steady (not yet built)
+## casson_steady: a non-physical parameter that changes the answer
 
-Recorded before the case exists, as the Womersley prediction was — a
-prediction written after seeing the data is worth much less.
+Yield-stress viscosity is singular (nu → ∞ as shear rate → 0), so OpenFOAM
+caps it: `nu = max(nuMin, min(nuMax, [sqrt(tau0/gammadot) + sqrt(m)]^2))`.
+The plug is therefore never rigid — it creeps — and its computed width is set
+by where nu saturates, not by the physics. That makes `nuMax` a second study
+axis (`results/casson_steady.json`, 13 runs over mesh × cap ratio).
 
-Yield-stress models are singular: effective viscosity → ∞ as shear rate → 0.
-OpenFOAM regularises with a `nuMax` cap, so the plug never becomes rigid; it
-creeps at gamma_dot ≈ tau/(rho·nuMax). The exact plug half-width is
-y_p = tau_y/G, but the computed one is set by where nu saturates against the
-cap.
+Predictions were committed before the case was built. Outcomes:
 
-**Prediction: plug-width error scales as 1/nuMax and does NOT converge under
-mesh refinement** — the error is the regularisation floor, not
-discretisation. Above some nuMax the system stiffens and the linear solver
-degrades, giving a practical ceiling.
+| prediction | outcome |
+|---|---|
+| tau_w = G_disc·h to round-off, rheology-independent | **confirmed** — exactly 0 at two grid points, ≤3.8e-11 across the converged set |
+| plug-width bias = 2·sqrt(nu_c/nuMax), plug WIDER than true | **confirmed where measurable**: bias → +0.2185 at N=320 vs continuum +0.2346 |
+| residual plug creep ∝ 1/nuMax | **confirmed** — factor 9.97 per decade; matches G·y_p²/(2·nuMax) to 0.3% |
+| L2 error floors on nuMax, p ≈ 2 → 0 | **confirmed** — p = 1.46 then 0.04 at ratio 1e2, while ratio 1e3 still gives 1.79, 2.09 |
+| measurability floor N > 1/(xi·sqrt(nu_c/nuMax)) | **confirmed, and it dominates the study** |
+| practical ceiling from stiffening | **confirmed, and worse than expected** (below) |
 
-If it holds, the finding travels beyond this repo: `nuMax` is an unreported
-degree of freedom in published Casson haemodynamics. Rheology parameters are
-reported; the regularisation cap is not — so plug-region results are not
-reproducible from the stated method. Testing it needs a **two-dimensional
-study (mesh × nuMax)**, which is a new shape for the refinement machinery:
-the existing helpers assume one refinement axis with a single observed order.
+The exact cap-active half-width is `y_p/(1 − sqrt(nu_c/nuMax))^2`, whose
+leading term is the predicted `1 + 2·sqrt(nu_c/nuMax)`; the exact form matters
+at low cap ratios (0.2346 vs 0.2000 at nuMax/nu_c = 1e2). Both are logged.
+
+**The two axes are coupled in opposing directions, and that is the headline.**
+Resolving a cap defect of relative size `eps` needs `N > 1/(xi·sqrt(nu_c/nuMax))`
+— 50, 158, 500, 1581 cells at ratios 1e2…1e5 — so a *larger* cap needs a
+*finer* mesh to see its own (smaller) defect. Meanwhile convergence cost grows
+roughly as `N^2 · nuMax`: at nuMax/nu_c = 1e4, N = 40 needs ~180k iterations
+for the identity to close, and the 1e5 column does not converge at any mesh
+here. Measurability pushes toward fine meshes and high caps; convergence cost
+forbids exactly that corner. Only 5 of 12 grid points converged, all with
+nuMax/nu_c ≤ 1e3 — so the plug-width exponent could be verified at ONE cap
+ratio, not swept. Reporting the exponent as "verified" from a sweep would
+require a mesh nobody runs.
+
+The stiffening is NOT a linear-solver artefact: `smoothSolver/symGaussSeidel`
+and `PBiCGStab/DILU` stall at bit-identical residuals, and relaxation 1.0
+diverges. It is the nonlinear nu↔gammadot fixed point, which contracts
+algebraically. Two consequences the harness had to absorb: runs start from the
+analytic Casson profile (worth orders of magnitude in iterations), and
+**convergence is gated on the conservation identity rather than the residual**
+— residual and profile drift are *change* measures, and a slowly-contracting
+fixed point looks converged by both long before it is (residual 2.2e-9 with
+the identity still at 2.5e-3). The identity compares two quantities that must
+agree at the fixed point, so it measures distance to the solution, not step
+size.
+
+**Why this travels beyond the repo:** `nuMax` is an unreported degree of
+freedom in published Casson haemodynamics. Rheology parameters get reported;
+the regularisation cap does not. Since the cap sets the plug width, plug-region
+results are not reproducible from the stated method — and the coupling above
+means the cap cannot simply be raised to make the problem go away.
+
+Two plug-width definitions are logged because they disagree, informatively.
+Cap-active (where nu == nuMax) is mechanism-direct and reads the solver's own
+viscosity field. Profile-flatness (|u − u_centre|/u_max < tol) is
+threshold-dependent and answers a different question: at ratio 1e2 it reports
+a *narrower* plug (the profile is measurably curved inside the cap region),
+while at high ratios it reports a *wider* one (the creep is too small for the
+threshold to see). Neither is wrong; they measure different things, and only
+the first tracks the regularisation.
+
+Note on xi: this case uses xi = tau_y/(G·h) = 0.2 to make the plug measurable.
+Blood in a large artery has xi ~ 0.001–0.005 — the plug is under 1% of the
+lumen, which is exactly why Casson is indistinguishable from Newtonian in the
+aorta at peak systole.
 
 ## Adding a case
 

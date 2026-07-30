@@ -43,3 +43,61 @@ def relative_error_scalar(numerical, analytic):
     if ana == 0.0:
         raise ValueError("analytic reference is zero; relative error undefined")
     return abs(float(numerical) - ana) / abs(ana)
+
+
+def _edge_from_mask(y, inside):
+    """Half-width implied by a boolean 'inside the plug' mask on cell centres.
+
+    Returns the face position between the outermost inside cell and the
+    innermost outside cell — the natural discrete boundary. The measurement is
+    therefore quantised to the cell size, which is what couples the mesh and
+    regularisation axes: a cap defect smaller than dy cannot be seen.
+    """
+    ay = np.abs(np.asarray(y, dtype=float))
+    inside = np.asarray(inside, dtype=bool)
+    if not inside.any():
+        return 0.0
+    y_in = ay[inside].max()
+    outside = ay[~inside & (ay > y_in)]
+    if outside.size == 0:
+        return float(ay.max())
+    return float(0.5 * (y_in + outside.min()))
+
+
+def plug_width_cap_active(y, nu_eff, nu_max, rtol=1e-9):
+    """Plug half-width from the CAP-ACTIVE region (nu == nuMax) — primary.
+
+    Mechanism-direct: it measures exactly the region where the regularisation
+    is doing the work, using the solver's own viscosity field.
+    """
+    return _edge_from_mask(y, np.asarray(nu_eff) >= nu_max * (1.0 - rtol))
+
+
+def plug_width_flatness(y, u, tol=1e-3):
+    """Plug half-width from profile FLATNESS (|u - u_centre|/u_max < tol).
+
+    Secondary, and threshold-dependent by construction: it detects where the
+    profile is flat to within `tol`, which is not the same question as where
+    the viscosity cap is active. The gap between the two is informative.
+    """
+    u = np.asarray(u, dtype=float)
+    ay = np.abs(np.asarray(y, dtype=float))
+    u_centre = u[np.argmin(ay)]
+    u_max = np.max(np.abs(u))
+    return _edge_from_mask(y, np.abs(u - u_centre) / u_max < tol)
+
+
+def plug_velocity_variation(y, u, y_p):
+    """max|u - u_centre| / u_max inside the true plug |y| < y_p.
+
+    The capped plug is not rigid: it creeps at gammadot = G y / nuMax, so this
+    residual variation scales as 1/nuMax — a different exponent from the plug
+    width, from the same cap.
+    """
+    u = np.asarray(u, dtype=float)
+    ay = np.abs(np.asarray(y, dtype=float))
+    inside = ay < y_p
+    if not inside.any():
+        return 0.0
+    u_centre = u[np.argmin(ay)]
+    return float(np.max(np.abs(u[inside] - u_centre)) / np.max(np.abs(u)))

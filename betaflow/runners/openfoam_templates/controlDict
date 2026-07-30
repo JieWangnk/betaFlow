@@ -21,7 +21,7 @@ deltaT          1;
 
 writeControl    timeStep;
 
-writeInterval   $end_time;
+writeInterval   $write_interval;
 
 purgeWrite      0;
 
