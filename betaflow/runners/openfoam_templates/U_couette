@@ -1,14 +1,14 @@
 FoamFile
 {
     format      ascii;
-    class       volScalarField;
-    object      p;
+    class       volVectorField;
+    object      U;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];
+dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform 0;
+internalField   uniform ($u_init 0 0);
 
 boundaryField
 {
@@ -22,11 +22,12 @@ boundaryField
     }
     bottomWall
     {
-        type            zeroGradient;
+        type            noSlip;
     }
     topWall
     {
-        type            zeroGradient;
+        type            fixedValue;
+        value           uniform ($u_wall 0 0);
     }
     frontAndBack
     {

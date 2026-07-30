@@ -1,11 +1,23 @@
 """OpenFOAM 14 (Foundation) adapter — the only module that knows OpenFOAM exists.
 
-Channel cases are meshed one cell thick in z with `empty` front/back patches
-and cyclic streamwise patches. The flow is driven by a `meanVelocityForce`
-fvConstraint (an adaptive uniform momentum source), which imposes the bulk
-velocity directly and eliminates entrance-length effects, so the domain can be
-short. The wall-normal profile is sampled with the `sets` functionObject
-(`foamPostProcess -func sample`) on the converged fields.
+All case types share the same box mesh: one cell thick in z with `empty`
+front/back patches, cyclic streamwise patches, and separate bottomWall /
+topWall patches. What differs per case type is the DRIVING MECHANISM, split
+out in _SETUPS:
+
+  channel — walls at y = ±h, both no-slip, flow driven by a meanVelocityForce
+            fvConstraint (adaptive uniform momentum source imposing the bulk
+            velocity; no entrance length). Re = u_mean * 2h / nu.
+  couette — fixed wall at y = 0, wall moving at u_wall at y = H; no force, no
+            pressure gradient — driven purely by the fixedValue BC.
+            Re = u_wall * H / nu.
+
+Each setup declares its extra template files (e.g. fvConstraints only exists
+for channel), its Re -> nu mapping, its u_ref, and its extra provenance
+(pressure_gradient only exists where a mean force does). The wall-normal
+profile is sampled with the `sets` functionObject (`foamPostProcess -func
+sample`); wall shear stress by the wallShearStress functionObject during the
+solve.
 
 All OpenFOAM dictionaries are rendered from string.Template files in
 openfoam_templates/ — mesh resolution, viscosity and forcing are parameters,
@@ -28,18 +40,22 @@ TEMPLATE_DIR = Path(__file__).parent / "openfoam_templates"
 # dictionary parse. Override with BETAFLOW_OPENFOAM_BASHRC.
 DEFAULT_BASHRC = "/opt/openfoam14/etc/bashrc"
 
-# template file -> destination inside the generated case directory
-_FILES = {
+# template file -> destination, shared by every case type
+_SHARED_FILES = {
     "blockMeshDict": "system/blockMeshDict",
     "controlDict": "system/controlDict",
     "fvSchemes": "system/fvSchemes",
     "fvSolution": "system/fvSolution",
-    "fvConstraints": "system/fvConstraints",
     "functions": "system/functions",
     "physicalProperties": "constant/physicalProperties",
     "momentumTransport": "constant/momentumTransport",
-    "U": "0/U",
     "p": "0/p",
+}
+
+# case-type-specific templates on top of the shared set
+_TYPE_FILES = {
+    "channel": {"fvConstraints": "system/fvConstraints", "U_channel": "0/U"},
+    "couette": {"U_couette": "0/U"},
 }
 
 # sampling mode -> template rendered into system/sample
@@ -52,19 +68,62 @@ _SAMPLINGS = {
     "cell": "sample_cell",
 }
 
-_N_STREAMWISE = 4     # cyclic + uniform forcing => solution is x-invariant
+_N_STREAMWISE = 4     # cyclic + x-invariant driving => solution is x-invariant
 _N_SAMPLE_POINTS = 101
-_UX_RESIDUAL_TOL = 1e-9
+# Deep gate: the Couette null test requires the solve itself to sit at
+# round-off, and unrelaxed SIMPLEC reaches this floor in tens of iterations.
+_UX_RESIDUAL_TOL = 1e-12
 
 
 def _end_time(n_cells):
-    """SIMPLE iteration budget. Convergence slows with refinement (429 / 651 /
-    >1000 iterations to reach a 1e-9 Ux residual at N = 40/80/160), so scale
-    the cap with mesh level; actual convergence is verified from the log."""
-    return max(1000, 50 * int(n_cells))
+    """SIMPLE iteration budget. The slowest error mode is diffusive, so
+    iterations-to-round-off scale with N^2 (measured: the Couette residual
+    reaches its 1e-15 floor at ~0.6 N^2 iterations; 0.8 N^2 leaves margin).
+    Actual convergence is verified from the log, never assumed. The U linear
+    solver's absolute tolerance must stay at round-off (1e-16): a looser
+    value (1e-9) makes inner solves quit early and stalls the outer loop
+    three decades above the floor."""
+    return max(2000, (4 * int(n_cells) ** 2) // 5)
 
 
-def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
+def _setup_channel(case, u_drive):
+    """Force-driven periodic channel: walls at y = ±h, meanVelocityForce."""
+    h = float(case["geometry"]["half_height"])
+    # Re = u_mean * (2 h) / nu — bulk velocity, FULL channel height. Must
+    # match betaflow/analytic/poiseuille.py; the test cross-checks meta.
+    nu = u_drive * (2.0 * h) / float(case["nondim"]["Re"])
+    u_ref = u_drive * float(case["normalisation"]["u_max_over_u_mean"])
+    return {
+        "y_min": -h,
+        "y_max": h,
+        "nu": nu,
+        "u_ref": u_ref,
+        "params": {"u_mean": u_drive, "u_init": u_drive},
+        "meta": {"u_mean": u_drive},
+    }
+
+
+def _setup_couette(case, u_drive):
+    """Wall-driven Couette: fixed wall at y = 0, moving wall at y = H.
+    No force, no pressure gradient — so no pressure_gradient provenance."""
+    height = float(case["geometry"]["height"])
+    # Re = u_wall * H / nu — moving-wall speed, FULL gap height. Must match
+    # betaflow/analytic/couette.py; the test cross-checks meta.
+    nu = u_drive * height / float(case["nondim"]["Re"])
+    return {
+        "y_min": 0.0,
+        "y_max": height,
+        "nu": nu,
+        "u_ref": u_drive,  # the oracle normalises by the moving-wall speed
+        "params": {"u_wall": u_drive, "u_init": 0.5 * u_drive},
+        "meta": {"u_wall": u_drive},
+    }
+
+
+_SETUPS = {"channel": _setup_channel, "couette": _setup_couette}
+
+
+def run(case, n_cells=40, u_drive=1.0, workdir=None, sampling="cellPoint"):
     """Run the case in OpenFOAM and return the standard profile dict.
 
     Parameters
@@ -72,9 +131,10 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
     case : dict
         Parsed YAML case definition (geometry, nondim, normalisation).
     n_cells : int
-        Mesh level: number of cells across the FULL channel height 2h.
-    u_mean : float
-        Imposed bulk velocity [m/s]; sets the dimensional scale of the run.
+        Mesh level: number of cells across the full wall-normal gap.
+    u_drive : float
+        The case's driving velocity [m/s] — bulk velocity for 'channel',
+        moving-wall speed for 'couette'. Sets the dimensional scale.
     workdir : path-like, optional
         Where to generate the OpenFOAM case (default: ./_runs). The case
         directory is kept for inspection and recreated from scratch each run.
@@ -87,50 +147,45 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
     dict
         {"y": ndarray [m], "u": ndarray [m/s], "u_ref": float [m/s],
          "tau_w": float [m^2/s^2], "meta": provenance dict}. u_ref is the
-        analytic peak velocity implied by the imposed bulk velocity and the
-        case's normalisation entry; tau_w is the kinematic wall-shear-stress
-        magnitude from the wallShearStress functionObject.
+        velocity the case's oracle normalises by; tau_w is the kinematic
+        wall-shear-stress magnitude from the wallShearStress functionObject.
+        meta.pressure_gradient exists only for force-driven case types.
     """
-    geom = case["geometry"]
-    if geom["type"] != "channel":
-        raise NotImplementedError(f"openfoam runner only supports 'channel', got '{geom['type']}'")
+    gtype = case["geometry"]["type"]
+    if gtype not in _SETUPS:
+        raise NotImplementedError(
+            f"openfoam runner supports {sorted(_SETUPS)}, got '{gtype}'"
+        )
     if sampling not in _SAMPLINGS:
         raise ValueError(f"unknown sampling '{sampling}': expected one of {sorted(_SAMPLINGS)}")
 
-    h = float(geom["half_height"])
-    length = float(geom["length"])
-    reynolds = float(case["nondim"]["Re"])
-
-    # Re = u_mean * (2 h) / nu — bulk velocity, FULL channel height. This must
-    # match the definition in betaflow/analytic/poiseuille.py; the test
-    # cross-checks (u_mean, nu) reported in meta against that definition.
-    nu = u_mean * (2.0 * h) / reynolds
-
-    u_ref = u_mean * float(case["normalisation"]["u_max_over_u_mean"])
+    setup = _SETUPS[gtype](case, u_drive)
+    length = float(case["geometry"]["length"])
+    gap = setup["y_max"] - setup["y_min"]
 
     workdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
     casedir = workdir / f"{case['name']}_openfoam_n{int(n_cells)}_{sampling}"
     if casedir.exists():
         shutil.rmtree(casedir)
 
-    eps = 1e-6 * h  # keep sample endpoints strictly inside the mesh
+    eps = 5e-7 * gap  # keep sample endpoints strictly inside the mesh
     params = {
         "length": length,
-        "half_height": h,
-        "neg_half_height": -h,
-        "thickness": 0.1 * h,
+        "y_min": setup["y_min"],
+        "y_max": setup["y_max"],
+        "thickness": 0.05 * gap,
         "nx": _N_STREAMWISE,
         "ny": int(n_cells),
-        "nu": nu,
-        "u_mean": u_mean,
+        "nu": setup["nu"],
         "end_time": _end_time(n_cells),
         "x_mid": 0.5 * length,
-        "z_mid": 0.05 * h,
-        "y_start": -(h - eps),
-        "y_end": h - eps,
+        "z_mid": 0.025 * gap,
+        "y_start": setup["y_min"] + eps,
+        "y_end": setup["y_max"] - eps,
         "n_points": _N_SAMPLE_POINTS,
+        **setup["params"],
     }
-    _write_case(casedir, params, sampling)
+    _write_case(casedir, params, sampling, gtype)
 
     _foam(casedir, "blockMesh")
     _foam(casedir, "foamRun")
@@ -139,29 +194,26 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
 
     y, u = _read_profile(casedir)
     tau_w = _read_tau_wall(casedir)
-    g_disc = _read_pressure_gradient(casedir)
 
-    return {
-        "y": y,
-        "u": u,
-        "u_ref": u_ref,
-        "tau_w": tau_w,
-        "meta": {
-            "solver": "openfoam",
-            "openfoam_version": _openfoam_version(),
-            "mesh_level": int(n_cells),
-            "n_cells_total": _N_STREAMWISE * int(n_cells),
-            "nu": nu,
-            "u_mean": u_mean,
-            "pressure_gradient": g_disc,
-            "sampling": sampling,
-            "case_dir": str(casedir),
-        },
+    meta = {
+        "solver": "openfoam",
+        "openfoam_version": _openfoam_version(),
+        "mesh_level": int(n_cells),
+        "n_cells_total": _N_STREAMWISE * int(n_cells),
+        "nu": setup["nu"],
+        "sampling": sampling,
+        "case_dir": str(casedir),
+        **setup["meta"],
     }
+    if gtype == "channel":
+        # Provenance of the driving force; only exists where a mean force does.
+        meta["pressure_gradient"] = _read_pressure_gradient(casedir)
+
+    return {"y": y, "u": u, "u_ref": setup["u_ref"], "tau_w": tau_w, "meta": meta}
 
 
-def _write_case(casedir, params, sampling):
-    files = dict(_FILES)
+def _write_case(casedir, params, sampling, gtype):
+    files = {**_SHARED_FILES, **_TYPE_FILES[gtype]}
     files[_SAMPLINGS[sampling]] = "system/sample"
     for src, dest in files.items():
         target = casedir / dest
@@ -230,27 +282,34 @@ def _read_pressure_gradient(casedir):
 
 
 def _read_tau_wall(casedir):
-    """Mean kinematic wall-shear-stress magnitude over the wall patch faces.
+    """Mean kinematic wall-shear-stress magnitude over both wall patches.
 
     Parses the volVectorField the wallShearStress functionObject wrote at the
-    final time. The flow is x-invariant, so every wall face must carry the
-    same magnitude — a spread larger than round-off means the solution is not
-    fully developed and is reported as an error rather than averaged away.
+    final time. Every case type is x-invariant with equal-magnitude shear on
+    the two walls (channel by symmetry, Couette by uniform shear), so all
+    wall faces must carry the same magnitude — a larger spread means the
+    solution is not fully developed and is reported rather than averaged away.
     """
     time_dir = max(
         (d for d in casedir.iterdir() if d.is_dir() and _is_time(d.name) and float(d.name) > 0),
         key=lambda d: float(d.name),
     )
     text = (time_dir / "wallShearStress").read_text()
-    walls = re.search(r"walls\s*\{([^}]*)\}", text, re.S)
-    if walls is None:
-        raise RuntimeError(f"no 'walls' patch in {time_dir}/wallShearStress")
-    vectors = np.array(
-        [[float(x) for x in triple.split()] for triple in re.findall(r"\(([^()]+)\)", walls.group(1))]
-    )
-    if vectors.size == 0:
-        raise RuntimeError(f"no wall values parsed from {time_dir}/wallShearStress")
-    magnitudes = np.linalg.norm(vectors, axis=1)
+    magnitudes = []
+    for patch in ("bottomWall", "topWall"):
+        block = re.search(patch + r"\s*\{([^}]*)\}", text, re.S)
+        if block is None:
+            raise RuntimeError(f"no '{patch}' patch in {time_dir}/wallShearStress")
+        vectors = np.array(
+            [
+                [float(x) for x in triple.split()]
+                for triple in re.findall(r"\(([^()]+)\)", block.group(1))
+            ]
+        )
+        if vectors.size == 0:
+            raise RuntimeError(f"no values parsed for '{patch}' in {time_dir}/wallShearStress")
+        magnitudes.append(np.linalg.norm(vectors, axis=1))
+    magnitudes = np.concatenate(magnitudes)
     spread = magnitudes.max() - magnitudes.min()
     # Allow iterative-convergence round-off (the Ux residual gate is 1e-9);
     # a genuinely undeveloped flow shows O(1) face-to-face variation.

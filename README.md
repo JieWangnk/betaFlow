@@ -73,6 +73,22 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 |---|---|---|---|---|---|
 | poiseuille_steady | L2_velocity | plane Poiseuille parabola | 80 cells across 2h | 3.25e-4 | 1e-3 |
 | poiseuille_steady | wss_relative | tau_w = G h (kinematic) | 80 cells across 2h | 3.12e-4 | 2e-2 |
+| couette_steady | L2_velocity | linear Couette profile | 40/80/160 (null test) | 0 / 0 / 1.6e-14 | 1e-8 |
+| couette_steady | wss_relative | tau_w = nu u_wall / H | 40/80/160 (null test) | 0 / 0 / 5.0e-13 | 1e-8 |
+
+couette_steady is a NULL TEST: the exact profile is linear and every operator
+in the chain (second-order interior scheme, half-cell wall gradient, linear
+cellPoint interpolation) is exact for linear fields, so all errors must sit
+at round-off at every level and both sampling modes — there is no
+discretisation error to converge. Its tolerances are round-off budgets
+(convergence gate + 12-digit ASCII I/O), and any deviation is a bug, not a
+mesh effect. It earned its keep immediately: the first run exposed that the
+U linear solver's absolute tolerance (1e-9) silently stalled outer
+convergence three decades above the round-off floor — a floor the
+force-driven Poiseuille case had partially masked. Fixing it (tolerance
+1e-16, maxIter cap, iteration budget scaling with the diffusive slow mode
+~N²) also drove the Poiseuille conservation-identity deviation from 5e-12 to
+exactly 0.
 
 Order-of-accuracy test (mesh levels 40/80/160, refinement ratio 2, logged in
 `results/poiseuille_steady_refinement.json`, tabulated in
@@ -152,9 +168,15 @@ it, the layering is broken.
 ## OpenFOAM runner notes
 
 OpenFOAM 14 (Foundation), `foamRun` with the `incompressibleFluid` module.
-Channel cases are one cell thick in z (`empty` front/back), cyclic streamwise
-patches, driven by a `meanVelocityForce` fvConstraint so there are no
-entrance-length effects and the domain stays short. Profiles are sampled with
+All case types share one box mesh — one cell thick in z (`empty` front/back),
+cyclic streamwise patches, separate bottomWall/topWall patches — and differ
+only in their driving mechanism, split out per case type inside the runner:
+`channel` (walls at ±h, `meanVelocityForce` fvConstraint, no entrance-length
+effects) and `couette` (fixed wall at y=0, `fixedValue` moving wall at y=H,
+no force). Each setup declares its extra templates (fvConstraints exists only
+for channel), its Re→nu mapping, its u_ref, and its provenance
+(meta.pressure_gradient exists only where a mean force does — cases opt out
+of force-specific checks by construction). Profiles are sampled with
 the `sets` functionObject via `foamPostProcess`, in one of two modes:
 `sampling="cellPoint"` (default; fixed lineUniform stations, cellPoint
 interpolation — what a user extracting a profile gets) or `sampling="cell"`

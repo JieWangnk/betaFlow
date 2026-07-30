@@ -8,7 +8,7 @@ FoamFile
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform ($u_mean 0 0);
+internalField   uniform ($u_init 0 0);
 
 boundaryField
 {
@@ -20,7 +20,11 @@ boundaryField
     {
         type            cyclic;
     }
-    walls
+    bottomWall
+    {
+        type            noSlip;
+    }
+    topWall
     {
         type            noSlip;
     }

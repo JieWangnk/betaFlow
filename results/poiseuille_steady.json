@@ -6,19 +6,19 @@
   "metrics": [
     {
       "name": "L2_velocity",
-      "error": 0.0003250437190837545,
+      "error": 0.0003250437195289491,
       "tol": 0.001,
       "passed": true
     },
     {
       "name": "wss_relative",
-      "error": 0.0003124023741666223,
+      "error": 0.00031240237499998347,
       "tol": 0.02,
       "passed": true
     }
   ],
   "passed": true,
-  "timestamp": "2026-07-30T10:35:02+00:00",
+  "timestamp": "2026-07-30T11:11:41+00:00",
   "openfoam_version": "14",
-  "git_sha": "56d6a8cf0320"
+  "git_sha": "39e1547b6ea4-dirty"
 }

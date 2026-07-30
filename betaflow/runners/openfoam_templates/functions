@@ -11,11 +11,12 @@ FoamFile
 // momentum-transport model the functionObject needs is guaranteed to exist.
 // Writes the kinematic wall shear stress R.n [m^2/s^2] as a volVectorField
 // at write times (i.e. once, at the converged end state).
+// No 'patches' entry: all wall-type patches are included by default, which
+// covers bottomWall/topWall in every case type.
 wallShearStress
 {
     type            wallShearStress;
     libs            ("libfieldFunctionObjects.so");
-    patches         (walls);
     writeControl    writeTime;
 }
 

@@ -21,8 +21,13 @@ solvers
     {
         solver          smoothSolver;
         smoother        symGaussSeidel;
-        tolerance       1e-09;
+        // Absolute tolerance at round-off: a looser value (1e-9) makes the
+        // inner solve quit early once the outer residual nears it, stalling
+        // outer convergence three decades above the floor. maxIter caps the
+        // sweeps burnt per outer iteration once the floor is reached.
+        tolerance       1e-16;
         relTol          0.01;
+        maxIter         100;
     }
 }
 

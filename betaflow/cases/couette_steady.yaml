@@ -1,0 +1,38 @@
+# Steady plane Couette flow: gap H between a fixed wall (y = 0) and a wall
+# moving at u_wall (y = H). No pressure gradient and no body force — driven
+# entirely by the moving-wall boundary condition.
+#
+# NULL TEST: the exact profile is linear and every operator in the chain
+# (interior scheme, half-cell wall gradient, cellPoint interpolation) is
+# exact for linear fields. Errors must sit at round-off at EVERY mesh level;
+# any deviation is a bug, not a discretisation effect.
+name: couette_steady
+
+nondim:
+  # Re = u_wall * height / nu — moving-wall speed, FULL gap height.
+  # Must match the definition in betaflow/analytic/couette.py.
+  Re: 100
+
+geometry:
+  type: couette
+  height: 1.0   # H [m]; fixed wall at y=0, moving wall at y=H
+  length: 0.5   # streamwise extent [m]; periodic
+
+# The oracle returns u/u_wall vs y/H; u_ref is the moving-wall speed itself.
+oracle: betaflow.analytic.couette.velocity_profile
+
+normalisation:
+  u_ref: u_wall
+
+# There is NO pressure-gradient source in this case, so the runner's
+# meta.pressure_gradient provenance is absent and the conservation-identity
+# check of the poiseuille refinement study does not apply. Cases opt into
+# metrics by listing them here; nothing outside this list is evaluated.
+#
+# Tolerances are round-off budgets, not discretisation budgets: the floors
+# are the 1e-9 steady-convergence gate and the 12-digit ASCII field I/O.
+metrics:
+  - name: L2_velocity
+    tol: 1.0e-8
+  - name: wss_relative
+    tol: 1.0e-8

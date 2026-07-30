@@ -1,0 +1,41 @@
+{
+  "case": "couette_steady",
+  "runner": "openfoam",
+  "mesh_levels": [
+    40,
+    80,
+    160
+  ],
+  "null_test": true,
+  "samplings": {
+    "cellPoint": {
+      "L2_velocity": [
+        0.0,
+        0.0,
+        1.4072420749040813e-14
+      ]
+    },
+    "cell": {
+      "L2_velocity": [
+        0.0,
+        0.0,
+        1.5931548615300156e-14
+      ]
+    }
+  },
+  "tau_w": {
+    "wss_relative": [
+      0.0,
+      0.0,
+      5.001207781241135e-13
+    ]
+  },
+  "tols": {
+    "L2_velocity": 1e-08,
+    "wss_relative": 1e-08
+  },
+  "passed": true,
+  "timestamp": "2026-07-30T11:11:33+00:00",
+  "openfoam_version": "14",
+  "git_sha": "39e1547b6ea4-dirty"
+}

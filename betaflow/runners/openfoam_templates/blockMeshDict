@@ -10,14 +10,14 @@ convertToMeters 1;
 
 vertices
 (
-    (0       $neg_half_height 0)
-    ($length $neg_half_height 0)
-    ($length $half_height     0)
-    (0       $half_height     0)
-    (0       $neg_half_height $thickness)
-    ($length $neg_half_height $thickness)
-    ($length $half_height     $thickness)
-    (0       $half_height     $thickness)
+    (0       $y_min 0)
+    ($length $y_min 0)
+    ($length $y_max 0)
+    (0       $y_max 0)
+    (0       $y_min $thickness)
+    ($length $y_min $thickness)
+    ($length $y_max $thickness)
+    (0       $y_max $thickness)
 );
 
 blocks
@@ -39,14 +39,15 @@ boundary
         neighbourPatch  inlet;
         faces           ((1 2 6 5));
     }
-    walls
+    bottomWall
     {
         type            wall;
-        faces
-        (
-            (0 1 5 4)
-            (3 7 6 2)
-        );
+        faces           ((0 1 5 4));
+    }
+    topWall
+    {
+        type            wall;
+        faces           ((3 7 6 2));
     }
     frontAndBack
     {
