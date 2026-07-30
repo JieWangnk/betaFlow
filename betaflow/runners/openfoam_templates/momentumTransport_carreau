@@ -1,0 +1,30 @@
+FoamFile
+{
+    format      ascii;
+    class       dictionary;
+    location    "constant";
+    object      momentumTransport;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+simulationType  laminar;
+
+laminar
+{
+    model           generalisedNewtonian;
+
+    viscosityModel  BirdCarreau;
+
+    // KINEMATIC units throughout (incompressible OpenFOAM):
+    //   nu = nuInf + (nu0 - nuInf) (1 + (k gammadot)^a)^((n-1)/a)
+    // NOTE nu0 is NOT set here — the model takes the zero-shear viscosity
+    // from constant/physicalProperties (`nu`), unlike Casson whose
+    // consistency `m` lives in this dictionary. Getting that wrong silently
+    // changes the fluid.
+    nuInf           $nu_inf;
+    k               $k;
+    n               $n;
+    a               $a;
+}
+
+// ************************************************************************* //

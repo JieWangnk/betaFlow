@@ -21,6 +21,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
+import pytest
 import yaml
 
 from betaflow.analytic import casson
@@ -130,6 +131,7 @@ def _measure(case, n_cells, nu_max_ratio, iterations):
     }
 
 
+@pytest.mark.slow
 def test_casson_two_axis_study():
     case = yaml.safe_load(CASE_FILE.read_text())
     ratios = [float(r) for r in case["regularisation"]["nu_max_ratios"]]

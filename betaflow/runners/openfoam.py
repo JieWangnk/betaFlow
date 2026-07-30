@@ -70,7 +70,14 @@ _TYPE_FILES = {
         "momentumTransport_casson": "constant/momentumTransport",
         "functions_casson": "system/functions",
     },
+    "carreau": {
+        "fvConstraints": "system/fvConstraints",
+        "U_channel": "0/U",
+        "momentumTransport_carreau": "constant/momentumTransport",
+        "momentumTransport": None,  # placeholder removed below
+    },
 }
+_TYPE_FILES["carreau"].pop("momentumTransport")
 
 # sampling mode -> template rendered into system/sample
 _SAMPLINGS = {
@@ -97,7 +104,20 @@ _UX_RESIDUAL_TOL = 1e-12
 _CASSON_ITERATIONS = 20000
 
 
-def _end_time(n_cells):
+# Carreau's nu<->gammadot fixed point contracts GEOMETRICALLY (measured rate
+# 0.9948/iteration at N=40 — a constant ratio, unlike casson's algebraic
+# decay). Cost is NOT independent of Cu, as was predicted: measured
+# iterations-to-1e-10 at N=80 are 755 / 898 / 3916 / 15344 for Cu =
+# 0.1 / 1 / 10 / 100, i.e. ~900*Cu^0.6 once Cu > 1, against 764 for the
+# Newtonian channel on the same mesh. At Cu -> 0 it converges to the
+# Newtonian count exactly; the growth tracks the viscosity contrast the
+# thinning creates across the channel, which Carreau BOUNDS at nu0/nuInf
+# whereas casson's nuMax makes it unbounded.
+def _carreau_iterations(cu, n_cells):
+    return int(max(6000.0, 3000.0 * cu**0.6) * max(1.0, n_cells / 80.0))
+
+
+def _end_time(n_cells, gtype="channel"):
     """SIMPLE iteration budget. The slowest error mode is diffusive, so
     iterations-to-round-off scale with N^2 (measured: the Couette residual
     reaches its 1e-15 floor at ~0.6 N^2 iterations; 0.8 N^2 leaves margin).
@@ -106,6 +126,71 @@ def _end_time(n_cells):
     value (1e-9) makes inner solves quit early and stalls the outer loop
     three decades above the floor."""
     return max(2000, (4 * int(n_cells) ** 2) // 5)
+
+
+def _setup_carreau(case, u_drive, cu=None, fluid=None):
+    """Carreau-Yasuda channel: same drive and geometry as 'channel'.
+
+    Two parameterisations. With `cu`, the Carreau number is TARGETED: since
+    Cu = k G h / nu0 couples k and G (each depends on the other), the oracle
+    solves both jointly for the requested bulk velocity. With `fluid`, a named
+    real fluid from the case file fixes k in seconds and Cu is an OUTPUT.
+    """
+    from betaflow.analytic import carreau as _carreau
+
+    nd = case["nondim"]
+    a = float(nd.get("a", 2.0))
+    if fluid is not None:
+        spec = case["fluids"][fluid]
+        rho = float(spec["rho"])
+        nu0 = float(spec["mu_0"]) / rho
+        nu_inf = float(spec["mu_inf"]) / rho
+        k = float(spec["lambda"])
+        n = float(spec["n"])
+        h = float(spec["half_height"])
+        u_drive = float(spec["u_mean"])
+        length = float(spec["length"])
+        g_pred = _carreau.pressure_gradient_for_bulk(u_drive, h, nu0, nu_inf, k, n, a)
+    else:
+        h = float(case["geometry"]["half_height"])
+        length = float(case["geometry"]["length"])
+        n = float(nd["n"])
+        # Re uses nu0, the ZERO-shear viscosity. Must match
+        # betaflow/analytic/carreau.py; the test cross-checks meta.
+        nu0 = u_drive * (2.0 * h) / float(nd["Re"])
+        nu_inf = float(nd["nu_inf_over_nu0"]) * nu0
+        cu = float(nd["Cu"] if cu is None else cu)
+        g_pred, k = _carreau.drive_for_carreau_number(u_drive, h, nu0, nu_inf, n, cu, a)
+
+    u_ref = _carreau.u_max(g_pred, h, nu0, nu_inf, k, n, a)
+    return {
+        "y_min": -h,
+        "y_max": h,
+        "length": length,
+        "nu": nu0,  # physicalProperties nu IS the zero-shear viscosity here
+        "u_ref": u_ref,
+        "u_drive": u_drive,
+        "params": {
+            "u_mean": u_drive,
+            "u_init": u_drive,
+            "nu_inf": nu_inf,
+            "k": k,
+            "n": n,
+            "a": a,
+        },
+        "meta": {
+            "u_mean": u_drive,
+            "nu0": nu0,
+            "nu_inf": nu_inf,
+            "k": k,
+            "n": n,
+            "a": a,
+            "half_height": h,
+            "fluid": fluid,
+            "carreau_number_predicted": _carreau.carreau_number(k, g_pred, h, nu0),
+            "g_predicted": g_pred,
+        },
+    }
 
 
 def _setup_casson(case, u_drive, nu_max_ratio=1.0e4):
@@ -185,10 +270,26 @@ def _setup_couette(case, u_drive):
     }
 
 
-_SETUPS = {"channel": _setup_channel, "couette": _setup_couette, "casson": _setup_casson}
+_SETUPS = {
+    "channel": _setup_channel,
+    "couette": _setup_couette,
+    "casson": _setup_casson,
+    "carreau": _setup_carreau,
+}
 
 # Case types whose drive is a mean force, so meta carries pressure_gradient.
-_FORCE_DRIVEN = {"channel", "casson"}
+_FORCE_DRIVEN = {"channel", "casson", "carreau"}
+
+# Generalised-Newtonian case types are gated on the CONSERVATION IDENTITY
+# tau_w = G_disc*h rather than on the solver residual. Residual and profile
+# drift measure step size; a nonlinear nu<->gammadot fixed point that
+# contracts slowly looks converged by both long before it is (measured in
+# casson: residual 2.2e-9 and drift 9.7e-6 with the identity still at 2.5e-3).
+# The identity compares two quantities that must agree AT the fixed point, so
+# it measures distance to the solution. It is also rheology-independent, so
+# it cannot be satisfied by a wrong constitutive model.
+_GENERALISED_NEWTONIAN = {"casson", "carreau"}
+_IDENTITY_GATE_TOL = 1e-6
 
 
 def run(case, **kwargs):
@@ -251,11 +352,16 @@ def _run_steady(
         raise ValueError(f"unknown sampling '{sampling}': expected one of {sorted(_SAMPLINGS)}")
 
     setup = _SETUPS[gtype](case, u_drive, **setup_kwargs)
-    length = float(case["geometry"]["length"])
+    length = float(setup.get("length", case["geometry"]["length"]))
+    u_drive = setup.get("u_drive", u_drive)
     gap = setup["y_max"] - setup["y_min"]
 
     workdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
-    suffix = "".join(f"_{k}{v:g}" for k, v in sorted(setup_kwargs.items()))
+    suffix = "".join(
+        f"_{k}{v:g}" if isinstance(v, (int, float)) else f"_{k}{v}"
+        for k, v in sorted(setup_kwargs.items())
+        if v is not None
+    )
     casedir = workdir / f"{case['name']}_openfoam_n{int(n_cells)}{suffix}_{sampling}"
     if casedir.exists():
         shutil.rmtree(casedir)
@@ -270,17 +376,21 @@ def _run_steady(
         "ny": int(n_cells),
         "nu": setup["nu"],
         "end_time": (
-            _end_time(n_cells)
-            if gtype != "casson"
-            else int(iterations or _CASSON_ITERATIONS)
+            int(iterations or _CASSON_ITERATIONS)
+            if gtype == "casson"
+            else _carreau_iterations(setup["meta"]["carreau_number_predicted"], n_cells)
+            if gtype == "carreau"
+            else _end_time(n_cells, gtype)
         ),
         # Casson writes a second, half-way state: its nonlinear fixed point
         # converges too slowly for a residual gate, so convergence is judged
         # on the drift of the measured profile between the two states.
         "write_interval": (
-            _end_time(n_cells)
-            if gtype != "casson"
-            else int(iterations or _CASSON_ITERATIONS) // 2
+            int(iterations or _CASSON_ITERATIONS) // 2
+            if gtype == "casson"
+            else _carreau_iterations(setup["meta"]["carreau_number_predicted"], n_cells)
+            if gtype == "carreau"
+            else _end_time(n_cells, gtype)
         ),
         "x_mid": 0.5 * length,
         "z_mid": 0.025 * gap,
@@ -305,12 +415,6 @@ def _run_steady(
         _write_channel_ic(casedir, setup, params, case, n_cells)
     _foam(casedir, "foamRun")
     residual = _final_ux_residual(casedir)
-    if require_converged and residual > _UX_RESIDUAL_TOL:
-        raise RuntimeError(
-            f"foamRun finished with Ux initial residual {residual:.3e} > "
-            f"{_UX_RESIDUAL_TOL:.0e} in {casedir}; profile is not a converged "
-            f"steady solution. See log.foamRun."
-        )
     latest = "" if gtype == "casson" else " -latestTime"
     _foam(casedir, f"foamPostProcess -func sample{latest}")
 
@@ -325,12 +429,38 @@ def _run_steady(
         "nu": setup["nu"],
         "sampling": sampling,
         "ux_residual": residual,
+        "iterations_run": _iteration_count(casedir),
+        "iterations_to_residual_1e10": _iterations_to_residual(casedir, 1e-10),
         "case_dir": str(casedir),
         **setup["meta"],
     }
     if gtype in _FORCE_DRIVEN:
         # Provenance of the driving force; only exists where a mean force does.
         meta["pressure_gradient"] = _read_pressure_gradient(casedir)
+
+    # --- convergence gate ---------------------------------------------------
+    # Generalised-Newtonian cases are gated on the conservation identity;
+    # Newtonian ones on the residual (their fixed point is linear, so the
+    # residual is a faithful proxy and reaches round-off). See
+    # _GENERALISED_NEWTONIAN for why the distinction matters.
+    if gtype in _GENERALISED_NEWTONIAN:
+        h_gate = 0.5 * (setup["y_max"] - setup["y_min"])
+        balance = meta["pressure_gradient"] * h_gate
+        meta["identity"] = abs(tau_w - balance) / abs(balance)
+        if require_converged and meta["identity"] > _IDENTITY_GATE_TOL:
+            raise RuntimeError(
+                f"conservation identity tau_w = G_disc*h open by "
+                f"{meta['identity']:.3e} > {_IDENTITY_GATE_TOL:.0e} in "
+                f"{casedir}; the nonlinear fixed point has not converged "
+                f"(Ux residual {residual:.2e} is a step-size measure and does "
+                f"NOT establish this). See log.foamRun."
+            )
+    elif require_converged and residual > _UX_RESIDUAL_TOL:
+        raise RuntimeError(
+            f"foamRun finished with Ux initial residual {residual:.3e} > "
+            f"{_UX_RESIDUAL_TOL:.0e} in {casedir}; profile is not a converged "
+            f"steady solution. See log.foamRun."
+        )
 
     result = {"y": y, "u": u, "u_ref": setup["u_ref"], "tau_w": tau_w, "meta": meta}
     if gtype == "casson":
@@ -413,6 +543,32 @@ def _final_ux_residual(casedir):
     if not residuals:
         raise RuntimeError(f"no Ux residuals found in {casedir}/log.foamRun")
     return float(residuals[-1])
+
+
+def _ux_residual_history(casedir):
+    log = (casedir / "log.foamRun").read_text()
+    return [
+        float(x)
+        for x in re.findall(r"Solving for Ux, Initial residual = ([0-9eE.+-]+)", log)
+    ]
+
+
+def _iteration_count(casedir):
+    return len(_ux_residual_history(casedir))
+
+
+def _iterations_to_residual(casedir, tol):
+    """First iteration whose Ux residual falls below tol, or None.
+
+    Reported as a comparable stiffness measure across constitutive models: a
+    geometrically-contracting fixed point reaches a given tolerance in a
+    count that scales with the mesh only, while an algebraically-contracting
+    one (casson) blows up with the model's own stiffness parameter.
+    """
+    for i, value in enumerate(_ux_residual_history(casedir), start=1):
+        if value < tol:
+            return i
+    return None
 
 
 def _measurement_drift(casedir):

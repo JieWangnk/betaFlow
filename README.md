@@ -27,9 +27,25 @@ Two kinds of verification, deliberately distinguished (reviewers notice):
   scheme. This is stronger than any error-estimation procedure. All analytic
   rungs (Poiseuille, later Womersley) get this treatment;
   see `report/order_of_accuracy.md`.
-- **Solution verification** — no exact solution (Carreau rheology, patient
-  geometry). There the discretisation error can only be *estimated*, and GCI
-  enters. GCI is never used where an oracle exists.
+- **Solution verification** — no exact solution (patient geometry, anything
+  genuinely multi-dimensional). There the discretisation error can only be
+  *estimated*, and GCI enters. GCI is never used where an oracle exists.
+
+**Correction (superseded claim).** An earlier version of this file listed
+Carreau rheology as solution-verification-only, "no exact solution". That was
+wrong. In steady fully-developed 1-D channel flow the momentum equation
+integrates once to
+
+    tau(y) = G y        EXACTLY, for ANY rheology
+
+— the same force balance that makes tau_w rheology-independent. So a
+machine-precision oracle exists for *every* generalised Newtonian model: solve
+the scalar monotone equation nu(gammadot)·gammadot = G y pointwise, then
+integrate gammadot to get u. No ODE solve, no shooting, no GCI. `carreau_steady`
+is therefore code verification with an order-of-accuracy test, and its oracle
+self-verifies against the Newtonian and power-law limits to 1.8e-16 and
+7.2e-16 before being used as ground truth. The same construction would cover
+Herschel-Bulkley, Cross, and power-law without new machinery.
 
 Non-dimensionalisation is where validation harnesses silently rot. The
 Reynolds-number definition (bulk velocity, full channel height:
@@ -59,8 +75,13 @@ physics.
 
 ## Running
 
-    python3 -m pytest tests/ -v          # ~15 min; casson_steady is ~9 of it
-    python3 -m pytest tests/ -v --ignore=tests/test_casson.py   # ~5 min
+    python3 -m pytest tests/ -v      # default: skips @slow studies (~9 min)
+    python3 -m pytest -m "" -v       # everything, including casson (~18 min)
+    python3 -m pytest -m slow -v     # the slow studies alone
+
+Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml), so
+CI can run the default tier per-push and the full tier nightly. Only the
+casson two-axis grid is marked slow.
 
 The runner sources `/opt/openfoam14/etc/bashrc` itself; set
 `BETAFLOW_OPENFOAM_BASHRC` to point elsewhere (the templates use OpenFOAM 14
@@ -81,6 +102,8 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 | womersley_pulsatile | wss_amp_relative | tau_hat = G h tanh(K)/K | alpha=20, 8 cells/delta | 4.2e-4 | 2e-2 |
 | casson_steady | L2_velocity | Casson channel profile | N=160, nuMax/nu_c=1e2 | 7.3e-4 | 1e-2 |
 | casson_steady | wss_relative | tau_w = G h (rheology-independent) | N=160, nuMax/nu_c=1e2 | 3.8e-11 | 1e-6 |
+| carreau_steady | L2_velocity | Carreau-Yasuda channel (rootfind + quadrature) | N=160, Cu=10 | 6.1e-5 | 1e-2 |
+| carreau_steady | wss_relative | tau_w = G h (rheology-independent) | N=160, Cu=10 | 0.0 | 1e-6 |
 
 womersley_pulsatile's mesh level is CELLS PER STOKES LAYER (mesh refines
 with alpha): a fixed-mesh alpha-sweep cannot distinguish high-alpha error
@@ -291,6 +314,53 @@ Note on xi: this case uses xi = tau_y/(G·h) = 0.2 to make the plug measurable.
 Blood in a large artery has xi ~ 0.001–0.005 — the plug is under 1% of the
 lumen, which is exactly why Casson is indistinguishable from Newtonian in the
 aorta at peak systole.
+
+## carreau_steady: the contrast case
+
+Carreau has no regularisation parameter — nu is smooth and bounded between
+nu_inf and nu_0 at every strain rate — so no cap, no plug, no second axis.
+Committed predictions and outcomes (`results/carreau_steady.json`):
+
+| prediction | outcome |
+|---|---|
+| tau_w = G_disc·h to round-off | **confirmed** — identity exactly **0.0** on most runs, ≤2e-12 on all |
+| p ≈ 2 and NO floor | **confirmed** — p = 1.979, 1.990; error 9.50e-4 → 2.41e-4 → 6.07e-5, still falling |
+| limits recovered | **confirmed** — oracle self-verifies to 1.8e-16 (Newtonian) and 7.2e-16 (power law) |
+| no stiffening | **partly wrong** — geometric, but cost grows as ~Cu^0.6 (below) |
+| flatness monotone in Cu | **wrong, and the oracle agrees** (below) |
+| error coefficient grows with Cu | **wrong, same cause** (below) |
+
+**Cost is not Cu-independent.** Iterations to a 1e-10 residual at N=80:
+755 / 898 / 3916 / 15344 for Cu = 0.1 / 1 / 10 / 100, against **764** for the
+Newtonian channel on the same mesh. So at Cu → 0 it matches Newtonian
+*exactly*, then grows as ≈900·Cu^0.6. The mechanism claim survives even though
+the number does: contraction stays **geometric** (measured rate 0.9948 per
+iteration, a constant ratio) and the cost ratio versus Newtonian is bounded
+(6.2×, 5.1×, 4.3× at N = 40/80/160 — falling with mesh). Casson, by contrast,
+contracts **algebraically**, costs ~350× Newtonian, and diverges without bound
+in nuMax. The unifying quantity is the viscosity contrast across the channel:
+Carreau bounds it at nu0/nuInf by physics, casson lets nuMax push it anywhere.
+
+**Two predictions failed for one shared reason, and the exact oracle confirms
+it is physics, not a solver artefact.** Centreline flatness u_centre/u_mean
+over the sweep is 1.4978 → 1.4635 → 1.3450 → **1.3875**: non-monotone, turning
+back up at Cu = 100. The oracle gives 1.4996 / 1.4655 / 1.3470 / 1.3898 —
+the same turn, to within the N=40 discretisation error. With a **finite**
+viscosity ratio the near-wall fluid enters the *second* Newtonian plateau at
+high Cu, so the profile de-flattens toward a parabola again. Set
+nu_inf = 0 and monotonicity is restored exactly, converging to the power-law
+value (2n+1)/(n+1) = 1.3333 — logged as `power_law_limit_flatness`. The L2
+error follows the same curve (4.19e-4 / 5.19e-4 / 9.50e-4 / **8.39e-4**),
+peaking precisely where the profile is furthest from parabolic. So the driver
+is *departure from parabolic*, not Cu; the tests now assert that relationship
+and that the solver reproduces the exact curve, monotone or not.
+
+**Blood point** (Cho & Kensey, kinematic at rho = 1060: nu_0 = 5.283e-5,
+nu_inf = 3.255e-6 m²/s, k = 3.313 s, n = 0.3568; h = 10 mm, u_mean = 0.3 m/s):
+**Cu = 27.4**, flatness 1.4213 against the exact 1.4238. Note it thins *less*
+than the n = 0.5 sweep point at Cu = 10 despite the lower power-law index,
+because its viscosity ratio (0.0616) is six times larger — the same finite-plateau
+effect, at physiological parameters.
 
 ## Adding a case
 

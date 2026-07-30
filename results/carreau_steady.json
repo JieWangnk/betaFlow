@@ -1,0 +1,173 @@
+{
+  "case": "carreau_steady",
+  "runner": "openfoam",
+  "oracle_self_verification": {
+    "newtonian_limit": 1.7763568394002506e-16,
+    "power_law_limit": 7.152557373046878e-16
+  },
+  "oracle_limit_rtol": 1e-12,
+  "mesh_refinement": {
+    "Cu_target": 10.0,
+    "levels": [
+      40,
+      80,
+      160
+    ],
+    "runs": [
+      {
+        "n_cells": 40,
+        "Cu": 9.993373510770372,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.000950186710245888,
+        "wss_relative": 0.0,
+        "identity": 0.0,
+        "centreline_flatness": 1.34503148413,
+        "centreline_flatness_exact": 1.3469968714304692,
+        "iterations_to_residual_1e10": 3154,
+        "ux_residual": 6.83011288485e-16
+      },
+      {
+        "n_cells": 80,
+        "Cu": 9.998399538705561,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.0002410874043450191,
+        "wss_relative": 1.103700151558196e-12,
+        "identity": 1.103700151558196e-12,
+        "centreline_flatness": 1.34650738687,
+        "centreline_flatness_exact": 1.346999297455726,
+        "iterations_to_residual_1e10": 3916,
+        "ux_residual": 1.19475980007e-15
+      },
+      {
+        "n_cells": 160,
+        "Cu": 9.999606622352209,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 6.069073140452951e-05,
+        "wss_relative": 0.0,
+        "identity": 0.0,
+        "centreline_flatness": 1.34687705688,
+        "centreline_flatness_exact": 1.3469998806869858,
+        "iterations_to_residual_1e10": 6884,
+        "ux_residual": 9.03643924552e-15
+      }
+    ],
+    "p_observed": [
+      1.9786547496383695,
+      1.9900081668057596
+    ]
+  },
+  "cu_sweep": {
+    "n_cells": 40,
+    "runs": [
+      {
+        "n_cells": 40,
+        "Cu": 0.09987495202938748,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.00041866194017519645,
+        "wss_relative": 0.0,
+        "identity": 0.0,
+        "centreline_flatness": 1.49775583311,
+        "centreline_flatness_exact": 1.4996298143745481,
+        "iterations_to_residual_1e10": 515,
+        "ux_residual": 3.01817923126e-15
+      },
+      {
+        "n_cells": 40,
+        "Cu": 0.9985500463280946,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.0005185121493288941,
+        "wss_relative": 1.9325602489718587e-12,
+        "identity": 1.9325602489718587e-12,
+        "centreline_flatness": 1.46346673779,
+        "centreline_flatness_exact": 1.4654613231991285,
+        "iterations_to_residual_1e10": 635,
+        "ux_residual": 4.44161372848e-15
+      },
+      {
+        "n_cells": 40,
+        "Cu": 9.993373510770372,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.000950186710245888,
+        "wss_relative": 0.0,
+        "identity": 0.0,
+        "centreline_flatness": 1.34503148413,
+        "centreline_flatness_exact": 1.3469968714304692,
+        "iterations_to_residual_1e10": 3154,
+        "ux_residual": 6.83011288485e-16
+      },
+      {
+        "n_cells": 40,
+        "Cu": 99.93701824436202,
+        "n": 0.5,
+        "nu_inf_over_nu0": 0.01,
+        "L2_velocity": 0.0008386550480021459,
+        "wss_relative": 0.0,
+        "identity": 0.0,
+        "centreline_flatness": 1.38747900204,
+        "centreline_flatness_exact": 1.3897687307369204,
+        "iterations_to_residual_1e10": 14421,
+        "ux_residual": 4.25642234969e-16
+      }
+    ]
+  },
+  "power_law_limit_flatness": [
+    1.499625117375679,
+    1.4648217412637863,
+    1.3351593448284071,
+    1.3333358548142284
+  ],
+  "power_law_limit_asymptote": 1.3333333333333333,
+  "blood_point": {
+    "n_cells": 40,
+    "Cu": 27.35723919111286,
+    "n": 0.3568,
+    "nu_inf_over_nu0": 0.06160714285714285,
+    "L2_velocity": 0.0007829326292721955,
+    "wss_relative": 0.0,
+    "identity": 0.0,
+    "centreline_flatness": 1.4212877147033334,
+    "centreline_flatness_exact": 1.4237899596036507,
+    "iterations_to_residual_1e10": 5662,
+    "ux_residual": 3.43143249286e-16,
+    "fluid": "blood_cho_kensey"
+  },
+  "newtonian_reference": [
+    {
+      "n_cells": 40,
+      "iterations_to_residual_1e10": 513
+    },
+    {
+      "n_cells": 80,
+      "iterations_to_residual_1e10": 764
+    },
+    {
+      "n_cells": 160,
+      "iterations_to_residual_1e10": 1587
+    }
+  ],
+  "stiffness_ratio_vs_newtonian": [
+    6.148148148148148,
+    5.12565445026178,
+    4.337744171392565
+  ],
+  "main": {
+    "tols": {
+      "L2_velocity": 0.01,
+      "wss_relative": 1e-06
+    },
+    "errors": {
+      "L2_velocity": 6.069073140452951e-05,
+      "wss_relative": 0.0
+    },
+    "passed": true
+  },
+  "timestamp": "2026-07-30T19:26:50+00:00",
+  "openfoam_version": "14",
+  "git_sha": "ebaa4161a994-dirty"
+}

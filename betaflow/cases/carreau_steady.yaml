@@ -1,0 +1,58 @@
+# Steady Carreau(-Yasuda) flow in the SAME force-driven periodic channel as
+# poiseuille_steady and casson_steady. Only the constitutive model changes.
+#
+# Unlike casson there is NO regularisation parameter: nu is smooth and bounded
+# between nu_inf and nu_0 for all strain rates, so there is no cap, no plug,
+# and no second study axis. Mesh refinement should therefore keep improving
+# the answer indefinitely — the contrast with casson's regularisation floor is
+# the point of running this case.
+name: carreau_steady
+
+nondim:
+  # Cu = k * (G h / nu0) — time constant times the NEWTONIAN-LIMIT WALL shear
+  # rate (wall stress G h over the ZERO-shear viscosity). Must match the
+  # definition in betaflow/analytic/carreau.py.
+  Cu: 10.0
+  n: 0.5
+  nu_inf_over_nu0: 0.01
+  a: 2.0
+  # Re = u_mean * (2 h) / nu0, with nu0 the ZERO-shear viscosity — same
+  # convention as poiseuille, using the case's reference viscosity.
+  Re: 100
+
+geometry:
+  type: carreau
+  half_height: 1.0
+  length: 0.5
+
+oracle: betaflow.analytic.carreau.velocity_profile
+
+normalisation:
+  u_ref: u_max_from_oracle
+
+study:
+  mesh_levels: [40, 80, 160]
+  # Single axis. No regularisation parameter means no second axis.
+  cu_sweep: [0.1, 1.0, 10.0, 100.0]
+
+# Physiological point: Cho & Kensey blood parameters, converted to kinematic
+# (divide by rho). k is FIXED here — Cu is an OUTPUT, reported rather than
+# targeted, since real blood has no free time constant.
+fluids:
+  blood_cho_kensey:
+    mu_0: 0.056        # Pa s
+    mu_inf: 0.00345    # Pa s
+    lambda: 3.313      # s  (the model time constant, OpenFOAM's k)
+    n: 0.3568
+    rho: 1060          # kg/m^3
+    half_height: 0.01  # m — large-artery scale
+    u_mean: 0.3        # m/s
+    length: 0.005      # m
+
+metrics:
+  - name: L2_velocity
+    tol: 1.0e-2
+  # tau_w = G h from force balance alone — rheology-independent, and (see the
+  # runner) the convergence gate for generalised-Newtonian cases.
+  - name: wss_relative
+    tol: 1.0e-6
