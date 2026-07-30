@@ -61,7 +61,7 @@
     "error_model": "(2/N^2)/(1+2/N^2) \u2014 exact for the discrete-mean bulk constraint",
     "conservation_max_rel_dev": 0.0
   },
-  "timestamp": "2026-07-30T11:13:20+00:00",
+  "timestamp": "2026-07-30T11:17:17+00:00",
   "openfoam_version": "14",
-  "git_sha": "39e1547b6ea4-dirty"
+  "git_sha": "17d4283aef7f"
 }
