@@ -12,5 +12,6 @@ testpaths = ["tests"]
 # Slow studies only:                  pytest -m slow
 addopts = "-m 'not slow'"
 markers = [
-    "slow: multi-minute parameter studies (casson two-axis grid). Excluded by default.",
+    "slow: multi-minute parameter studies (casson grid, womersley_carreau). Excluded by default.",
+    "oracle: pure-analytic oracle self-verification. Needs NO solver install.",
 ]
