@@ -93,14 +93,32 @@ pressure gradient (predicted RMS 4.3e-4 at N=40; measured 4.18e-4).
 
 Wall shear stress also converges at p = 2.0 (1.25e-3 / 3.12e-4 / 7.81e-5) —
 but NOT because the wall gradient is high-order. The functionObject uses the
-plain half-cell one-sided snGrad, formally O(dy). At steady state the discrete
-global momentum balance forces the wall flux to equal the imposed mean
-pressure-gradient source exactly (tau_num = G_disc * h to all digits of the
-solver log), and G_disc itself converges at O(dy²) — the O(dy) truncation of
-the one-sided difference cancels against the dy²/4 offset the discrete
-solution carries. This identity is a property of force-driven periodic flow;
-it will NOT hold for transient (Womersley) or non-periodic cases, where the
-wall-gradient order gets tested for real.
+plain half-cell one-sided snGrad, formally O(dy). The mechanism: the discrete
+solution is the exact parabola plus a uniform offset c = G dy²/(8 nu) — the
+interior equations only see differences, and c is fixed by closing the
+wall-cell balance. Feeding that field into the half-cell gradient cancels the
+-G dy/4 truncation term identically, so tau_num = G_disc·h to all digits of
+the solver log (the conservation identity), and the entire tau error is
+G_disc vs G: exactly (2/N²)/(1+2/N²), which the measurements match at every
+level. The refinement test locks all three layers: p in [1.9, 2.1], the error
+model to 5%, and the identity to 1e-9.
+
+The general lesson, derived once here with numbers attached: **the formal
+order of an operator is not the observed order of a conserved quantity
+computed from the discrete solution.** Conservation constrains what the
+discrete solution can be; in a conservative FV scheme the wall flux is pinned
+by the global balance, so a formally first-order wall gradient can return a
+flux with no first-order error at all.
+
+For Womersley the identity itself survives — telescoping gives
+tau_w(t) = h·(G(t) − d⟨u⟩/dt) — but two things change. The quadratic
+cancellation is special (central differences are exact for parabolas; a
+Bessel profile's spatially non-uniform discrete deviation cannot be absorbed
+into a constant), and at high Womersley number tau_w is a small difference of
+two large terms: tau_w/(G h) ~ 1/alpha, so relative errors in the balance are
+amplified ~alpha-fold. Prediction, recorded before the case exists: p ≈ 2
+preserved, coefficient roughly alpha× the steady value (~6e-3 at N=80,
+alpha=20), scaling visibly with alpha at fixed mesh.
 
 A hand-picked tolerance is arbitrary; the observed order is what makes an
 error number meaningful. The N=40 cellPoint error (1.30e-3) *fails* the 1e-3

@@ -139,6 +139,7 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
 
     y, u = _read_profile(casedir)
     tau_w = _read_tau_wall(casedir)
+    g_disc = _read_pressure_gradient(casedir)
 
     return {
         "y": y,
@@ -152,6 +153,7 @@ def run(case, n_cells=40, u_mean=1.0, workdir=None, sampling="cellPoint"):
             "n_cells_total": _N_STREAMWISE * int(n_cells),
             "nu": nu,
             "u_mean": u_mean,
+            "pressure_gradient": g_disc,
             "sampling": sampling,
             "case_dir": str(casedir),
         },
@@ -214,6 +216,17 @@ def _openfoam_version():
         ["bash", "-c", f"source {_bashrc()} 2>/dev/null && echo -n $WM_PROJECT_VERSION"],
         text=True,
     ).strip()
+
+
+def _read_pressure_gradient(casedir):
+    """Converged mean pressure-gradient source [m/s^2] applied by the
+    meanVelocityForce constraint, parsed from the last (corrected) print in
+    the solver log. This is the G_disc of the discrete momentum balance."""
+    log = (casedir / "log.foamRun").read_text()
+    matches = re.findall(r"pressure gradient = ([0-9eE.+-]+)", log)
+    if not matches:
+        raise RuntimeError(f"no meanVelocityForce pressure gradient found in {casedir}/log.foamRun")
+    return float(matches[-1])
 
 
 def _read_tau_wall(casedir):

@@ -43,6 +43,20 @@ P_BAND = (1.8, 2.2)
 
 FORMAL_ORDER = 2
 
+# --- Wall shear stress: the mechanism is locked, not just the rate. ---
+# tau_w = G_disc*h identically (discrete momentum balance pins the wall flux),
+# so its entire error is G_disc vs G_exact. For the discrete-mean bulk
+# constraint on a uniform mesh this is EXACT, not leading-order:
+#     G_disc/G_exact = 1/(1 + 2/N^2)  =>  rel error = (2/N^2)/(1 + 2/N^2)
+# If meanVelocityForce's constraint definition ever changes, p survives but
+# this coefficient moves — the model band is the guard that catches it.
+TAU_P_BAND = (1.9, 2.1)
+TAU_MODEL_RTOL = 0.05
+
+
+def _tau_error_model(n):
+    return (2.0 / n**2) / (1.0 + 2.0 / n**2)
+
 
 def test_order_of_accuracy():
     case = yaml.safe_load(CASE_FILE.read_text())
@@ -54,6 +68,7 @@ def test_order_of_accuracy():
     openfoam_version = None
     study = {}
     tau_errors = []
+    identity_devs = []
     for sampling in SAMPLINGS:
         errors, n_cells = [], []
         for level in MESH_LEVELS:
@@ -65,6 +80,10 @@ def test_order_of_accuracy():
             errors.append(metric(u_nondim, oracle(y_over_h)))
             n_cells.append(result["meta"]["n_cells_total"])
             openfoam_version = result["meta"]["openfoam_version"]
+            # Conservation identity: the discrete momentum balance pins the
+            # wall flux to the applied mean pressure-gradient source exactly.
+            tau_identity = result["meta"]["pressure_gradient"] * h
+            identity_devs.append(abs(result["tau_w"] - tau_identity) / tau_identity)
             # tau_w comes from the solve, not the profile sampling, so one
             # sampling mode's runs suffice to measure its convergence.
             if sampling == "cell":
@@ -77,6 +96,7 @@ def test_order_of_accuracy():
         study[sampling] = {"n_cells": n_cells, "errors": errors, "p": p}
 
     tau_p = [math.log2(coarse / fine) for coarse, fine in zip(tau_errors, tau_errors[1:])]
+    tau_predicted = [_tau_error_model(n) for n in MESH_LEVELS]
 
     record = {
         "case": case["name"],
@@ -85,7 +105,14 @@ def test_order_of_accuracy():
         "mesh_levels": list(MESH_LEVELS),
         "formal_order": FORMAL_ORDER,
         "samplings": study,
-        "tau_w": {"metric": "wss_relative", "errors": tau_errors, "p": tau_p},
+        "tau_w": {
+            "metric": "wss_relative",
+            "errors": tau_errors,
+            "p": tau_p,
+            "predicted_errors": tau_predicted,
+            "error_model": "(2/N^2)/(1+2/N^2) — exact for the discrete-mean bulk constraint",
+            "conservation_max_rel_dev": max(identity_devs),
+        },
         "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
         "openfoam_version": openfoam_version,
         "git_sha": git_sha(REPO),
@@ -107,11 +134,26 @@ def test_order_of_accuracy():
                 f"for levels {pair[0]}->{pair[1]} (formal order {FORMAL_ORDER})"
             )
 
-    # tau_w: monotone decrease only. The formal order of the wall-flux
-    # extraction is exactly the question this study measures, so no p band is
-    # asserted until the observed order is established and reviewed.
-    assert all(c > f for c, f in zip(tau_errors, tau_errors[1:])), (
-        f"tau_w error does not decrease monotonically: {tau_errors}"
+    # tau_w: three locks, ordered weakest to sharpest.
+    # (1) Observed order in the accepted band.
+    for pair, p in zip(zip(MESH_LEVELS, MESH_LEVELS[1:]), tau_p):
+        assert TAU_P_BAND[0] < p < TAU_P_BAND[1], (
+            f"tau_w observed order p={p:.3f} outside {TAU_P_BAND} for levels {pair[0]}->{pair[1]}"
+        )
+    # (2) The coefficient, not just the rate: error must track the exact
+    # constraint model. p would survive a changed meanVelocityForce
+    # definition; this would not.
+    for level, err, pred in zip(MESH_LEVELS, tau_errors, tau_predicted):
+        assert abs(err / pred - 1.0) < TAU_MODEL_RTOL, (
+            f"tau_w error {err:.4e} at N={level} deviates "
+            f"{abs(err / pred - 1):.1%} from the model {pred:.4e} (band {TAU_MODEL_RTOL:.0%})"
+        )
+    # (3) The conservation identity itself, tau_w = G_disc*h. Exact in the
+    # discrete balance; the tolerance reflects the 1e-9 steady-convergence
+    # gate and the ASCII round-trip, not the identity.
+    assert max(identity_devs) < 1e-9, (
+        f"conservation identity tau_w = G_disc*h violated: "
+        f"max relative deviation {max(identity_devs):.3e}"
     )
 
 
@@ -149,12 +191,21 @@ def _write_report(record):
     lines += [
         "## Wall shear stress (relative error vs exact tau_w = G h)",
         "",
-        "| mesh level | rel error | p |",
-        "|---:|---:|---:|",
+        "| mesh level | rel error | model (2/N²)/(1+2/N²) | p |",
+        "|---:|---:|---:|---:|",
     ]
     for i, level in enumerate(record["mesh_levels"]):
         p = f"{tau['p'][i - 1]:.3f}" if i > 0 else "—"
-        lines.append(f"| {level} | {tau['errors'][i]:.3e} | {p} |")
-    lines.append("")
+        lines.append(
+            f"| {level} | {tau['errors'][i]:.4e} | {tau['predicted_errors'][i]:.4e} | {p} |"
+        )
+    lines += [
+        "",
+        "tau_w = G_disc·h identically (discrete momentum balance; conservation "
+        f"identity holds to {tau['conservation_max_rel_dev']:.1e} across all runs), "
+        "so its error is entirely G_disc vs G — second order despite the formally "
+        "O(dy) one-sided wall snGrad.",
+        "",
+    ]
     REPORT_FILE.parent.mkdir(exist_ok=True)
     REPORT_FILE.write_text("\n".join(lines))
