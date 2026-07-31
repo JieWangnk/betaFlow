@@ -835,7 +835,33 @@ untouched (same closed-surface argument) and makes the scale comparable:
 | coronaryCFD SUK_BIF_CPD14 | 11.18 | 1.2e-5 | 4.4e-4, 1.6e-3, 1.5e-3 | 130x |
 | coronaryCFD SUK_BIF_CPD20 | 11.18 | 1.1e-5 | 2.0e-4, 1.4e-3, 9.6e-4 | 128x |
 
-The ordering INVERTS. **PAT_0000 is the worst case, by 3.3x**, not BPM120;
+**SIXTH INSTRUMENT FAILURE — trap 4, which was specified and never
+implemented.** The two AortaCFD cases run `ddtSchemes: Euler`; all three
+coronary cases run `steadyState`. The checker applied the STEADY momentum
+identity to transient cases, silently omitting d/dt of the volume-integrated
+momentum. Computing that term (cell volumes from the mesh, finite-differenced
+across the last two writes) accounts for PAT_0000's dominant z residual to
+**4%** (-4.196e-6 measured against -4.386e-6 omitted), and cutting it drops
+PAT_0000 from 3.8e-2 to **3.4e-3** — an order of magnitude, into the coronary
+range. It does NOT touch BPM120, whose d/dt is ~1e-8, a thousand times too
+small to explain its residual.
+
+So the ordering inverts TWICE, and lands where it started:
+
+| case | scheme | pressure-dependent | reference-free | + transient term |
+|---|---|---|---|---|
+| BPM120 lesson01 | transient | 4.8e-3 | 1.2e-2 | **1.2e-2** |
+| PAT_0000 | transient | 4.6e-4 | 3.8e-2 | **3.4e-3** |
+| coronary CPD10/14/20 | steady | ~1e-5 | 1.4-2.5e-3 | 1.4-2.5e-3 |
+
+**BPM120 is the genuine outlier after all** — but the first analysis was right
+by accident, two instrument errors having pointed the same way and partially
+cancelled. And BPM120 is the harder finding: its flow has reached a steady
+state (d/dt ~ 1e-8) despite a transient scheme, so the steady identity SHOULD
+apply to it, and it does not close. That is the one result here still
+unexplained, and the one worth investigating before publication.
+
+The now-superseded reference-free-only conclusion read:
 the coronaries were flattered by ~130x purely by their pressure offset. And
 PAT_0000's z-component is 10-20x its own x and y, so the per-component flag
 was pointing at the real thing all along rather than incidentally. Closed
