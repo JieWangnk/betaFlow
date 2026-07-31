@@ -299,11 +299,31 @@ the identity still at 2.5e-3). The identity compares two quantities that must
 agree at the fixed point, so it measures distance to the solution, not step
 size.
 
-**Why this travels beyond the repo:** `nuMax` is an unreported degree of
-freedom in published Casson haemodynamics. Rheology parameters get reported;
-the regularisation cap does not. Since the cap sets the plug width, plug-region
-results are not reproducible from the stated method — and the coupling above
-means the cap cannot simply be raised to make the problem go away.
+**Why this travels beyond the repo — WITH the prior work named.** The
+mechanism is NOT novel: convergence of regularised solutions to the exact
+viscoplastic model, the order of the error for different regularisations, and
+the flows where regularisation is worst are treated in Frigaard, I.A. &
+Nouar, C. (2005), "On the usage of viscosity regularisation methods for
+visco-plastic fluid flow computation", J. Non-Newtonian Fluid Mech.
+127:1-26 — whose framing is that these methods are popular and generally used
+in an ad hoc manner. What this case adds is a measured instance in a
+haemodynamics setting, with the mesh/cap coupling quantified.
+
+The claim that might survive is about REPORTING, not physics, and it was
+tested rather than asserted (`results/gapmap_numax_claim.json`, a Crossref +
+PubMed corpus of 1906 records). The two literatures are structurally
+disconnected: haemodynamics x regularisation co-occurs 4 times against 40.7
+expected (ratio **0.10**, p = 6e-18), while the control pair haemodynamics x
+wall-shear-stress is ENRICHED at 1.96 — so the method detects co-occurrence
+where it exists.
+
+**What that does and does not establish.** It supports a DISCONNECTION claim.
+It does NOT establish a reporting rate: the counts are title+abstract only, a
+regularisation cap is a methods detail that rarely reaches an abstract, and
+the 2-of-140 figure is a visibility rate, not a reporting rate. The reporting
+question needs full text. A direct precedent also surfaced and must be read
+before any novelty claim is made — a hyperbolic-regularised Casson model for
+pulsatile blood flow in a rigid artery sits squarely in the intersection.
 
 Two plug-width definitions are logged because they disagree, informatively.
 Cap-active (where nu == nuMax) is mechanism-direct and reads the solver's own

@@ -1,0 +1,52 @@
+{
+  "claim": "the regularisation parameter is an unreported degree of freedom in Casson haemodynamics",
+  "method": "gap-map step 6 (claim test) over a deduplicated Crossref+PubMed corpus; TITLE+ABSTRACT metadata only",
+  "corpus_n": 1906,
+  "depletion": [
+    {
+      "pair": "haemodynamic x regularisation",
+      "observed": 4,
+      "expected": 40.7,
+      "ratio": 0.1,
+      "p_depletion": 6.02e-18
+    },
+    {
+      "pair": "CONTROL haemodynamic x wall shear stress",
+      "observed": 324,
+      "expected": 165.5,
+      "ratio": 1.96,
+      "p_depletion": 1.0,
+      "note": "control is ENRICHED, so the method detects co-occurrence where it exists"
+    },
+    {
+      "pair": "Casson x regularisation",
+      "observed": 5,
+      "expected": 19.0,
+      "ratio": 0.26,
+      "p_depletion": 3.58e-05
+    },
+    {
+      "pair": "CONTROL Casson x wall shear stress",
+      "observed": 47,
+      "expected": 77.2,
+      "ratio": 0.61,
+      "p_depletion": 5.09e-06,
+      "note": "WEAK control - itself depleted, so it supports the instrument less than the haemodynamic pair does"
+    }
+  ],
+  "claim_test": {
+    "casson_and_haemodynamic_papers": 140,
+    "mentioning_regularisation_in_abstract": 2,
+    "percent": 1.4,
+    "examples": [
+      "A hyperbolic-regularized Casson model for pulsatile blood flow simulation in a rigid artery"
+    ]
+  },
+  "limits": [
+    "Title+abstract only. A regularisation cap is a METHODS detail that rarely reaches an abstract, so 1.4% is NOT a reporting rate - it is a visibility rate, and the reporting question needs FULL TEXT.",
+    "Absolute counts are lower bounds; the relative comparison against the enriched control is what carries information.",
+    "Query-set dependent. Three query families per pillar is a smell test, not a systematic review.",
+    "A direct precedent was surfaced and must be read before any novelty claim: the hyperbolic-regularized Casson paper sits squarely in the intersection."
+  ],
+  "verdict": "The two literatures are structurally disconnected (ratio 0.10, p=6e-18, against an enriched control at 1.96). That supports a DISCONNECTION claim. It does NOT establish a reporting rate, and the mechanism itself is not novel - see Frigaard & Nouar (2005)."
+}
