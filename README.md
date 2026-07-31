@@ -657,6 +657,70 @@ implementation bug, and it silently changes the MSD slope.
 Overdamped (inertialess) Langevin is justified by St = 5.0e-9 at these
 scales, reported in meta rather than assumed.
 
+## taylor_aris: the last exact oracle
+
+Dispersion of a nanoparticle in laminar pipe flow, on `runners/langevin.py`
+with an analytic Poiseuille field — no CFD solver. After this there are none:
+margination, capture efficiency and deposition have no closed forms, so this
+is the final rung where a result can be checked against truth rather than
+estimated.
+
+The oracle self-verifies before use, at machine precision: Decuzzi Eq. 15
+equals Taylor-Aris with Stokes-Einstein substituted (2.2e-16, since
+6/48 = 1/8); Eq. 18 is the stationary point of Eq. 15 found by differentiating
+it rather than hardcoded (2.2e-16); Pe at R_cr is exactly sqrt(48)
+(4.4e-16); and E[u] = U, Var(u) = U²/3 by quadrature (2.5e-13, 1.0e-12).
+
+**Four exact anchors, three new in kind.**
+
+| anchor | result |
+|---|---|
+| D_eff = D + a²U²/(48D), from the long-time variance slope | z = 2.20, 0.09, 0.29 at N = 10⁴, 3×10⁴, 10⁵ |
+| short time: sigma_x² − 2Dt → (U²/3)t², a DIFFERENT power of t | exponent **1.925**, prefactor 0.930 of U²/3 |
+| P(r) = 2r/a² at all times — THE GATE | KS 0.0014–0.0049 across t/tau_r = 1.3 to 10 |
+| the SHAPE of D_eff(R), via a two-parameter fit | **R\* = 50.36 nm vs Eq. 18's 50.00 nm (0.7%)** |
+
+The radius sweep is the strongest of the four because it tests a shape rather
+than a point: D_eff falls with particle size below R_cr and rises above it,
+and R* comes from fitting D_eff(R) = A/R + BR to all nine points rather than
+scanning for a minimum the curve is flat around. Individual points agree with
+Eq. 15 to 1–3% at N = 10⁴.
+
+**Two constraints, both anchored rather than asserted.** The duration is
+t_max = 10 tau_r, not 50: radial relaxation decays as exp(−beta_1² t/tau_r)
+with beta_1 = 3.8317 the first zero of J1, i.e. exp(−14.68 t/tau_r), which is
+4e-7 at one tau_r. The asymptotic regime arrives at ~tau_r, so the fit window
+[2, 10] tau_r is generous and 50 tau_r would be 5x wasted. That alone is the
+difference between 10¹¹ and 10⁹ particle-steps.
+
+The radial step ratio epsilon is then **calibrated by the gate rather than
+chosen**: sweeping epsilon = 0.05 / 0.025 / 0.0125 gives KS/floor = 0.63,
+0.86, 0.88 — at or below the statistical floor at every value, and NOT falling
+with epsilon. So epsilon = 0.05 is verified, not assumed; had KS sat above
+floor and fallen, a real wall-handling error would have been resolving. The
+check that validates the physics also calibrates the timestep, with no
+separate convergence study.
+
+**The wall scheme is specular reflection with the exact crossing**, iterated.
+Not rejection, which depletes or piles up the near-wall population, and not
+radial folding r → 2a − r, which is measure-distorting in 2-D because the area
+element 2·pi·r·dr differs between r and 2a − r. Either error would bias D_eff
+invisibly through the velocity sampling — nothing in the dispersion number
+itself reveals it, which is exactly why P(r) is the gate.
+
+**One honest caveat on the error-rate fit.** The particle-count study uses one
+seed per N, so the fitted "MC exponent" of 1.35 is not an estimate of the
+1/sqrt(N) law — three single draws cannot measure a standard deviation. The
+z-scores being O(1) at every N is the meaningful check, and the scaling law is
+verified properly in `langevin_free` with 8 replicas per point.
+
+**Physical status.** U ~ 3 um/s is far below any real vessel; it is chosen so
+that R_cr = 50 nm sits at the centre of the sweep. R_cr scales as 1/(mu·a·U),
+so at physiological velocities it is sub-nanometre and every real nanoparticle
+sits on the convection-dominated branch — which IS the content of Decuzzi
+Eq. 18. Making the minimum observable requires a slow flow. Same status as
+xi = 0.2 in casson_steady: a verification setting, not physiology.
+
 ## Adding a case
 
 1. Write the oracle in `betaflow/analytic/` — a pure function returning

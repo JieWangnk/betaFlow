@@ -117,3 +117,52 @@ def msd_slope_relative(msd_values, times, diffusivity):
         raise ValueError("times and msd must have the same shape")
     slope = float(np.sum(t * m) / np.sum(t * t))
     return abs(slope / (6.0 * float(diffusivity)) - 1.0)
+
+
+def d_eff_slope(var_x, times, window):
+    """Fit sigma_x^2 = 2 D_eff t + c over `window` and return D_eff.
+
+    An INTERCEPT is fitted, unlike the free-diffusion MSD: the ballistic
+    transient leaves a permanent offset in sigma_x^2 that the asymptotic law
+    does not describe, and forcing the fit through the origin would fold that
+    offset into the slope.
+    """
+    t = np.asarray(times, dtype=float)
+    v = np.asarray(var_x, dtype=float)
+    sel = (t >= window[0]) & (t <= window[1])
+    if sel.sum() < 3:
+        raise ValueError("fit window contains fewer than three points")
+    slope, _ = np.polyfit(t[sel], v[sel], 1)
+    return float(slope / 2.0)
+
+
+def d_eff_relative(var_x, times, window, d_eff_exact):
+    """|fitted D_eff / exact - 1|."""
+    return abs(d_eff_slope(var_x, times, window) / float(d_eff_exact) - 1.0)
+
+
+def short_time_exponent(var_x, times, window, diffusivity):
+    """(exponent, prefactor) of the shear-sampling regime.
+
+    Fits log(sigma_x^2 - 2 D t) against log t. The 2 D t is SUBTRACTED because
+    it is known exactly and additive: sigma_x^2 = 2 D t + Var(u) t^2 at short
+    times, so leaving it in makes the raw log-log slope drift below 2 wherever
+    the two terms are comparable, which would look like a failure of the
+    ballistic law rather than the presence of a second known term.
+    """
+    t = np.asarray(times, dtype=float)
+    v = np.asarray(var_x, dtype=float) - 2.0 * float(diffusivity) * t
+    sel = (t >= window[0]) & (t <= window[1]) & (v > 0.0)
+    if sel.sum() < 3:
+        raise ValueError("short-time window contains fewer than three usable points")
+    slope, intercept = np.polyfit(np.log(t[sel]), np.log(v[sel]), 1)
+    return float(slope), float(np.exp(intercept))
+
+
+def radial_ks(r_over_a):
+    """Kolmogorov-Smirnov statistic of sampled r/a against F(r) = (r/a)^2."""
+    from scipy.stats import kstest
+
+    from betaflow.analytic.taylor_aris import radial_cdf
+
+    return float(kstest(np.asarray(r_over_a, dtype=float), radial_cdf).statistic)

@@ -1,0 +1,93 @@
+# Taylor-Aris dispersion of a nanoparticle in laminar pipe flow.
+# Reuses runners/langevin.py with an ANALYTIC Poiseuille field: no OpenFOAM,
+# no new solver. THE LAST EXACT ORACLE in this programme.
+#
+# CITATIONS
+#   Taylor, G.I. (1953), Proc. R. Soc. A 219:186-203.
+#   Aris, R. (1956), Proc. R. Soc. A 235:67-77.
+#   Decuzzi, Causa, Ferrari & Netti (2006), Ann. Biomed. Eng. 34:633-641,
+#     Eq. 15 (D_eff) and Eq. 18 (R_cr). Equation numbers supplied by the
+#     user; the ALGEBRA is verified in the oracle rather than taken on trust.
+#   Einstein, A. (1905), Ann. Phys. 322(8):549-560 (Stokes-Einstein).
+#   One-way coupling (dilute suspension, St << 1, particles do not perturb
+#     the flow): the single-particle model assumptions reviewed in
+#     Ashrafmansouri et al. (2024), cited as supplied by the user and NOT
+#     independently verified; St is computed and reported per run so the
+#     regime claim is checked rather than asserted.
+name: taylor_aris
+
+physical:
+  vessel_radius: 10.0e-6       # m
+  mean_velocity: 3.1462e-6     # m/s
+  temperature: 310.0           # K
+  dynamic_viscosity: 1.0e-3    # Pa s
+  particle_radius: 150.0e-9    # m  -> Pe = 20.8, D_eff/D = 10.0
+  particle_density: 1050.0
+  # VERIFICATION SETTING, NOT PHYSIOLOGY. The velocity is chosen so that
+  # R_cr = 50 nm sits at the geometric centre of the radius sweep below,
+  # which requires U ~ 3 um/s — far below any real vessel. R_cr scales as
+  # 1/(mu a U), so at physiological velocities it is sub-nanometre and every
+  # real nanoparticle sits on the convection-dominated branch. That IS the
+  # point of Decuzzi Eq. 18; making the minimum observable needs a slow flow.
+  # Same status as xi = 0.2 in casson_steady.
+
+flow:
+  type: poiseuille_pipe        # presence of this key selects the cylinder mode
+
+oracle: betaflow.analytic.taylor_aris.d_eff
+
+numerics:
+  # sqrt(2 D dt)/a. Calibrated by the KS gate rather than assumed: the sweep
+  # below checks whether the radial distribution sits at its statistical
+  # floor, which verifies the value instead of asserting it.
+  epsilon: 0.05
+  epsilon_sweep: [0.05, 0.025, 0.0125]
+  # Duration in units of tau_r = a^2/D. Radial relaxation decays as
+  # exp(-beta_1^2 t/tau_r) with beta_1 = 3.8317 (first zero of J1), i.e.
+  # exp(-14.68 t/tau_r): 4e-7 at one tau_r, 1e-13 at two. The asymptotic
+  # regime arrives at ~tau_r, so 10 is ample and 50 would be 5x wasted.
+  cycles: 10.0
+  fit_window_tau_r: [2.0, 10.0]
+  # BALLISTIC WINDOW, squeezed from both sides and therefore measured on a
+  # dedicated short run rather than the tail of the long one:
+  #   lower bound  t > 6 tau_r/Pe^2 = 0.014 tau_r, below which the known 2 D t
+  #                dominates (it is subtracted exactly, so this only controls
+  #                noise amplification);
+  #   upper bound  t << tau_r/beta_1^2 = 0.068 tau_r, beyond which the shear
+  #                sampling saturates and the exponent falls below 2.
+  # On the main run dt = 0.00125 tau_r, so that window is ~10 timesteps wide
+  # and unusable; the short run below resolves it with 640 steps.
+  short_time_window_tau_r: [0.002, 0.01]
+  short_time_cycles: 0.05
+  short_time_epsilon: 0.0125
+  # Expected exponent over this window is slightly BELOW 2: the leading
+  # saturation correction is ~ -(beta_1^2/3) t/tau_r, i.e. about -0.03 here.
+  short_time_exponent_band: [1.85, 2.05]
+
+study:
+  particle_counts: [10000, 30000, 100000]
+  reference_particles: 100000
+  epsilon_calibration_particles: 20000
+  # Nine radii spanning a decade either side of R_cr = 50 nm. The budget goes
+  # into MORE POINTS rather than more particles per point: R* comes from a
+  # two-parameter fit to D_eff(R) = A/R + B R, whose error falls as ~1/sqrt(K)
+  # in the number of points, so K=9 at N=1e4 beats K=3 at N=1e5 for the same
+  # cost. The minimum is never located by scanning - the curve is flat there.
+  radius_sweep_nm: [5, 10, 20, 35, 50, 75, 130, 250, 500]
+  radius_sweep_particles: 10000
+
+metrics:
+  # D_eff is a fitted 1-D VARIANCE, so its error law is sqrt(6)/2 / sqrt(N),
+  # NOT the sqrt(2)/sqrt(N) of a single-time variance and NOT the
+  # 0.7071/sqrt(N) of a fitted 3-D MSD. Four laws now exist and differ by up
+  # to 2x; see betaflow/metrics/mc_error.py for all four with derivations.
+  - name: d_eff_relative
+    error_law: slope_fit_variance_1d
+    tol_sigma: 4.0
+  # THE GATE. Exact, holds with and without flow (axial flow does not couple
+  # to r), and the only check that catches a wrong wall BC - which biases
+  # D_eff invisibly through the velocity sampling. This case's conservation
+  # identity. Threshold is the KS statistical floor, 1.36/sqrt(N) at 95%.
+  - name: radial_ks
+    alpha: 0.05
+    tol_multiple_of_floor: 1.5

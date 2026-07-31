@@ -1,0 +1,185 @@
+{
+  "case": "taylor_aris",
+  "runner": "langevin",
+  "note": "LAST exact oracle; analytic Poiseuille field, no CFD solver",
+  "oracle_self_verification": {
+    "eq15_vs_taylor_aris": 2.220446049250313e-16,
+    "eq18_vs_differentiation": 2.220446049250313e-16,
+    "peclet_at_r_cr": 4.440892098500626e-16,
+    "velocity_mean": 2.5013324744804777e-13,
+    "velocity_variance": 1.000310945187266e-12
+  },
+  "asymptotic_onset_tau_r": 0.9409847557061809,
+  "bessel_j1_first_root": 3.8317059702075125,
+  "reference": {
+    "n_particles": 100000,
+    "peclet": 20.784220076705363,
+    "stokes_number": 1.651755e-09,
+    "d_eff_over_d": 9.999662587435884,
+    "d_eff_relative": 0.0011290074358493163,
+    "ks_history": {
+      "t_over_tau_r": [
+        1.2500000000000002,
+        2.5000000000000004,
+        3.750000000000001,
+        5.000000000000001,
+        6.250000000000002,
+        7.500000000000002,
+        8.750000000000002,
+        10.000000000000002
+      ],
+      "statistic": [
+        0.0019072321762583222,
+        0.003410970003355218,
+        0.002368905399663751,
+        0.002225224123422631,
+        0.0014000787878436505,
+        0.002771739162947928,
+        0.004948016043300585,
+        0.0025333847666516585
+      ]
+    },
+    "wall_scheme": "specular reflection, exact crossing, iterated"
+  },
+  "particle_count_study": [
+    {
+      "n_particles": 10000,
+      "d_eff_relative": 0.02688735517396057,
+      "sigma_theory": 0.01224744871391589,
+      "z_score": 2.1953433569728213,
+      "ks_statistic": 0.00769079075375384,
+      "ks_floor": 0.013600000000000001
+    },
+    {
+      "n_particles": 30000,
+      "d_eff_relative": 0.0006621379679527806,
+      "sigma_theory": 0.0070710678118654745,
+      "z_score": 0.09364044944409841,
+      "ks_statistic": 0.006094872207277446,
+      "ks_floor": 0.00785196366097891
+    },
+    {
+      "n_particles": 100000,
+      "d_eff_relative": 0.0011290074358493163,
+      "sigma_theory": 0.003872983346207416,
+      "z_score": 0.29150846645258277,
+      "ks_statistic": 0.0025333847666516585,
+      "ks_floor": 0.0043006976178289955
+    }
+  ],
+  "epsilon_calibration": [
+    {
+      "epsilon": 0.05,
+      "n_steps": 8000,
+      "ks_statistic": 0.00603975221681019,
+      "ks_floor": 0.009616652224137047,
+      "ks_over_floor": 0.6280514337048483,
+      "d_eff_relative": 0.018711679925686342
+    },
+    {
+      "epsilon": 0.025,
+      "n_steps": 32000,
+      "ks_statistic": 0.008260798236027989,
+      "ks_floor": 0.009616652224137047,
+      "ks_over_floor": 0.8590097721631265,
+      "d_eff_relative": 0.003183223353195319
+    },
+    {
+      "epsilon": 0.0125,
+      "n_steps": 128000,
+      "ks_statistic": 0.008422208929356578,
+      "ks_floor": 0.009616652224137047,
+      "ks_over_floor": 0.8757942715467542,
+      "d_eff_relative": 0.009190363058089845
+    }
+  ],
+  "short_time": {
+    "exponent": 1.9251729826764716,
+    "expected_exponent_band": [
+      1.85,
+      2.05
+    ],
+    "prefactor": 3.0682747446480632e-12,
+    "prefactor_over_u2_3": 0.9299141295283514,
+    "n_steps": 640
+  },
+  "radius_sweep": {
+    "runs": [
+      {
+        "particle_radius_nm": 5.0,
+        "peclet": 0.6928073358901788,
+        "d_eff_measured": 4.657387305875218e-11,
+        "d_eff_exact": 4.5866443033512674e-11,
+        "ks_statistic": 0.0053462231029768326
+      },
+      {
+        "particle_radius_nm": 10.0,
+        "peclet": 1.3856146717803577,
+        "d_eff_measured": 2.3695944609762422e-11,
+        "d_eff_exact": 2.361438102931186e-11,
+        "ks_statistic": 0.012291997542630329
+      },
+      {
+        "particle_radius_nm": 20.0,
+        "peclet": 2.7712293435607154,
+        "d_eff_measured": 1.3533562185285338e-11,
+        "d_eff_exact": 1.3169509539766982e-11,
+        "ks_statistic": 0.009531093036726723
+      },
+      {
+        "particle_radius_nm": 35.0,
+        "peclet": 4.849651351231252,
+        "d_eff_measured": 9.57409387883447e-12,
+        "d_eff_exact": 9.666221062184212e-12,
+        "ks_statistic": 0.011233175933884287
+      },
+      {
+        "particle_radius_nm": 50.00000000000001,
+        "peclet": 6.9280733589017895,
+        "d_eff_measured": 9.013397123239259e-12,
+        "d_eff_exact": 9.082297086217734e-12,
+        "ks_statistic": 0.010561244632936229
+      },
+      {
+        "particle_radius_nm": 75.00000000000001,
+        "peclet": 10.392110038352683,
+        "d_eff_measured": 9.706730341697473e-12,
+        "d_eff_exact": 9.839084238342519e-12,
+        "ks_statistic": 0.006156075826086849
+      },
+      {
+        "particle_radius_nm": 130.0,
+        "peclet": 18.012990733144647,
+        "d_eff_measured": 1.3573930237558844e-11,
+        "d_eff_exact": 1.3553393218596116e-11,
+        "ks_statistic": 0.009976725483836879
+      },
+      {
+        "particle_radius_nm": 250.00000000000003,
+        "peclet": 34.64036679450895,
+        "d_eff_measured": 2.3738494218687245e-11,
+        "d_eff_exact": 2.3613563819020364e-11,
+        "ks_statistic": 0.007643633290283142
+      },
+      {
+        "particle_radius_nm": 500.00000000000006,
+        "peclet": 69.2807335890179,
+        "d_eff_measured": 4.579562849618647e-11,
+        "d_eff_exact": 4.586475753728646e-11,
+        "ks_statistic": 0.005476142246734466
+      }
+    ],
+    "fit_A": 2.3009025193922625e-19,
+    "fit_B": 9.07243517466369e-05,
+    "r_star_nm": 50.360168316059145,
+    "r_cr_nm": 50.000937283476915,
+    "r_star_over_r_cr": 1.0071844859736447
+  },
+  "error_laws_used": {
+    "d_eff": "slope_fit_variance_1d = sqrt(6)/2",
+    "note": "NOT sqrt(2) (single-time variance) and NOT 0.7071 (fitted 3-D MSD); four laws differ by up to 2x"
+  },
+  "timestamp": "2026-07-31T11:50:22+00:00",
+  "git_sha": "8d2387273c12-dirty",
+  "particle_count_mc_exponent": 1.3478407016749436
+}

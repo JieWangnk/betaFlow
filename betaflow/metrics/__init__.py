@@ -3,7 +3,11 @@
 from betaflow.metrics.norms import (
     l2_phase,
     l2_velocity,
+    d_eff_relative,
+    d_eff_slope,
     msd_slope_relative,
+    radial_ks,
+    short_time_exponent,
     plug_velocity_variation,
     plug_width_cap_active,
     plug_width_flatness,
@@ -25,4 +29,11 @@ METRICS = {
     "plug_velocity_variation": plug_velocity_variation,
     # Particle transport: the error is statistical, not discretisation.
     "msd_slope_relative": msd_slope_relative,
+    # Taylor-Aris: a fitted variance, a different power of t, and a
+    # DISTRIBUTION-valued check (scalar-valued output, so the {name, tol}
+    # case schema needed no change to express it).
+    "d_eff_relative": d_eff_relative,
+    "d_eff_slope": d_eff_slope,
+    "short_time_exponent": short_time_exponent,
+    "radial_ks": radial_ks,
 }
