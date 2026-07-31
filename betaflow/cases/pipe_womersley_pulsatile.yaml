@@ -1,0 +1,43 @@
+# Pulsatile (Womersley) flow in a CIRCULAR PIPE: oscillatory pressure
+# gradient G cos(omega t), axisymmetric wedge.
+#
+# THIS IS WHERE J0 IS CORRECT. The Bessel-function kernel is the CIRCULAR
+# PIPE solution; the plane channel's kernel is a complex cosh. An earlier
+# prompt in this project specified "Bessel functions of complex argument" for
+# a plane channel — that was wrong and was overridden at the time. Both
+# kernels now live in the repo, each labelled with its geometry:
+#   pipe    -> betaflow/analytic/pipe.womersley_profile        (J0)
+#   channel -> betaflow/analytic/womersley.complex_profile     (cosh)
+#
+# CITATION
+#   Womersley, J.R. (1955), "Method for the calculation of velocity, rate of
+#   flow and viscous drag in arteries when the pressure gradient is known",
+#   J. Physiol. 127(3):553-563.
+name: pipe_womersley_pulsatile
+
+nondim:
+  # alpha = a sqrt(omega/nu) — pipe RADIUS (Womersley 1955).
+  alpha: 10.0
+
+geometry:
+  type: pipe_womersley
+  radius: 1.0
+  length: 0.5
+
+oracle: betaflow.analytic.pipe.womersley_profile
+
+resolution:
+  cells_per_stokes_layer: 8
+  n_steps_per_cycle: 128
+
+convergence:
+  periodicity_tol: 1.0e-6
+  max_cycles: 10
+
+metrics:
+  - name: L2_amplitude
+    tol: 1.0e-2
+  - name: L2_phase
+    tol: 2.0e-2
+  - name: wss_amp_relative
+    tol: 2.0e-2

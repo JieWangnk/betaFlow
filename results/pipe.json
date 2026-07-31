@@ -1,0 +1,79 @@
+{
+  "runner": "openfoam",
+  "topology": "wedge",
+  "poiseuille": {
+    "runs": [
+      {
+        "n_cells": 40,
+        "L2_velocity": 0.0003033555221453247,
+        "wss_relative": 2.500864289659365e-12,
+        "Re_from_meta": 100.0
+      },
+      {
+        "n_cells": 80,
+        "L2_velocity": 7.730792810391726e-05,
+        "wss_relative": 1.2499658942618023e-12,
+        "Re_from_meta": 100.0
+      },
+      {
+        "n_cells": 160,
+        "L2_velocity": 1.9564247782969745e-05,
+        "wss_relative": 5.000091126431397e-12,
+        "Re_from_meta": 100.0
+      }
+    ],
+    "p_observed": [
+      1.9723212952627176,
+      1.9823967316284994
+    ]
+  },
+  "casson": {
+    "n_cells": 80,
+    "xi_c_target": 0.2,
+    "xi_c_realised": 0.20000750255289185,
+    "plug_radius": 0.20000750255289185,
+    "identity": 8.553897187639423e-11,
+    "L2_velocity": 0.0007396183629470506
+  },
+  "womersley": {
+    "n_cells": 56,
+    "cells_per_stokes_layer": 7.919595949289333,
+    "viscous_fourier": 1.5393804002589988,
+    "identity_max_rel": 1.187046583625518e-10,
+    "cycles_to_periodic": 10,
+    "L2_amplitude": 0.0009318460895053492,
+    "L2_phase": 0.00041646544549252013,
+    "wss_amp_relative": 9.379137816081748e-05,
+    "wss_phase_error": 0.0036626063276715692,
+    "L2_amplitude_wrong_cosh_kernel": 0.008697462582511334
+  },
+  "kernel_discrimination": [
+    {
+      "alpha": 2.0,
+      "amplitude_misfit": 0.1688791558035177,
+      "phase_misfit": 0.38913529186463686,
+      "wss_amplitude_misfit": 0.3394884829643378
+    },
+    {
+      "alpha": 5.0,
+      "amplitude_misfit": 0.06252996031035586,
+      "phase_misfit": 0.052215293431635786,
+      "wss_amplitude_misfit": 0.4643107602421172
+    },
+    {
+      "alpha": 10.0,
+      "amplitude_misfit": 0.009138522398842674,
+      "phase_misfit": 0.014568596421897971,
+      "wss_amplitude_misfit": 0.48210736305343077
+    },
+    {
+      "alpha": 20.0,
+      "amplitude_misfit": 0.0025853151144295855,
+      "phase_misfit": 0.00456087892592553,
+      "wss_amplitude_misfit": 0.4910939439918055
+    }
+  ],
+  "timestamp": "2026-07-31T09:19:48+00:00",
+  "openfoam_version": "14",
+  "git_sha": "1915ffe8eb19-dirty"
+}

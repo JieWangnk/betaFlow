@@ -433,6 +433,87 @@ responds non-sinusoidally, so the fundamental carries less than the full
 amplitude. It is the A3/A1 nonlinearity seen from the other side, and the
 profile SHAPE still matches the steady oracle to 2e-3.
 
+## Pipe geometry: what the harness assumed
+
+Three cases were ported to a circular pipe on an axisymmetric wedge —
+`pipe_poiseuille_steady`, `pipe_casson_steady`, `pipe_womersley_pulsatile` —
+to answer one question: are the abstractions geometry-agnostic, or quietly
+channel-specific? **Quietly channel-specific, in seven places.** All seven are
+now per-case-type rather than constants.
+
+| assumption | where | consequence |
+|---|---|---|
+| box `blockMeshDict` and `0/p` were "shared" | `_SHARED_FILES` | geometry files can't be shared; now `_BOX_FILES` / `_WEDGE_FILES` |
+| wall patches are the pair `bottomWall`/`topWall` | tau parser | a pipe has ONE wall; patch list now per type |
+| transverse extent is `2h` | mesh sizing from cells-per-Stokes-layer | pipe over-resolved 2x, which raised the viscous Fourier number to 6.2 and **diverged** — a sizing bug presenting as a stability failure |
+| momentum lever arm is `h` | transient tau reference and identity | pipe's is `a/2`; identity read exactly **1.0** (100% error) |
+| front/back are `empty` | field templates | wedge is a collapsed real direction, not an ignored one |
+| sample line at a fraction of the domain thickness | `z_mid` | must be the wedge symmetry plane, z = 0 |
+| transient file set is a box | `_WOMERSLEY_FILES` | now split by geometry |
+
+The driving abstraction (`meanVelocityForce`, cyclic streamwise) and every
+metric needed **no change at all**, and the oracles transferred as pure factor
+changes from tau(y) = G y to tau(r) = G r / 2.
+
+**The axis is not a patch.** r = 0 is a coordinate singularity; the block is
+COLLAPSED onto it by repeating the axis vertices in the `hex` entry, so the
+axis-adjacent cells are prisms and the would-be axis faces have zero area and
+belong to no patch. `checkMesh` confirms: 156 hexahedra + 4 prisms, "2
+geometric (non-empty/wedge) directions". Declaring an axis patch is the
+common error.
+
+**Wedge faceting is a refinement-independent bias, and only the identity
+caught it.** A wedge's outer boundary is a flat chord, not an arc. With
+vertices on the circle r = a the discrete volume-to-area ratio is
+a·cos(theta)/2, so the exact discrete force balance gives
+tau_w = G a cos(theta)/2 — a relative bias of 1 − cos(theta) = 9.52e-4 at
+theta = 2.5 deg. Measured before the fix: **9.518e-04**, against a predicted
+9.5178e-04. It does NOT shrink with radial refinement, so no
+mesh-convergence study would ever reveal it; it would sit as a permanent
+~0.1% WSS offset. Placing the vertices at a/cos(theta) puts the chord
+midpoint on the circle, restoring V/A = a/2 exactly — identity 9.518e-04 →
+**2.5e-12**.
+
+**J0 belongs to the pipe.** An earlier prompt in this project specified
+"Bessel functions of complex argument" for a PLANE CHANNEL; that was wrong and
+was overridden at the time in favour of the complex cosh. Both kernels now
+exist, each labelled with its geometry: `betaflow/analytic/pipe.py` (J0,
+Womersley 1955) and `betaflow/analytic/womersley.py` (cosh). They must never
+be swapped — and the uncomfortable part is how hard a swap is to detect:
+
+| alpha | amplitude misfit | phase misfit [rad] | WSS amplitude misfit |
+|---|---|---|---|
+| 2 | 1.69e-1 | 3.89e-1 | 3.40e-1 |
+| 5 | 6.25e-2 | 5.22e-2 | 4.64e-1 |
+| **10** | **9.14e-3** | **1.46e-2** | **4.82e-1** |
+| 20 | 2.59e-3 | 4.56e-3 | 4.91e-1 |
+
+At the case's alpha = 10 the wrong kernel misfits the profile by less than
+this case's OWN tolerances (1e-2 amplitude, 2e-2 phase) — a profile-only
+validation would pass a swapped kernel — while wall shear misfits by 48%,
+because tanh(K)/K and 2·J1(b)/(b·J0(b)) differ by a factor approaching
+exactly 2 at large alpha. The profile metrics get WORSE at discriminating as
+alpha rises (both kernels tend to a flat core plus a thin Stokes layer) while
+WSS gets better. The test therefore asserts on WSS and records the amplitude
+blind spot explicitly.
+
+Results (wedge topology, `results/pipe.json`): Poiseuille p = **1.972,
+1.982** with identity ≤ 5e-12; Casson identity **8.55e-11** with the realised
+plug ratio xi_c = **0.200008** against a target of 0.2; Womersley L2
+amplitude **9.32e-4**, phase **4.16e-4 rad**, WSS amplitude **9.38e-5**,
+identity **1.19e-10**.
+
+CITATIONS. Every pipe equation traces to a source recorded in both the oracle
+docstring and the case YAML: Batchelor (1967 §4.2) and Sutera & Skalak (1993)
+for Hagen-Poiseuille; Reynolds (1883) for the Re convention; Womersley (1955)
+for the J0 kernel; Casson (1959) for the constitutive law and Fung (1997
+ch. 3) for Casson blood flow in tubes. Two things are flagged as having NO
+published anchor rather than being given a plausible one: the symbol xi_c is
+attributed to Gentile et al. (2008) **on the user's authority, unverified
+here** (the quantity r_p = 2·tau_y/G needs no citation — it follows from
+tau(r_p) = tau_y and is checked by differentiation), and `nuMax` is an
+OpenFOAM regularisation parameter, a numerical device with no physical source.
+
 ## Adding a case
 
 1. Write the oracle in `betaflow/analytic/` — a pure function returning

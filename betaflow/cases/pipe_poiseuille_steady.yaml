@@ -1,0 +1,36 @@
+# Steady Hagen-Poiseuille flow in a CIRCULAR PIPE, force-driven and periodic,
+# on an axisymmetric wedge. Same driving mechanism as poiseuille_steady; the
+# geometry is what changes.
+#
+# CITATIONS
+#   Profile u(r) = (G/4mu)(a^2 - r^2), u_mean = u_max/2, Hagen-Poiseuille law:
+#     Batchelor, G.K. (1967), An Introduction to Fluid Dynamics, CUP, sec 4.2.
+#     Sutera & Skalak (1993), Annu. Rev. Fluid Mech. 25:1-19 (history).
+#   Re = u_mean*D/nu with D = 2a, laminar to Re ~ 2300:
+#     Reynolds, O. (1883), Phil. Trans. R. Soc. 174:935-982.
+name: pipe_poiseuille_steady
+
+nondim:
+  # Re = u_mean * (2a) / nu — bulk velocity, pipe DIAMETER. Distinct from the
+  # channel's 2h (half-height doubled); a is a RADIUS. Cross-checked in the
+  # test against betaflow/analytic/pipe.reynolds.
+  Re: 100
+
+geometry:
+  type: pipe
+  radius: 1.0
+  length: 0.5
+
+oracle: betaflow.analytic.pipe.poiseuille_profile
+
+normalisation:
+  # u_max/u_mean = 2 exactly for a pipe (the channel gives 3/2).
+  u_max_over_u_mean: 2.0
+
+metrics:
+  - name: L2_velocity
+    tol: 1.0e-3
+  # tau_w = G a / 2 — the pipe force balance. The factor of 2 relative to the
+  # channel's G h is the single most likely silent geometry error.
+  - name: wss_relative
+    tol: 1.0e-6

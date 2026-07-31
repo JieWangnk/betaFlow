@@ -1,0 +1,46 @@
+# Steady Casson flow in a CIRCULAR PIPE, force-driven, axisymmetric wedge.
+#
+# CITATIONS
+#   Casson constitutive law sqrt(tau) = sqrt(tau_y) + sqrt(mu_c gammadot):
+#     Casson, N. (1959), "A flow equation for pigment-oil suspensions of the
+#     printing ink type", in Rheology of Disperse Systems (ed. C.C. Mill),
+#     Pergamon, pp. 84-104.
+#   Casson blood flow in tubes and the plug region:
+#     Fung, Y.C. (1997), Biomechanics: Circulation, 2nd ed., Springer, ch. 3.
+#   Symbol xi_c for the plug-to-vessel radius ratio: attribution supplied by
+#     the user as Gentile et al. (2008); NOT independently verified here. The
+#     QUANTITY needs no citation — r_p = 2 tau_y / G follows from
+#     tau(r_p) = tau_y with tau(r) = G r / 2, and is verified by
+#     differentiation in tests/test_oracles.py.
+#   Regularisation cap nuMax is an OpenFOAM implementation parameter with NO
+#     published anchor — it is a numerical device, not physics. See the
+#     casson_steady notes in README.md for what it does to the plug.
+name: pipe_casson_steady
+
+nondim:
+  # xi_c = r_p/a = 2 tau_y/(G a). Note the factor 2 relative to the channel's
+  # xi = tau_y/(G h): it comes from tau(r) = G r / 2.
+  xi_c: 0.2
+  # Re = u_mean * (2a) / nu_c, with nu_c the Casson consistency.
+  Re: 100
+
+geometry:
+  type: pipe_casson
+  radius: 1.0
+  length: 0.5
+
+oracle: betaflow.analytic.pipe.casson_profile
+
+normalisation:
+  u_ref: u_max_from_xi_c
+
+regularisation:
+  # Chosen for measurability, not from a source; see the coupling discussion
+  # in README (measurability needs N > 1/(xi_c*sqrt(nu_c/nuMax))).
+  nu_max_ratio: 1.0e2
+
+metrics:
+  - name: L2_velocity
+    tol: 1.0e-2
+  - name: wss_relative
+    tol: 1.0e-6

@@ -1,0 +1,25 @@
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform ($u_init 0 0);
+
+boundaryField
+{
+    inlet  { type cyclic; }
+    outlet { type cyclic; }
+    // ONE wall patch, not the channel's bottomWall/topWall pair.
+    wall   { type noSlip; }
+    // wedge, NOT empty: the azimuthal direction is a genuine (collapsed)
+    // coordinate direction, not an ignored one.
+    front  { type wedge; }
+    back   { type wedge; }
+}
+
+// ************************************************************************* //

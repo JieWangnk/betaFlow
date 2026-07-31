@@ -41,43 +41,64 @@ TEMPLATE_DIR = Path(__file__).parent / "openfoam_templates"
 DEFAULT_BASHRC = "/opt/openfoam14/etc/bashrc"
 
 # template file -> destination, shared by every case type
+# Genuinely geometry-independent files only. blockMeshDict and 0/p were in
+# here until the pipe port: both encode the box topology and its patch names,
+# so both are now declared per case type. Overriding a "shared" entry by
+# dict-merge order is not a contract (see the momentumTransport note below).
 _SHARED_FILES = {
-    "blockMeshDict": "system/blockMeshDict",
     "controlDict": "system/controlDict",
     "fvSchemes": "system/fvSchemes",
     "fvSolution": "system/fvSolution",
     "functions": "system/functions",
     "physicalProperties": "constant/physicalProperties",
-    "p": "0/p",
 }
+
+_BOX_FILES = {"blockMeshDict": "system/blockMeshDict", "p": "0/p"}
+_WEDGE_FILES = {"blockMeshDict_wedge": "system/blockMeshDict", "p_pipe": "0/p"}
 
 # Case-type-specific templates on top of the shared set. Each type names its
 # own constant/momentumTransport: adding a constitutive model must not mean
 # silently overriding a shared entry (dict-merge order is not a contract).
 _TYPE_FILES = {
     "channel": {
+        **_BOX_FILES,
         "fvConstraints": "system/fvConstraints",
         "U_channel": "0/U",
         "momentumTransport": "constant/momentumTransport",
     },
     "couette": {
+        **_BOX_FILES,
         "U_couette": "0/U",
         "momentumTransport": "constant/momentumTransport",
     },
     "casson": {
+        **_BOX_FILES,
         "fvConstraints": "system/fvConstraints",
         "U_channel": "0/U",
         "momentumTransport_casson": "constant/momentumTransport",
         "functions_casson": "system/functions",
     },
     "carreau": {
+        **_BOX_FILES,
         "fvConstraints": "system/fvConstraints",
         "U_channel": "0/U",
         "momentumTransport_carreau": "constant/momentumTransport",
-        "momentumTransport": None,  # placeholder removed below
+    },
+    # --- circular pipe, axisymmetric wedge --------------------------------
+    "pipe": {
+        **_WEDGE_FILES,
+        "fvConstraints": "system/fvConstraints",
+        "U_pipe": "0/U",
+        "momentumTransport": "constant/momentumTransport",
+    },
+    "pipe_casson": {
+        **_WEDGE_FILES,
+        "fvConstraints": "system/fvConstraints",
+        "U_pipe": "0/U",
+        "momentumTransport_casson": "constant/momentumTransport",
+        "functions_casson": "system/functions",
     },
 }
-_TYPE_FILES["carreau"].pop("momentumTransport")
 
 # sampling mode -> template rendered into system/sample
 _SAMPLINGS = {
@@ -87,6 +108,21 @@ _SAMPLINGS = {
     # Raw cell-centre values via lineCell — the discrete solution where it is
     # defined; isolates the solver's error from profile extraction.
     "cell": "sample_cell",
+}
+
+# HARDCODING FOUND (pipe port): the tau parser assumed the channel's
+# bottomWall/topWall pair. A pipe has ONE wall, so the patch list is now a
+# property of the case type rather than a constant in the parser.
+_WALL_PATCHES = {
+    "channel": ("bottomWall", "topWall"),
+    "couette": ("bottomWall", "topWall"),
+    "casson": ("bottomWall", "topWall"),
+    "carreau": ("bottomWall", "topWall"),
+    "womersley": ("bottomWall", "topWall"),
+    "womersley_carreau": ("bottomWall", "topWall"),
+    "pipe": ("wall",),
+    "pipe_casson": ("wall",),
+    "pipe_womersley": ("wall",),
 }
 
 _N_STREAMWISE = 4     # cyclic + x-invariant driving => solution is x-invariant
@@ -126,6 +162,88 @@ def _end_time(n_cells, gtype="channel"):
     value (1e-9) makes inner solves quit early and stalls the outer loop
     three decades above the floor."""
     return max(2000, (4 * int(n_cells) ** 2) // 5)
+
+
+_WEDGE_HALF_ANGLE_DEG = 2.5  # 5 degrees total; OpenFOAM requires < 5 per side
+
+
+def _wedge_params(a, n_cells):
+    """Geometry parameters for the axisymmetric wedge block.
+
+    FACETING CORRECTION. A wedge's outer boundary is a flat chord, not an arc.
+    Putting the vertices on the circle r = a gives a discrete volume-to-area
+    ratio of a*cos(theta)/2, so the exact discrete force balance yields
+    tau_w = G a cos(theta)/2 rather than G a / 2 — a relative bias of
+    1 - cos(theta) = 9.52e-4 at theta = 2.5 deg that is INDEPENDENT of radial
+    refinement and therefore invisible in a mesh-convergence study. Measured
+    at exactly that value before this correction.
+
+    Placing the vertices at a/cos(theta) instead puts the chord MIDPOINT on
+    the circle of radius a, restoring V/A = a/2 identically.
+    """
+    th = np.radians(_WEDGE_HALF_ANGLE_DEG)
+    r_v = a / np.cos(th)
+    return {
+        "r_cos": r_v * np.cos(th),
+        "r_sin": r_v * np.sin(th),
+        "r_nsin": -r_v * np.sin(th),
+        "nr": int(n_cells),
+        # The sample line must sit on the wedge symmetry plane (z = 0), not
+        # at a fraction of the domain thickness as the box cases use.
+        "z_mid": 0.0,
+    }
+
+
+def _setup_pipe(case, u_drive, n_cells=None):
+    """Circular pipe, Newtonian, force-driven — the pipe twin of 'channel'.
+
+    Re = u_mean * (2a) / nu uses the pipe DIAMETER (see
+    betaflow/analytic/pipe.py for the citation); u_max/u_mean = 2, not the
+    channel's 3/2.
+    """
+    from betaflow.analytic import pipe as _pipe
+
+    a = float(case["geometry"]["radius"])
+    nu = u_drive * (2.0 * a) / float(case["nondim"]["Re"])
+    return {
+        "y_min": 0.0,          # the axis, r = 0
+        "y_max": a,
+        "nu": nu,
+        "u_ref": u_drive * _pipe.POISEUILLE_U_MAX_OVER_U_MEAN,
+        "params": {"u_mean": u_drive, "u_init": u_drive,
+                   **_wedge_params(a, n_cells)},
+        "meta": {"u_mean": u_drive, "radius": a},
+    }
+
+
+def _setup_pipe_casson(case, u_drive, n_cells=None):
+    """Circular pipe, Casson. Plug radius r_p = 2 tau_y / G (factor 2 vs the
+    channel's tau_y/G), reported as xi_c = r_p/a."""
+    from betaflow.analytic import pipe as _pipe
+
+    a = float(case["geometry"]["radius"])
+    xi_c = float(case["nondim"]["xi_c"])
+    nu_c = u_drive * (2.0 * a) / float(case["nondim"]["Re"])
+    g_pred = _pipe.casson_pressure_gradient_for_bulk(u_drive, a, nu_c, xi_c)
+    tau0 = xi_c * g_pred * a / 2.0
+    nu_max = float(case["regularisation"]["nu_max_ratio"]) * nu_c
+    u_ref = float(_pipe.casson_velocity(0.0, g_pred, tau0, nu_c, a))
+    return {
+        "y_min": 0.0,
+        "y_max": a,
+        "nu": nu_c,
+        "u_ref": u_ref,
+        "params": {
+            "u_mean": u_drive, "u_init": u_drive,
+            "nu_c": nu_c, "tau0": tau0, "nu_max": nu_max,
+            "fields": "U strainRateViscosityModel:nu",
+            **_wedge_params(a, n_cells),
+        },
+        "meta": {
+            "u_mean": u_drive, "radius": a, "xi_c": xi_c, "nu_c": nu_c,
+            "tau0": tau0, "nu_max": nu_max, "g_predicted": g_pred,
+        },
+    }
 
 
 def _setup_carreau(case, u_drive, cu=None, fluid=None, nu_inf_over_nu0=None):
@@ -272,6 +390,8 @@ def _setup_couette(case, u_drive):
 
 
 _SETUPS = {
+    "pipe": _setup_pipe,
+    "pipe_casson": _setup_pipe_casson,
     "channel": _setup_channel,
     "couette": _setup_couette,
     "casson": _setup_casson,
@@ -279,7 +399,7 @@ _SETUPS = {
 }
 
 # Case types whose drive is a mean force, so meta carries pressure_gradient.
-_FORCE_DRIVEN = {"channel", "casson", "carreau"}
+_FORCE_DRIVEN = {"channel", "casson", "carreau", "pipe", "pipe_casson"}
 
 # Generalised-Newtonian case types are gated on the CONSERVATION IDENTITY
 # tau_w = G_disc*h rather than on the solver residual. Residual and profile
@@ -289,7 +409,7 @@ _FORCE_DRIVEN = {"channel", "casson", "carreau"}
 # The identity compares two quantities that must agree AT the fixed point, so
 # it measures distance to the solution. It is also rheology-independent, so
 # it cannot be satisfied by a wrong constitutive model.
-_GENERALISED_NEWTONIAN = {"casson", "carreau"}
+_GENERALISED_NEWTONIAN = {"casson", "carreau", "pipe_casson"}
 _IDENTITY_GATE_TOL = 1e-6
 
 
@@ -302,7 +422,7 @@ def run(case, **kwargs):
     meshing, template rendering, and execution machinery but differ in time
     controls, convergence verification, and post-processing.
     """
-    if case["geometry"]["type"] in ("womersley", "womersley_carreau"):
+    if case["geometry"]["type"] in ("womersley", "womersley_carreau", "pipe_womersley"):
         return _run_womersley(case, **kwargs)
     return _run_steady(case, **kwargs)
 
@@ -352,6 +472,8 @@ def _run_steady(
     if sampling not in _SAMPLINGS:
         raise ValueError(f"unknown sampling '{sampling}': expected one of {sorted(_SAMPLINGS)}")
 
+    if gtype.startswith("pipe"):
+        setup_kwargs = {**setup_kwargs, "n_cells": int(n_cells)}
     setup = _SETUPS[gtype](case, u_drive, **setup_kwargs)
     length = float(setup.get("length", case["geometry"]["length"]))
     u_drive = setup.get("u_drive", u_drive)
@@ -378,7 +500,7 @@ def _run_steady(
         "nu": setup["nu"],
         "end_time": (
             int(iterations or _CASSON_ITERATIONS)
-            if gtype == "casson"
+            if gtype in ("casson", "pipe_casson")
             else _carreau_iterations(setup["meta"]["carreau_number_predicted"], n_cells)
             if gtype == "carreau"
             else _end_time(n_cells, gtype)
@@ -388,7 +510,7 @@ def _run_steady(
         # on the drift of the measured profile between the two states.
         "write_interval": (
             int(iterations or _CASSON_ITERATIONS) // 2
-            if gtype == "casson"
+            if gtype in ("casson", "pipe_casson")
             else _carreau_iterations(setup["meta"]["carreau_number_predicted"], n_cells)
             if gtype == "carreau"
             else _end_time(n_cells, gtype)
@@ -408,7 +530,7 @@ def _run_steady(
     _write_case(casedir, params, sampling, gtype)
 
     _foam(casedir, "blockMesh")
-    if gtype == "casson":
+    if gtype in ("casson",):
         # Start from the analytic Casson profile. The nonlinear viscosity
         # fixed point converges algebraically from a uniform start, so a
         # good initial nu field is worth orders of magnitude in iterations;
@@ -416,11 +538,11 @@ def _run_steady(
         _write_channel_ic(casedir, setup, params, case, n_cells)
     _foam(casedir, "foamRun")
     residual = _final_ux_residual(casedir)
-    latest = "" if gtype == "casson" else " -latestTime"
+    latest = "" if gtype in ("casson", "pipe_casson") else " -latestTime"
     _foam(casedir, f"foamPostProcess -func sample{latest}")
 
     y, u = _read_profile(casedir)
-    tau_w = _read_tau_wall(casedir)
+    tau_w = _read_tau_wall(casedir, _WALL_PATCHES[gtype])
 
     meta = {
         "solver": "openfoam",
@@ -464,7 +586,7 @@ def _run_steady(
         )
 
     result = {"y": y, "u": u, "u_ref": setup["u_ref"], "tau_w": tau_w, "meta": meta}
-    if gtype == "casson":
+    if gtype in ("casson", "pipe_casson"):
         # Effective viscosity at the sampled cell centres, as the solver
         # computed it — needed to locate the cap-active (nu == nuMax) region.
         result["nu_eff"] = _read_nu_eff(casedir)
@@ -605,7 +727,7 @@ def _read_pressure_gradient(casedir):
     return float(matches[-1])
 
 
-def _read_tau_wall(casedir):
+def _read_tau_wall(casedir, patches=("bottomWall", "topWall")):
     """Mean kinematic wall-shear-stress magnitude over both wall patches.
 
     Parses the volVectorField the wallShearStress functionObject wrote at the
@@ -620,7 +742,7 @@ def _read_tau_wall(casedir):
     )
     text = (time_dir / "wallShearStress").read_text()
     magnitudes = []
-    for patch in ("bottomWall", "topWall"):
+    for patch in patches:
         block = re.search(patch + r"\s*\{([^}]*)\}", text, re.S)
         if block is None:
             raise RuntimeError(f"no '{patch}' patch in {time_dir}/wallShearStress")
@@ -692,6 +814,19 @@ def _read_profile(casedir):
 _WOMERSLEY_TRANSPORT = {
     "womersley": "momentumTransport",
     "womersley_carreau": "momentumTransport_carreau",
+    "pipe_womersley": "momentumTransport",
+}
+
+# HARDCODING FOUND (pipe port): the transient file set assumed a box mesh, a
+# box 0/p, and a two-wall functions dict.
+_WOMERSLEY_GEOMETRY_FILES = {
+    "womersley": {"blockMeshDict": "system/blockMeshDict", "p": "0/p",
+                  "functions_womersley": "system/functions"},
+    "womersley_carreau": {"blockMeshDict": "system/blockMeshDict", "p": "0/p",
+                          "functions_womersley": "system/functions"},
+    "pipe_womersley": {"blockMeshDict_wedge": "system/blockMeshDict",
+                       "p_pipe": "0/p",
+                       "functions_womersley_pipe": "system/functions"},
 }
 
 _WOMERSLEY_FILES = {
@@ -699,10 +834,8 @@ _WOMERSLEY_FILES = {
     "controlDict_womersley": "system/controlDict",
     "fvSchemes_womersley": "system/fvSchemes",
     "fvSolution_womersley": "system/fvSolution",
-    "functions_womersley": "system/functions",
     "fvModels_womersley": "constant/fvModels",
     "physicalProperties": "constant/physicalProperties",
-    "p": "0/p",
 }
 
 _N_PHASES = 16  # profile writes per cycle (periodicity check + harmonic fit)
@@ -747,7 +880,11 @@ def _run_womersley(
         raise ValueError(f"unknown ddt '{ddt}': expected one of {sorted(_DDT_SCHEMES)}")
 
     geom = case["geometry"]
-    h = float(geom["half_height"])
+    gtype_early = geom["type"]
+    # h is the transverse half-extent: half-height for a channel, RADIUS for
+    # a pipe. alpha is defined on it in both cases (Womersley 1955 uses the
+    # pipe radius), so the formula is shared but the symbol is not.
+    h = float(geom["radius"] if gtype_early == "pipe_womersley" else geom["half_height"])
     length = float(geom["length"])
     alpha = float(alpha if alpha is not None else case["nondim"]["alpha"])
     res = case["resolution"]
@@ -800,11 +937,24 @@ def _run_womersley(
     delta = np.sqrt(2.0 * nu_sizing / omega)
     if n_cells is None:
         # Mesh level = cells per Stokes layer, rounded to a multiple of 8.
+        # HARDCODING FOUND (pipe port): this used 2*h unconditionally, i.e. it
+        # assumed the mesh spans the FULL transverse extent as a channel does.
+        # A pipe is meshed over the radius only, so the same formula
+        # over-resolved it 2x — which then pushed the viscous Fourier number
+        # to 6.2 where the channel runs at 1.5, and the transient diverged.
+        # A sizing bug presenting as a stability failure.
+        transverse = h if gtype_early == "pipe_womersley" else 2.0 * h
         cpd = float(res["cells_per_stokes_layer"])
-        n_cells = int(round(cpd * 2.0 * h / delta / 8.0)) * 8
+        n_cells = int(round(cpd * transverse / delta / 8.0)) * 8
     n_cells = int(n_cells)
     u_ref = g_amp / omega
-    tau_ref = g_amp * h
+    # Lever arm in the momentum balance: tau_w = LEVER*(G - d<u>/dt). It is h
+    # for a channel (volume/area = h) and a/2 for a pipe. This was hardcoded
+    # to h; the identity caught it instantly, reading exactly 1.0 — a 100%
+    # error — because the two differ by precisely the factor of two that
+    # tau(r) = G r/2 introduces.
+    lever = 0.5 * h if geom["type"] == "pipe_womersley" else h
+    tau_ref = g_amp * lever
 
     workdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
     tag = f"_cu{rheology['Cu']:g}" if rheology else ""
@@ -814,11 +964,13 @@ def _run_womersley(
     if casedir.exists():
         shutil.rmtree(casedir)
 
-    gap = 2.0 * h
+    is_pipe = gtype == "pipe_womersley"
+    transverse_extent = h if is_pipe else 2.0 * h
+    gap = transverse_extent
     eps = 5e-7 * gap
     params = {
         "length": length,
-        "y_min": -h,
+        "y_min": 0.0 if is_pipe else -h,
         "y_max": h,
         "thickness": 0.05 * gap,
         "nx": _N_STREAMWISE,
@@ -834,7 +986,7 @@ def _run_womersley(
         "sine_start": -period / 4.0,  # sin(2 pi f (t + T/4)) = cos(omega t)
         "x_mid": 0.5 * length,
         "z_mid": 0.025 * gap,
-        "y_start": -h + eps,
+        "y_start": (0.0 if is_pipe else -h) + eps,
         "y_end": h - eps,
         # The nonlinear viscosity must be converged WITHIN each timestep, or
         # the lagged nu injects an O(dt) error into exactly the quantities
@@ -844,8 +996,9 @@ def _run_womersley(
         "k": rheology.get("k", 0.0),
         "n": rheology.get("n", 1.0),
         "a": rheology.get("a", 2.0),
+        **(_wedge_params(h, n_cells) if is_pipe else {}),
     }
-    files = dict(_WOMERSLEY_FILES)
+    files = {**_WOMERSLEY_FILES, **_WOMERSLEY_GEOMETRY_FILES[gtype]}
     files[_WOMERSLEY_TRANSPORT[gtype]] = "constant/momentumTransport"
     for src, dest in files.items():
         target = casedir / dest
@@ -855,9 +1008,14 @@ def _run_womersley(
     # Exact for the Newtonian case; for Carreau it is only a good guess, which
     # is all an initial condition has to be — periodicity is measured, not
     # assumed.
-    _write_womersley_ic(
-        casedir, h, n_cells, rheology.get("alpha_eff", alpha), u_ref, _wom
-    )
+    if is_pipe:
+        from betaflow.analytic import pipe as _pipe
+
+        _write_pipe_womersley_ic(casedir, h, n_cells, alpha, u_ref, _pipe)
+    else:
+        _write_womersley_ic(
+            casedir, h, n_cells, rheology.get("alpha_eff", alpha), u_ref, _wom
+        )
 
     _foam(casedir, "blockMesh")
     _foam(casedir, "foamRun")
@@ -868,9 +1026,9 @@ def _run_womersley(
     _, u_hat3 = _harmonic_profile(profiles, period, max_cycles, harmonic=3)
     half_wave = _half_wave_residual(profiles, period, max_cycles)
 
-    t_series, tau_b, tau_t, u_bulk = _read_wall_series(casedir)
+    t_series, tau_b, tau_t, u_bulk = _read_wall_series(casedir, single_wall=is_pipe)
     identity_max, sign_b, sign_t, tau_series = _wall_identity(
-        t_series, tau_b, tau_t, u_bulk, h, g_amp, omega, ddt, period / n_steps
+        t_series, tau_b, tau_t, u_bulk, lever, g_amp, omega, ddt, period / n_steps
     )
     # The momentum-balance identity is the convergence gate for the transient
     # generalised-Newtonian case, exactly as it is for the steady ones — and
@@ -881,7 +1039,7 @@ def _run_womersley(
     # while the solver reports nothing. Refuse such a run rather than report
     # its profile.
     if gtype == "womersley_carreau" and identity_max > _IDENTITY_GATE_TOL:
-        fourier = nu * (period / n_steps) / (2.0 * h / n_cells) ** 2
+        fourier = nu * (period / n_steps) / (transverse_extent / n_cells) ** 2
         raise RuntimeError(
             f"momentum-balance identity open by {identity_max:.3e} > "
             f"{_IDENTITY_GATE_TOL:.0e} in {casedir}. The viscous Fourier "
@@ -909,7 +1067,7 @@ def _run_womersley(
             "n_cells_total": _N_STREAMWISE * n_cells,
             "nu": nu,
             "alpha": alpha,
-            "cells_per_stokes_layer": n_cells * delta / (2.0 * h),
+            "cells_per_stokes_layer": n_cells * delta / transverse_extent,
             **rheology,
             "n_steps_per_cycle": n_steps,
             "ddt": ddt,
@@ -918,7 +1076,9 @@ def _run_womersley(
             "periodicity": ratios,
             "identity_max_rel": identity_max,
             "half_wave_residual": half_wave,
-            "viscous_fourier": float(nu * (period / n_steps) / (2.0 * h / n_cells) ** 2),
+            "viscous_fourier": float(
+                nu * (period / n_steps) / (transverse_extent / n_cells) ** 2
+            ),
             "wss_sign_convention": [sign_b, sign_t],
             "sampling": "cell",
             "case_dir": str(casedir),
@@ -948,6 +1108,35 @@ def _write_womersley_ic(casedir, h, n_cells, alpha, u_ref, wom):
         "    bottomWall   { type noSlip; }\n"
         "    topWall      { type noSlip; }\n"
         "    frontAndBack { type empty; }\n"
+        "}\n"
+    )
+
+
+def _write_pipe_womersley_ic(casedir, a, n_cells, alpha, u_ref, pipemod):
+    """0/U with the analytic J0 Womersley profile at t = 0, at cell centres.
+
+    Wedge cell centroids are area-weighted in r, not at (i+1/2)dr: for an
+    annular sector between r1 and r2 the centroid sits at
+    (2/3)(r2^3-r1^3)/(r2^2-r1^2). Using the naive midpoint here would seed an
+    O(dr) error into the initial condition.
+    """
+    edges = np.linspace(0.0, a, n_cells + 1)
+    r1, r2 = edges[:-1], edges[1:]
+    r_c = (2.0 / 3.0) * (r2**3 - r1**3) / (r2**2 - r1**2)
+    u0 = u_ref * np.real(pipemod.womersley_profile(r_c / a, alpha))
+    values = np.repeat(u0, _N_STREAMWISE)
+    entries = "\n".join(f"({v:.12g} 0 0)" for v in values)
+    (casedir / "0" / "U").write_text(
+        "FoamFile\n{\n    format      ascii;\n    class       volVectorField;\n"
+        "    object      U;\n}\n\n"
+        "dimensions      [0 1 -1 0 0 0 0];\n\n"
+        f"internalField   nonuniform List<vector>\n{values.size}\n(\n{entries}\n);\n\n"
+        "boundaryField\n{\n"
+        "    inlet  { type cyclic; }\n"
+        "    outlet { type cyclic; }\n"
+        "    wall   { type noSlip; }\n"
+        "    front  { type wedge; }\n"
+        "    back   { type wedge; }\n"
         "}\n"
     )
 
@@ -1052,11 +1241,19 @@ def _read_vector_series(path):
     return np.array(times), np.array(vectors)
 
 
-def _read_wall_series(casedir):
-    """Per-timestep x-components: wall shear on each wall and bulk velocity."""
+def _read_wall_series(casedir, single_wall=False):
+    """Per-timestep x-components: wall shear on each wall and bulk velocity.
+
+    A pipe has ONE wall patch, so its single series stands in for both and the
+    two-wall symmetry check below is vacuously satisfied.
+    """
     root = casedir / "postProcessing"
-    t_b, tau_b = _read_vector_series(root / "tauBottom" / "0" / "surfaceFieldValue.dat")
-    t_t, tau_t = _read_vector_series(root / "tauTop" / "0" / "surfaceFieldValue.dat")
+    if single_wall:
+        t_b, tau_b = _read_vector_series(root / "tauWall" / "0" / "surfaceFieldValue.dat")
+        t_t, tau_t = t_b, tau_b
+    else:
+        t_b, tau_b = _read_vector_series(root / "tauBottom" / "0" / "surfaceFieldValue.dat")
+        t_t, tau_t = _read_vector_series(root / "tauTop" / "0" / "surfaceFieldValue.dat")
     t_u, u_bulk = _read_vector_series(root / "uBulk" / "0" / "volFieldValue.dat")
     if not (t_b.size == t_t.size == t_u.size):
         raise RuntimeError(f"wall/bulk series lengths differ in {casedir}")
