@@ -503,6 +503,20 @@ plug ratio xi_c = **0.200008** against a target of 0.2; Womersley L2
 amplitude **9.32e-4**, phase **4.16e-4 rad**, WSS amplitude **9.38e-5**,
 identity **1.19e-10**.
 
+**O-grid: the same faceting law, confirmed on a second topology.** A 5-block
+3-D O-grid (8000 hexahedra, `tools/ogrid_blockmesh.py`, `checkMesh` clean, max
+skewness 0.98) was built and pipe Poiseuille run on it. Identity gap:
+**7.710e-04**, against a predicted 1 − cos(pi/80) = **7.7096e-04** for its 80
+circumferential faces. So the wedge result was not a wedge quirk — it is the
+general polygonal law, a boundary polygon with vertices ON the circle having
+area/perimeter = R·cos(pi/n)/2. The topologies differ in one respect that
+matters: the wedge half-angle is fixed by construction so its bias never
+shrinks under refinement, while the O-grid's falls as 1/n_circ² — but only
+under CIRCUMFERENTIAL refinement, which a radial convergence study never
+performs. STATUS: the O-grid is a standalone tool, not yet wired into
+`runners/`, and the 1/cos correction is applied only on the wedge path; the
+full three-case re-verification on the O-grid is NOT done.
+
 CITATIONS. Every pipe equation traces to a source recorded in both the oracle
 docstring and the case YAML: Batchelor (1967 §4.2) and Sutera & Skalak (1993)
 for Hagen-Poiseuille; Reynolds (1883) for the Re convention; Womersley (1955)
