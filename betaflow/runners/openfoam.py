@@ -85,6 +85,15 @@ _TYPE_FILES = {
         "momentumTransport_carreau": "constant/momentumTransport",
     },
     # --- circular pipe, axisymmetric wedge --------------------------------
+    # Pressure-driven pipe: REAL inlet/outlet patches, no body force. Exists
+    # to exercise the inlet/outlet terms of the momentum identity, which a
+    # cyclic case cancels identically and therefore never tests.
+    "pipe_io": {
+        "blockMeshDict_wedge_io": "system/blockMeshDict",
+        "p_pipe_io": "0/p",
+        "U_pipe_io": "0/U",
+        "momentumTransport": "constant/momentumTransport",
+    },
     "pipe": {
         **_WEDGE_FILES,
         "fvConstraints": "system/fvConstraints",
@@ -121,6 +130,7 @@ _WALL_PATCHES = {
     "womersley": ("bottomWall", "topWall"),
     "womersley_carreau": ("bottomWall", "topWall"),
     "pipe": ("wall",),
+    "pipe_io": ("wall",),
     "pipe_casson": ("wall",),
     "pipe_womersley": ("wall",),
 }
@@ -130,6 +140,17 @@ _N_SAMPLE_POINTS = 101
 # Deep gate: the Couette null test requires the solve itself to sit at
 # round-off, and unrelaxed SIMPLEC reaches this floor in tens of iterations.
 _UX_RESIDUAL_TOL = 1e-12
+
+# Per-case-type override. The 1e-12 gate above was calibrated on CYCLIC
+# cases, where the periodic solution reaches round-off. A pressure-driven
+# pipe stalls at ~1e-10 and stays there under 8x more iterations: with a
+# prescribed inlet profile that is not the discrete steady solution, the
+# near-inlet adjustment sets a floor. That floor is six orders below the
+# identity residual being measured, so it does not limit the result — but a
+# gate borrowed from another configuration would reject a converged case.
+# Third instance of a threshold calibrated on one case type being wrong for
+# another (cf. the U solver tolerance, and the tau-uniformity check).
+_UX_RESIDUAL_TOL_BY_TYPE = {"pipe_io": 1e-9}
 
 # Casson's nonlinear viscosity fixed point converges algebraically, not
 # geometrically: at nuMax/nu_c = 1e5 the Ux residual is still ~1e-6 after
@@ -191,6 +212,34 @@ def _wedge_params(a, n_cells):
         # The sample line must sit on the wedge symmetry plane (z = 0), not
         # at a fraction of the domain thickness as the box cases use.
         "z_mid": 0.0,
+    }
+
+
+def _setup_pipe_io(case, u_drive, n_cells=None):
+    """Pressure-driven pipe: prescribed inlet profile, fixed outlet pressure.
+
+    The inlet carries the EXACT developed Poiseuille profile (written after
+    blockMesh, at the true face centres), so the solution is fully developed
+    throughout and the momentum flux at the two ends cancels. The balance
+    then reduces to
+
+        (p_in - p_out) * A  =  tau_w * 2 pi a L    i.e.   tau_w = dP a / (2 L)
+
+    which is an exact answer that DEPENDS on the inlet/outlet pressure terms.
+    Every earlier null test used cyclic ends, where those terms cancel and are
+    never checked.
+    """
+    from betaflow.analytic import pipe as _pipe
+
+    a = float(case["geometry"]["radius"])
+    nu = u_drive * (2.0 * a) / float(case["nondim"]["Re"])
+    return {
+        "y_min": 0.0,
+        "y_max": a,
+        "nu": nu,
+        "u_ref": u_drive * _pipe.POISEUILLE_U_MAX_OVER_U_MEAN,
+        "params": {"u_mean": u_drive, "u_init": u_drive, **_wedge_params(a, n_cells)},
+        "meta": {"u_mean": u_drive, "radius": a, "drive": "pressure (inlet profile + outlet p)"},
     }
 
 
@@ -391,6 +440,7 @@ def _setup_couette(case, u_drive):
 
 _SETUPS = {
     "pipe": _setup_pipe,
+    "pipe_io": _setup_pipe_io,
     "pipe_casson": _setup_pipe_casson,
     "channel": _setup_channel,
     "couette": _setup_couette,
@@ -530,6 +580,11 @@ def _run_steady(
     _write_case(casedir, params, sampling, gtype)
 
     _foam(casedir, "blockMesh")
+    if gtype == "pipe_io":
+        # Prescribe the EXACT developed profile at the inlet, read from the
+        # built mesh. Without this the inlet is a plug and the pipe develops
+        # along its length, which is a different case.
+        _write_pipe_inlet_profile(casedir, setup["y_max"], u_drive)
     if gtype in ("casson",):
         # Start from the analytic Casson profile. The nonlinear viscosity
         # fixed point converges algebraically from a uniform start, so a
@@ -542,7 +597,9 @@ def _run_steady(
     _foam(casedir, f"foamPostProcess -func sample{latest}")
 
     y, u = _read_profile(casedir)
-    tau_w = _read_tau_wall(casedir, _WALL_PATCHES[gtype])
+    tau_w = _read_tau_wall(
+        casedir, _WALL_PATCHES[gtype], require_uniform=(gtype != "pipe_io")
+    )
 
     meta = {
         "solver": "openfoam",
@@ -578,12 +635,14 @@ def _run_steady(
                 f"(Ux residual {residual:.2e} is a step-size measure and does "
                 f"NOT establish this). See log.foamRun."
             )
-    elif require_converged and residual > _UX_RESIDUAL_TOL:
-        raise RuntimeError(
-            f"foamRun finished with Ux initial residual {residual:.3e} > "
-            f"{_UX_RESIDUAL_TOL:.0e} in {casedir}; profile is not a converged "
-            f"steady solution. See log.foamRun."
-        )
+    else:
+        gate = _UX_RESIDUAL_TOL_BY_TYPE.get(gtype, _UX_RESIDUAL_TOL)
+        if require_converged and residual > gate:
+            raise RuntimeError(
+                f"foamRun finished with Ux initial residual {residual:.3e} > "
+                f"{gate:.0e} in {casedir}; profile is not a converged "
+                f"steady solution. See log.foamRun."
+            )
 
     result = {"y": y, "u": u, "u_ref": setup["u_ref"], "tau_w": tau_w, "meta": meta}
     if gtype in ("casson", "pipe_casson"):
@@ -620,6 +679,42 @@ def _foam(casedir, cmd):
     if proc.returncode != 0:
         tail = "\n".join(logfile.read_text().splitlines()[-30:])
         raise RuntimeError(f"'{cmd}' failed in {casedir} (see {logfile}):\n{tail}")
+
+
+def _write_pipe_inlet_profile(casedir, a, u_mean):
+    """Overwrite 0/U's inlet with the exact Poiseuille profile at face centres.
+
+    Read from the built mesh rather than assumed: a wedge's face centroids are
+    area-weighted in r, not at (i+1/2)dr, so using the naive midpoint would
+    seed an O(dr) error into the boundary condition itself.
+    """
+    from tools.foam_mesh import face_area_vectors, read_boundary, read_faces, read_points
+
+    pm = casedir / "constant" / "polyMesh"
+    boundary = read_boundary(pm / "boundary")
+    points = read_points(pm / "points")
+    faces = read_faces(pm / "faces")
+    info = boundary["inlet"]
+    s0, n = info["startFace"], info["nFaces"]
+    _, cf = face_area_vectors(points, faces[s0 : s0 + n])
+    r = np.hypot(cf[:, 1], cf[:, 2])
+    u = 2.0 * u_mean * (1.0 - (r / a) ** 2)
+    entries = "\n".join(f"({v:.12g} 0 0)" for v in u)
+    path = casedir / "0" / "U"
+    # Match the rendered inlet line by PATTERN, not by reconstructing the
+    # string: the template substitutes the float as "1.0" while a %g format
+    # gives "1", and that mismatch silently leaves a PLUG inlet in place —
+    # which then develops along the pipe and is not the case intended.
+    text, count = re.subn(
+        r"    inlet\s*\{[^}]*\}",
+        "    inlet\n    {\n        type fixedValue;\n"
+        f"        value nonuniform List<vector>\n{n}\n(\n{entries}\n);\n    }}",
+        path.read_text(),
+        count=1,
+    )
+    if count != 1:
+        raise RuntimeError(f"could not substitute the inlet profile in {path}")
+    path.write_text(text)
 
 
 def _write_channel_ic(casedir, setup, params, case, n_cells):
@@ -727,7 +822,7 @@ def _read_pressure_gradient(casedir):
     return float(matches[-1])
 
 
-def _read_tau_wall(casedir, patches=("bottomWall", "topWall")):
+def _read_tau_wall(casedir, patches=("bottomWall", "topWall"), require_uniform=True):
     """Mean kinematic wall-shear-stress magnitude over both wall patches.
 
     Parses the volVectorField the wallShearStress functionObject wrote at the
@@ -757,6 +852,14 @@ def _read_tau_wall(casedir, patches=("bottomWall", "topWall")):
         magnitudes.append(np.linalg.norm(vectors, axis=1))
     magnitudes = np.concatenate(magnitudes)
     spread = magnitudes.max() - magnitudes.min()
+    if not require_uniform:
+        # x-invariance is a CYCLIC-case property. With real inlet/outlet
+        # patches any mismatch between the prescribed inlet profile and the
+        # discrete developed one relaxes over some length, so wall shear
+        # legitimately varies along the pipe. The momentum identity is
+        # unaffected — it uses the TOTAL integrated wall force, not a uniform
+        # value — so the gate is skipped rather than the case being rejected.
+        return float(magnitudes.mean())
     # Allow iterative-convergence round-off (the Ux residual gate is 1e-9);
     # a genuinely undeveloped flow shows O(1) face-to-face variation.
     if spread > 1e-6 * magnitudes.mean():

@@ -1,0 +1,25 @@
+FoamFile
+{
+    format      ascii;
+    class       volScalarField;
+    object      p;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform 0;
+
+boundaryField
+{
+    // Pressure is FIXED at the outlet, so there is no reference ambiguity
+    // here and no pRefCell: the level is set by a boundary condition rather
+    // than an arbitrary constant.
+    inlet  { type zeroGradient; }
+    outlet { type fixedValue; value uniform 0; }
+    wall   { type zeroGradient; }
+    front  { type wedge; }
+    back   { type wedge; }
+}
+
+// ************************************************************************* //

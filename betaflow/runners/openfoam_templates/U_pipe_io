@@ -1,0 +1,27 @@
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    object      U;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 1 -1 0 0 0 0];
+
+internalField   uniform ($u_init 0 0);
+
+boundaryField
+{
+    // Overwritten after blockMesh with the exact Poiseuille profile at the
+    // inlet face centres, so the solution is fully developed everywhere and
+    // the momentum-flux terms cancel between the two ends. What remains is
+    // the inlet/outlet PRESSURE force balancing the wall viscous force —
+    // the check this case exists for.
+    inlet  { type fixedValue; value uniform ($u_init 0 0); }
+    outlet { type zeroGradient; }
+    wall   { type noSlip; }
+    front  { type wedge; }
+    back   { type wedge; }
+}
+
+// ************************************************************************* //

@@ -1,0 +1,46 @@
+{
+  "purpose": "Stage A of the synthetic-artery ladder: a straight pipe driven by REAL inlet/outlet patches instead of cyclic + body force, to null-test the momentum identity in the configuration production actually uses.",
+  "gap_it_closes": "Every earlier null test used CYCLIC inlet/outlet, where the two contributions cancel identically. The checker's inlet/outlet pressure-force and momentum-flux terms had therefore never been tested against a known answer - and those terms carry the whole balance in a patient case.",
+  "setup": "exact developed Poiseuille profile prescribed at the inlet (written at true wedge face centroids after blockMesh), fixed outlet pressure, no body force. Momentum flux nearly cancels between the ends, so the balance reduces to inlet pressure force vs wall viscous force.",
+  "refinement": [
+    {
+      "nx": 8,
+      "nr": 40,
+      "inlet_p_x": 0.0278271,
+      "wall_visc_x": -0.02788824,
+      "flux_x": 4.701376e-07,
+      "residual_x": -6.161e-05,
+      "relative_axial": 0.002214
+    },
+    {
+      "nx": 16,
+      "nr": 80,
+      "inlet_p_x": 0.02787612,
+      "wall_visc_x": -0.02792571,
+      "flux_x": -1.509612e-06,
+      "residual_x": -4.808e-05,
+      "relative_axial": 0.001725
+    },
+    {
+      "nx": 32,
+      "nr": 160,
+      "inlet_p_x": 0.02790737,
+      "wall_visc_x": -0.02793782,
+      "flux_x": -5.95401e-07,
+      "residual_x": -2.986e-05,
+      "relative_axial": 0.00107
+    }
+  ],
+  "velocity_order": [
+    2.04,
+    3.02
+  ],
+  "identity_order": [
+    0.36,
+    0.69
+  ],
+  "RESULT": "THE IDENTITY DOES NOT CLOSE in this configuration. The velocity converges at second order against the exact Poiseuille solution, but the momentum residual sits at ~1e-3 relative and falls at only ~0.5 order under combined refinement. On cyclic cases the same checker closes at 1e-16.",
+  "consequence": "The production MOMENTUM numbers are not trustworthy below ~1e-3. The three coronary residuals (1.4e-3 to 2.5e-3) sit AT the instrument's own floor and cannot be distinguished from it. BPM120's 1.2e-2 is about ten times the floor so it may still be real, but the margin is far smaller than claimed, and PAT_0000's corrected 3.4e-3 is now within a factor of three of the floor.",
+  "not_yet_determined": "Whether the ~1e-3 is (a) my surface quadrature, (b) the wallShearStress functionObject's snGrad reconstruction differing from the solver's momentum assembly - which is what this tier was BUILT to measure and would be a production-relevant finding - or (c) incomplete development leaving a real flux the coarse streamwise mesh cannot resolve. Distinguishing them is the next step and should not be guessed at.",
+  "status": "instrument failure #7, and the one Stage A was built to find. The mass tier is unaffected: it uses phi only and closed at 1e-8 independently."
+}

@@ -1,0 +1,39 @@
+# Stage A of the synthetic-artery ladder: a straight pipe driven by REAL
+# inlet/outlet boundary conditions instead of cyclic patches plus a body
+# force.
+#
+# WHY THIS CASE EXISTS. Every case the momentum-identity checker was
+# calibrated on used CYCLIC inlet/outlet, where the two contributions cancel
+# identically. Its inlet/outlet pressure-force and momentum-flux terms have
+# therefore never been tested against a known answer — and those are exactly
+# the terms that carry the balance in a patient case with an inlet and
+# several outlets. This case closes that gap while keeping an exact answer.
+#
+# The inlet carries the exact developed Poiseuille profile, so the flow is
+# developed throughout and the momentum flux cancels between the ends. The
+# balance reduces to  (p_in - p_out) A = tau_w 2 pi a L,  i.e.
+# tau_w = dP a / (2 L) — an exact result that DEPENDS on the inlet/outlet
+# pressure terms.
+#
+# CITATIONS: as pipe_poiseuille_steady (Batchelor 1967 sec 4.2;
+# Sutera & Skalak 1993; Reynolds 1883 for the Re convention).
+name: pipe_poiseuille_io
+
+nondim:
+  Re: 100
+
+geometry:
+  type: pipe_io
+  radius: 1.0
+  length: 4.0
+
+oracle: betaflow.analytic.pipe.poiseuille_profile
+
+normalisation:
+  u_max_over_u_mean: 2.0
+
+metrics:
+  - name: L2_velocity
+    tol: 1.0e-3
+  - name: wss_relative
+    tol: 1.0e-6
