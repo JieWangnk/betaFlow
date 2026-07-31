@@ -488,6 +488,19 @@ be swapped — and the uncomfortable part is how hard a swap is to detect:
 | **10** | **9.14e-3** | **1.46e-2** | **4.82e-1** |
 | 20 | 2.59e-3 | 4.56e-3 | 4.91e-1 |
 
+The mechanism: profiles converge as alpha rises because both geometries
+develop the same structure — an inertia-dominated plug core, which is
+geometry-blind, plus a Stokes layer whose thickness sqrt(2 nu/omega) is set by
+frequency rather than curvature and which is locally flat at any wall. So
+SHAPE stops discriminating. Wall shear does not converge, because it carries
+the lever arm relating wall traction to the driving force: h for a channel,
+a/2 for a pipe. That factor is pure geometry and never washes out.
+
+Stated generally, and this is now the third instance after 0d's silent failure
+and Euler's amplitude preference: **the discriminating quantity is the one
+tied to the geometry by a conservation relation, not the one that looks most
+informative. Profile agreement is weak evidence.**
+
 At the case's alpha = 10 the wrong kernel misfits the profile by less than
 this case's OWN tolerances (1e-2 amplitude, 2e-2 phase) — a profile-only
 validation would pass a swapped kernel — while wall shear misfits by 48%,
@@ -502,6 +515,39 @@ Results (wedge topology, `results/pipe.json`): Poiseuille p = **1.972,
 plug ratio xi_c = **0.200008** against a target of 0.2; Womersley L2
 amplitude **9.32e-4**, phase **4.16e-4 rad**, WSS amplitude **9.38e-5**,
 identity **1.19e-10**.
+
+**The fix generalises, and the choice of mesh follows the purpose.**
+Circumscribe rather than inscribe: a regular n-gon with INRADIUS a has area
+n·a²·tan(pi/n) and perimeter 2n·a·tan(pi/n), so V/A = a/2 **exactly at any n**
+— the tan cancels identically. That removes the faceting bias at any
+circumferential resolution rather than mitigating it. But there is no free
+lunch, and the three choices optimise different things: circumscribing zeroes
+V/A while over-predicting cross-sectional area by +0.051% at n=80; inscribing
+under-predicts area by −0.103%; equal-area gets area exactly and V/A neither.
+**Use V/A for the identity gate, area for particle concentration and wall
+position.** Those are different meshes, and pretending one serves both is how
+the error gets hidden.
+
+**Why p ≈ 2 survived the faceting bias — and where it would not.** The wedge's
+uniform geometric scaling is absorbed by `meanVelocityForce`: G_disc
+self-adjusts to hit the target mean velocity, so a cos(theta) error in the
+effective source cancels against the analytic profile evaluated at G_disc.
+This is the same self-consistency that made Poiseuille WSS second-order.
+**That immunity is a property of FORCE-DRIVEN flow, not of the mesh.** A
+fixed-pressure-drop or fixed-inlet-flow setup — which is what patient-specific
+cases actually use — has no G_disc to absorb it, and the bias appears directly
+in the profile. Do not read "we fixed the faceting bias" as fixed for
+everyone.
+
+**Architecture: wedge for fluid verification, O-grid for particles only.** A
+corrected wedge is EXACT for an axisymmetric solution — there is no
+circumferential discretisation of the physics at all — whereas the O-grid
+necessarily carries a geometric floor that radial refinement never touches.
+Running the three-case re-verification on the O-grid would measure that floor,
+not agreement. Committed prediction if it is ever run: **O-grid and wedge
+disagree at ~1e-3 on the profile at n_circ = 80, and the gap does not shrink
+under radial refinement** — the same signature as casson's nuMax floor, a
+different cause. This is not deferred work; it is the right split.
 
 **O-grid: the same faceting law, confirmed on a second topology.** A 5-block
 3-D O-grid (8000 hexahedra, `tools/ogrid_blockmesh.py`, `checkMesh` clean, max
@@ -527,6 +573,59 @@ attributed to Gentile et al. (2008) **on the user's authority, unverified
 here** (the quantity r_p = 2·tau_y/G needs no citation — it follows from
 tau(r_p) = tau_y and is checked by differentiation), and `nuMax` is an
 OpenFOAM regularisation parameter, a numerical device with no physical source.
+
+## langevin_free: the first non-OpenFOAM runner
+
+Free Brownian motion of a 50 nm particle in plasma (T = 310 K,
+mu = 3.5e-3 Pa·s), giving D = **1.2975e-12 m²/s** and an rms displacement of
+2.77 um in 1 s — the expected order for a nanoparticle in plasma, water at
+37 °C being ~5x less viscous. No flow, no walls, no CFD solver.
+
+**The architecture result.** betaflow's central claim is that nothing above
+`runners/` knows about the solver. Until this case every runner WAS OpenFOAM,
+so the claim was asserted, never tested. Adding a pure-Python Langevin
+integrator required **no change anywhere above the runner layer** — not to
+`run_case`, not to the metrics, not to provenance, not to the case-loading in
+tests. One thing was wrong and is now corrected: the documented return
+contract said `{"y", "u", "u_ref", "meta"}`, which is fluid-specific. The
+dispatch never enforced it, so a runner returning `{"t", "msd", ...}` plugged
+in regardless. The layering held; only its statement was too narrow.
+
+**The convergence axis is particle count, not resolution**, and the rate is
+Monte Carlo:
+
+| N | RMS slope error (8 replicas) |
+|---|---|
+| 1 000 | 2.48e-2 |
+| 10 000 | 8.42e-3 |
+| 100 000 | 2.43e-3 |
+
+Measured exponent **0.504** against the expected 0.5 (ratios 2.94 and 3.47 per
+decade versus sqrt(10) = 3.16). A refinement helper that assumed p ~= 2 would
+be measuring the wrong thing entirely.
+
+Predictions, all confirmed: MSD slope recovers 6 D t; error scales as
+1/sqrt(N); **timestep independence** (8.3e-3, 3.6e-3, 4.1e-3 at dt = 0.02,
+0.01, 0.005 — no trend, because Euler-Maruyama is EXACT for free diffusion:
+the true increment is Gaussian with variance 2 D dt, which is precisely what
+is sampled); and isotropy (per-component MSD spread 3.0e-2 against a
+statistical scale sqrt(2/N) = 1.4e-2, i.e. ~2 sigma).
+
+**A defect in the case definition, reported rather than fixed.** The declared
+tolerance of 2e-2 sits only ~2.4x the RMS statistical error at the stated
+N = 10 000, so roughly 1 seed in 60 would fail it. The committed reference run
+(seed 0) gives 1.58e-2 — passing, but at 1.9x the RMS, so with little margin.
+The tolerance was NOT adjusted. The right fix is to declare the case at
+N = 100 000, where the same tolerance carries 8x margin; that is a change to
+the case, not to the threshold.
+
+Fluctuation-dissipation is asserted directly: the friction coefficient in the
+noise amplitude and in Stokes drag must be one and the same zeta = 6 pi mu a
+(round-trip error 0.0). Taking them from independent constants is the classic
+implementation bug, and it silently changes the MSD slope.
+
+Overdamped (inertialess) Langevin is justified by St = 5.0e-9 at these
+scales, reported in meta rather than assumed.
 
 ## Adding a case
 

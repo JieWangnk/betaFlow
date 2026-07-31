@@ -4,14 +4,23 @@ Contract
 --------
 Each runner is one module in this package exposing
 
-    run(case: dict, **params) -> {"y": ndarray, "u": ndarray, "u_ref": float,
-                                  "meta": dict}
+    run(case: dict, **params) -> dict
 
-where `case` is the parsed YAML case definition, `y`/`u` are the sampled
-wall-normal profile in SI units, `u_ref` is the reference velocity the oracle
-non-dimensionalises by, and `meta` holds provenance (solver version, cell
-counts, viscosity). Metrics and tests consume only that dict — adding a new
-solver means adding one module here and changing nothing else.
+where `case` is the parsed YAML case definition and the returned dict carries
+whatever the case's metrics consume, plus a `meta` sub-dict of provenance.
+
+CORRECTED after the first non-OpenFOAM runner. This docstring previously
+specified the return as {"y", "u", "u_ref", "meta"} — a FLUID-SPECIFIC
+contract that quietly assumed a wall-normal velocity profile. The dispatch
+below never enforced it, so `runners/langevin.py` (free Brownian motion,
+returning {"t", "msd", "msd_components", "D_expected", ...}) plugged in with
+no change anywhere above this layer. The layering claim held; only its
+statement was too narrow.
+
+What IS required of every runner: return a `meta` dict, and return arrays the
+case's declared metrics can consume. Fluid cases conventionally return
+y/u/u_ref, and that convention is worth keeping — but it is a convention of
+those cases, not of the harness.
 """
 
 from importlib import import_module

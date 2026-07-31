@@ -101,3 +101,19 @@ def plug_velocity_variation(y, u, y_p):
         return 0.0
     u_centre = u[np.argmin(ay)]
     return float(np.max(np.abs(u[inside] - u_centre)) / np.max(np.abs(u)))
+
+
+def msd_slope_relative(msd_values, times, diffusivity):
+    """|fitted MSD slope / (6 D) - 1| for free 3-D Brownian motion.
+
+    The fit is through the origin, because MSD(0) = 0 exactly by construction
+    — fitting an intercept would absorb part of the signal being tested.
+    The residual error here is STATISTICAL (order 1/sqrt(N)), not a
+    discretisation error, so it does not shrink with timestep.
+    """
+    t = np.asarray(times, dtype=float)
+    m = np.asarray(msd_values, dtype=float)
+    if t.shape != m.shape:
+        raise ValueError("times and msd must have the same shape")
+    slope = float(np.sum(t * m) / np.sum(t * t))
+    return abs(slope / (6.0 * float(diffusivity)) - 1.0)

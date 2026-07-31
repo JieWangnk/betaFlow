@@ -3,6 +3,7 @@
 from betaflow.metrics.norms import (
     l2_phase,
     l2_velocity,
+    msd_slope_relative,
     plug_velocity_variation,
     plug_width_cap_active,
     plug_width_flatness,
@@ -22,4 +23,6 @@ METRICS = {
     "plug_width_cap_active": plug_width_cap_active,
     "plug_width_flatness": plug_width_flatness,
     "plug_velocity_variation": plug_velocity_variation,
+    # Particle transport: the error is statistical, not discretisation.
+    "msd_slope_relative": msd_slope_relative,
 }

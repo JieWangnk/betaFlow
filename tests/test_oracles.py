@@ -11,7 +11,15 @@ run on every push regardless of environment.
 import numpy as np
 import pytest
 
-from betaflow.analytic import carreau, casson, couette, poiseuille, womersley
+from betaflow.analytic import (
+    brownian,
+    carreau,
+    casson,
+    couette,
+    pipe,
+    poiseuille,
+    womersley,
+)
 
 pytestmark = pytest.mark.oracle
 
@@ -106,3 +114,41 @@ def test_carreau_reduces_to_poiseuille():
         poiseuille.velocity_profile(y / h) * poiseuille.u_max(g, nu0, h),
         rtol=1e-12,
     )
+
+
+def test_pipe_force_balance_and_kernels():
+    """tau(r) = G r / 2, and the pipe/channel kernels are NOT interchangeable."""
+    g, a = 0.4, 1.0
+    assert pipe.tau_wall(g, a) == pytest.approx(g * a / 2.0, rel=1e-15)
+    assert pipe.poiseuille_u_max(g, a, 0.02) / pipe.poiseuille_u_mean(g, a, 0.02) == (
+        pytest.approx(2.0, rel=1e-15)
+    )
+    # Womersley pipe: tauhat = (a/2)(G - i w <u>), in normalised units
+    # tauhat/tau_ref = 1 - i <uhat>/u_ref.
+    for al in (0.5, 5.0, 20.0):
+        assert pipe.womersley_wall_shear(al) == pytest.approx(
+            1.0 - 1.0j * pipe.womersley_bulk(al), rel=1e-12
+        )
+    # Plug radius r_p = 2 tau_y / G — twice the channel's tau_y / G.
+    assert pipe.plug_radius(0.05, g) == pytest.approx(2 * 0.05 / g, rel=1e-15)
+    # The two geometries' pulsatile kernels must differ substantially in wall
+    # shear even where their profiles nearly agree (see README).
+    j0, cosh = pipe.womersley_wall_shear(10.0), womersley.complex_wall_shear(10.0)
+    assert abs(abs(cosh) - abs(j0)) / abs(j0) > 0.4
+
+
+def test_brownian_fluctuation_dissipation():
+    """The noise and the drag must share one friction coefficient."""
+    out = brownian.verify_fluctuation_dissipation(310.0, 3.5e-3, 50e-9)
+    assert out["round_trip_error"] == 0.0
+    # D = k_B T / zeta, and MSD is 6 D t with 2 D t per component.
+    d = brownian.stokes_einstein(310.0, 3.5e-3, 50e-9)
+    assert d == pytest.approx(
+        brownian.BOLTZMANN * 310.0 / brownian.friction_coefficient(3.5e-3, 50e-9),
+        rel=1e-15,
+    )
+    t = np.array([0.0, 0.5, 1.0])
+    np.testing.assert_allclose(brownian.msd(t, d), 3 * brownian.msd_per_component(t, d),
+                               rtol=1e-15)
+    # Overdamped limit is justified only if St << 1.
+    assert brownian.stokes_number(1050.0, 50e-9, 3.5e-3, 0.3, 0.01) < 1e-6
