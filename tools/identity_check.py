@@ -299,19 +299,31 @@ def momentum_terms(case_dir, time_dir, patches):
     p_vals, p_missing = _fill_from_owner(case_dir, time_dir, "p", 1, p_vals, patches)
     u_vals, u_missing = _fill_from_owner(case_dir, time_dir, "U", 3, u_vals, patches)
 
+    # Area-weighted mean boundary pressure — the reference to remove.
+    num = den = 0.0
+    for name, geom in patches.items():
+        if name in p_vals and len(p_vals[name]) == len(geom["Sf"]):
+            area = np.linalg.norm(geom["Sf"], axis=1)
+            num += float((p_vals[name] * area).sum())
+            den += float(area.sum())
+    p_mean = num / den if den > 0 else 0.0
+
     terms = {}
     for name, geom in patches.items():
         sf = geom["Sf"]
         entry = {"type": geom["type"], "nFaces": geom["nFaces"]}
         if name in p_vals and len(p_vals[name]) == len(sf):
             entry["pressure_force"] = (-p_vals[name][:, None] * sf).sum(axis=0)
+            entry["pressure_force_demeaned"] = (
+                -(p_vals[name] - p_mean)[:, None] * sf
+            ).sum(axis=0)
         if name in u_vals and name in phi_vals and len(phi_vals[name]) == len(sf):
             entry["momentum_flux"] = (u_vals[name] * phi_vals[name][:, None]).sum(axis=0)
         if name in wss_vals and len(wss_vals[name]) == len(sf):
             mag = np.linalg.norm(sf, axis=1)
             entry["viscous_force"] = (wss_vals[name] * mag[:, None]).sum(axis=0)
         terms[name] = entry
-    terms["_missing"] = {"p": p_missing, "U": u_missing}
+    terms["_missing"] = {"p": p_missing, "U": u_missing, "p_mean": p_mean}
     return terms
 
 
@@ -359,7 +371,7 @@ def momentum_closure(case_dir, time_dir=None, body_force=None):
     total = np.zeros(3)
     parts = {"pressure_force": np.zeros(3), "momentum_flux": np.zeros(3),
              "viscous_force": np.zeros(3)}
-    missing = terms.pop("_missing", {"p": [], "U": []})
+    missing = terms.pop("_missing", {"p": [], "U": [], "p_mean": 0.0})
     for entry in terms.values():
         for key in parts:
             if key in entry:
@@ -385,6 +397,28 @@ def momentum_closure(case_dir, time_dir=None, body_force=None):
                 gross += np.abs(entry[key])
     gross += np.abs(source)
     scale = float(np.max(gross)) if np.max(gross) > 0 else 1e-300
+
+    # REFERENCE-FREE SCALE. The gross pressure magnitude sum|p|A shifts to
+    # |p0| sum(A) under p -> p + p0, so ANY normalisation built from it is
+    # pressure-reference-dependent even though the identity itself is not
+    # (the NET is invariant because the closed surface integral of n
+    # vanishes). Measured here: the coronary cases carry a ~89 mmHg offset
+    # with a pressure RANGE of only 1% of it, while BPM120 sits at ~37 mmHg
+    # with a range comparable to its mean. Comparing cases on the raw gross
+    # therefore compares their pressure references, not their physics.
+    #
+    # Subtracting the area-weighted mean pressure leaves the NET identity
+    # untouched (same closed-surface argument) while making the gross
+    # meaningful. That is the scale used for cross-case comparison.
+    gross_free = np.zeros(3)
+    for entry in terms.values():
+        for key in ("viscous_force", "momentum_flux"):
+            if key in entry:
+                gross_free += np.abs(entry[key])
+        if "pressure_force_demeaned" in entry:
+            gross_free += np.abs(entry["pressure_force_demeaned"])
+    gross_free += np.abs(source)
+    scale_free = float(np.max(gross_free)) if np.max(gross_free) > 0 else 1e-300
     return {
         "time": float(Path(time_dir).name),
         "closed_surface_residual": net_area.tolist(),
@@ -392,9 +426,13 @@ def momentum_closure(case_dir, time_dir=None, body_force=None):
         "domain_volume": volume,
         "terms": {k: v.tolist() for k, v in parts.items()},
         "body_force_term": source.tolist(),
-        "missing_boundary_values": missing,
+        "missing_boundary_values": {k: v for k, v in missing.items() if k != "p_mean"},
+        "mean_boundary_pressure": missing.get("p_mean", 0.0),
         "residual": total.tolist(),
         "gross_per_component": gross.tolist(),
+        "gross_reference_free_per_component": gross_free.tolist(),
+        "scale_reference_free": scale_free,
+        "residual_relative_reference_free": (np.abs(total) / scale_free).tolist(),
         "residual_relative_per_component": (np.abs(total) / scale).tolist(),
         "scale": scale,
         "patches": {

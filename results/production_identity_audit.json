@@ -1,85 +1,90 @@
 {
-  "note": "READ-ONLY audit; momentum tier tests the post-processing chain against the balance the solver enforced, not independence from the solve",
+  "note": "reference-free normalisation removes the area-weighted mean boundary pressure before forming the gross scale; the NET identity is unchanged since the closed-surface integral of n vanishes",
   "cases": [
     {
-      "case": "coronaryCFD SUK_BIF_CPD10",
+      "case": "coronary CPD10",
+      "mean_boundary_pressure": 11.178249458223434,
       "closed_surface_relative": 1.9740100734639503e-16,
-      "momentum_residual_relative": [
+      "residual_relative_pressure_dependent": [
         2.7532298567436577e-06,
         6.541300183971115e-06,
         1.9298538072730073e-05
       ],
-      "worst_component": 1.9298538072730073e-05,
-      "wall_pressure_over_viscous": 413.1039674132819,
-      "domain_volume_m3": 3.324908513024678e-07,
-      "missing_boundary_values": {
-        "p": [],
-        "U": []
-      }
+      "residual_relative_reference_free": [
+        0.00035944729077659127,
+        0.000853997941191058,
+        0.0025195161999282296
+      ],
+      "worst_reference_free": 0.0025195161999282296,
+      "domain_volume_m3": 3.324908513024678e-07
     },
     {
-      "case": "coronaryCFD SUK_BIF_CPD14",
+      "case": "coronary CPD14",
+      "mean_boundary_pressure": 11.178163894249943,
       "closed_surface_relative": 1.0933744707537158e-16,
-      "momentum_residual_relative": [
+      "residual_relative_pressure_dependent": [
         3.3840596404559956e-06,
         1.2448277321207366e-05,
         1.1731787461405675e-05
       ],
-      "worst_component": 1.2448277321207366e-05,
-      "wall_pressure_over_viscous": 405.1417826214654,
-      "domain_volume_m3": 3.3262090851366956e-07,
-      "missing_boundary_values": {
-        "p": [],
-        "U": []
-      }
+      "residual_relative_reference_free": [
+        0.0004387248010555388,
+        0.0016138509871223689,
+        0.0015209620003439172
+      ],
+      "worst_reference_free": 0.0016138509871223689,
+      "domain_volume_m3": 3.3262090851366956e-07
     },
     {
-      "case": "coronaryCFD SUK_BIF_CPD20",
+      "case": "coronary CPD20",
+      "mean_boundary_pressure": 11.178223137851512,
       "closed_surface_relative": 2.4121577122975904e-16,
-      "momentum_residual_relative": [
+      "residual_relative_pressure_dependent": [
         1.5906782797849793e-06,
         1.093342817507885e-05,
         7.496317678687067e-06
       ],
-      "worst_component": 1.093342817507885e-05,
-      "wall_pressure_over_viscous": 401.3209478519915,
-      "domain_volume_m3": 3.3285393454235376e-07,
-      "missing_boundary_values": {
-        "p": [],
-        "U": []
-      }
+      "residual_relative_reference_free": [
+        0.00020435010254872454,
+        0.001404587714046421,
+        0.0009630314978492008
+      ],
+      "worst_reference_free": 0.001404587714046421,
+      "domain_volume_m3": 3.3285393454235376e-07
     },
     {
-      "case": "AortaCFD BPM120 lesson01",
+      "case": "BPM120 lesson01",
+      "mean_boundary_pressure": 4.692935615169663,
       "closed_surface_relative": 7.066925583200427e-17,
-      "momentum_residual_relative": [
+      "residual_relative_pressure_dependent": [
         0.0048186501657302115,
         0.0036893297374300856,
         0.002618433074051819
       ],
-      "worst_component": 0.0048186501657302115,
-      "wall_pressure_over_viscous": 13.413707460399026,
-      "domain_volume_m3": 1.0627416816218908e-05,
-      "missing_boundary_values": {
-        "p": [],
-        "U": []
-      }
+      "residual_relative_reference_free": [
+        0.011590042240590168,
+        0.008873748046783224,
+        0.006297977418707274
+      ],
+      "worst_reference_free": 0.011590042240590168,
+      "domain_volume_m3": 1.0627416816218908e-05
     },
     {
-      "case": "AortaCFD PAT_0000",
+      "case": "PAT_0000",
+      "mean_boundary_pressure": 10.116265606541033,
       "closed_surface_relative": 3.246573811198466e-16,
-      "momentum_residual_relative": [
+      "residual_relative_pressure_dependent": [
         2.1663866501935327e-05,
         3.929200152238564e-05,
         0.0004572249524280079
       ],
-      "worst_component": 0.0004572249524280079,
-      "wall_pressure_over_viscous": 709.3582517457039,
-      "domain_volume_m3": 3.426554886671411e-05,
-      "missing_boundary_values": {
-        "p": [],
-        "U": []
-      }
+      "residual_relative_reference_free": [
+        0.0018072135901826035,
+        0.0032777638807175687,
+        0.038141997769635116
+      ],
+      "worst_reference_free": 0.038141997769635116,
+      "domain_volume_m3": 3.426554886671411e-05
     }
   ]
 }

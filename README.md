@@ -794,30 +794,46 @@ Comparing that reconstruction against the balance the solver enforced tests
 the POST-PROCESSING CHAIN — which is where the published number comes from,
 and which nothing else checks.
 
-| case | closed surface | momentum residual (x, y, z) | wall \|p\|/\|visc\| |
-|---|---|---|---|
-| coronaryCFD SUK_BIF_CPD10 | 2.0e-16 | 2.8e-6, 6.5e-6, 1.9e-5 | 413 |
-| coronaryCFD SUK_BIF_CPD14 | 1.1e-16 | 3.4e-6, 1.2e-5, 1.2e-5 | 405 |
-| coronaryCFD SUK_BIF_CPD20 | 2.4e-16 | 1.6e-6, 1.1e-5, 7.5e-6 | 401 |
-| AortaCFD BPM120 lesson01 | 7.1e-17 | **4.8e-3, 3.7e-3, 2.6e-3** | 13 |
-| AortaCFD PAT_0000 | 3.2e-16 | 2.2e-5, 3.9e-5, 4.6e-4 | 709 |
+**FIFTH INSTRUMENT FAILURE, and it inverted the conclusion.** The first
+version of this table normalised the residual by the GROSS per-patch
+magnitude, which includes sum|p|A. That shifts to |p0| sum(A) under
+p -> p + p0, so it is pressure-REFERENCE-dependent even though the identity
+itself is not — the NET is invariant only because the closed-surface integral
+of n vanishes, and that argument does not extend to a gross. Measured
+references: the coronary cases carry ~89 mmHg with a pressure RANGE of 1% of
+it; BPM120 carries ~37 mmHg with a range comparable to its mean. So the
+normalisation was comparing pressure references, not physics.
 
-Closure is at the momentum-residual level, two to three decades looser than
-the mass tier's 1e-8, exactly as predicted: the momentum residual is the
-binding constraint, not the pressure solve. Per-component reporting earns its
-keep — PAT_0000's z component is an order of magnitude worse than x and y,
-which a norm would have hidden.
+Removing the area-weighted mean boundary pressure leaves the NET identity
+untouched (same closed-surface argument) and makes the scale comparable:
 
-**BPM120 stands out at 4.8e-3, two to three decades worse than the other
-four.** That is reported, not explained: it may be a looser convergence
-setting, a coarser mesh, or something else. It is the one case that would
-merit a look before its numbers were published.
+| case | mean p | reference-DEPENDENT worst | reference-FREE (x, y, z) | inflation |
+|---|---|---|---|---|
+| AortaCFD PAT_0000 | 10.12 | 4.6e-4 | 1.8e-3, 3.3e-3, **3.8e-2** | 83x |
+| AortaCFD BPM120 lesson01 | 4.69 | 4.8e-3 | 1.2e-2, 8.9e-3, 6.3e-3 | 2x |
+| coronaryCFD SUK_BIF_CPD10 | 11.18 | 1.9e-5 | 3.6e-4, 8.5e-4, 2.5e-3 | 131x |
+| coronaryCFD SUK_BIF_CPD14 | 11.18 | 1.2e-5 | 4.4e-4, 1.6e-3, 1.5e-3 | 130x |
+| coronaryCFD SUK_BIF_CPD20 | 11.18 | 1.1e-5 | 2.0e-4, 1.4e-3, 9.6e-4 | 128x |
 
-**Wall traction is NOT wall shear stress**, and the ratio makes it concrete:
-the pressure part of the wall traction exceeds the viscous part by **400-700x**
-on the coronary and PAT_0000 geometries. Anyone integrating `wallShearStress`
-alone and calling it the wall force is out by that factor. (BPM120's 13 is
-another way that case is unlike the others.)
+The ordering INVERTS. **PAT_0000 is the worst case, by 3.3x**, not BPM120;
+the coronaries were flattered by ~130x purely by their pressure offset. And
+PAT_0000's z-component is 10-20x its own x and y, so the per-component flag
+was pointing at the real thing all along rather than incidentally. Closed
+surface stays at 1e-16 to 3e-16 throughout, and the raw residual is unchanged
+by the renormalisation — only what it is divided by.
+
+Closure is at the momentum-residual level, decades looser than the mass
+tier's 1e-8, as predicted: the momentum residual is the binding constraint,
+not the pressure solve.
+
+**Wall traction is NOT wall shear stress** — but the |p|/|visc| ratio of
+400-700x first quoted here is NOT a quotable physical number, for the same
+reason: it is dominated by the pressure reference. The physical statement
+that survives is qualitative and still worth making: the traction carries a
+-p n part that does not vanish on a curved wall, so integrating
+`wallShearStress` alone and calling it the wall force is wrong. Quantifying
+"by how much" requires a stated pressure reference, and every case here
+carries a different one.
 
 **Two traps that bit during construction, both worth recording.** First, `p`
 is `zeroGradient` on walls and inlets, so its boundary values are never
