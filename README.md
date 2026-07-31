@@ -77,13 +77,14 @@ physics.
 
     python3 -m pytest -m oracle -v   # oracles only, NO solver needed (~0.4 s)
     python3 -m pytest tests/ -v      # default: skips @slow studies (~9 min)
-    python3 -m pytest -m "" -v       # everything (15 tests, ~25 min)
+    python3 -m pytest -m "" -v       # everything (19 tests, ~28 min)
     python3 -m pytest -m slow -v     # the slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and
 wired into `.github/workflows/ci.yml`: the oracle tier gates every push with no
 solver install, the default tier runs on push, the full tier runs nightly. The
-casson two-axis grid and womersley_carreau are marked slow.
+casson two-axis grid and womersley_carreau are marked slow. `langevin_free`
+needs no solver at all and runs in ~5 s.
 
 The runner sources `/opt/openfoam14/etc/bashrc` itself; set
 `BETAFLOW_OPENFOAM_BASHRC` to point elsewhere (the templates use OpenFOAM 14
