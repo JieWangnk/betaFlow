@@ -1,0 +1,85 @@
+{
+  "note": "READ-ONLY audit; momentum tier tests the post-processing chain against the balance the solver enforced, not independence from the solve",
+  "cases": [
+    {
+      "case": "coronaryCFD SUK_BIF_CPD10",
+      "closed_surface_relative": 1.9740100734639503e-16,
+      "momentum_residual_relative": [
+        2.7532298567436577e-06,
+        6.541300183971115e-06,
+        1.9298538072730073e-05
+      ],
+      "worst_component": 1.9298538072730073e-05,
+      "wall_pressure_over_viscous": 413.1039674132819,
+      "domain_volume_m3": 3.324908513024678e-07,
+      "missing_boundary_values": {
+        "p": [],
+        "U": []
+      }
+    },
+    {
+      "case": "coronaryCFD SUK_BIF_CPD14",
+      "closed_surface_relative": 1.0933744707537158e-16,
+      "momentum_residual_relative": [
+        3.3840596404559956e-06,
+        1.2448277321207366e-05,
+        1.1731787461405675e-05
+      ],
+      "worst_component": 1.2448277321207366e-05,
+      "wall_pressure_over_viscous": 405.1417826214654,
+      "domain_volume_m3": 3.3262090851366956e-07,
+      "missing_boundary_values": {
+        "p": [],
+        "U": []
+      }
+    },
+    {
+      "case": "coronaryCFD SUK_BIF_CPD20",
+      "closed_surface_relative": 2.4121577122975904e-16,
+      "momentum_residual_relative": [
+        1.5906782797849793e-06,
+        1.093342817507885e-05,
+        7.496317678687067e-06
+      ],
+      "worst_component": 1.093342817507885e-05,
+      "wall_pressure_over_viscous": 401.3209478519915,
+      "domain_volume_m3": 3.3285393454235376e-07,
+      "missing_boundary_values": {
+        "p": [],
+        "U": []
+      }
+    },
+    {
+      "case": "AortaCFD BPM120 lesson01",
+      "closed_surface_relative": 7.066925583200427e-17,
+      "momentum_residual_relative": [
+        0.0048186501657302115,
+        0.0036893297374300856,
+        0.002618433074051819
+      ],
+      "worst_component": 0.0048186501657302115,
+      "wall_pressure_over_viscous": 13.413707460399026,
+      "domain_volume_m3": 1.0627416816218908e-05,
+      "missing_boundary_values": {
+        "p": [],
+        "U": []
+      }
+    },
+    {
+      "case": "AortaCFD PAT_0000",
+      "closed_surface_relative": 3.246573811198466e-16,
+      "momentum_residual_relative": [
+        2.1663866501935327e-05,
+        3.929200152238564e-05,
+        0.0004572249524280079
+      ],
+      "worst_component": 0.0004572249524280079,
+      "wall_pressure_over_viscous": 709.3582517457039,
+      "domain_volume_m3": 3.426554886671411e-05,
+      "missing_boundary_values": {
+        "p": [],
+        "U": []
+      }
+    }
+  ]
+}

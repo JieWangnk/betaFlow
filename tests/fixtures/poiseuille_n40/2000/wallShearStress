@@ -1,0 +1,48 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  14
+     \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    format      ascii;
+    class       volVectorField;
+    location    "2000";
+    object      wallShearStress;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dimensions      [0 2 -2 0 0 0 0];
+
+internalField   uniform (0 0 0);
+
+boundaryField
+{
+    inlet
+    {
+        type            cyclic;
+    }
+    outlet
+    {
+        type            cyclic;
+    }
+    bottomWall
+    {
+        type            calculated;
+        value           nonuniform List<vector> 4((-0.059925093633 4.24935767019e-17 0) (-0.059925093633 -2.55732030171e-17 0) (-0.059925093633 2.00666035377e-17 0) (-0.059925093633 4.95918531205e-17 0));
+    }
+    topWall
+    {
+        type            calculated;
+        value           nonuniform List<vector> 4((-0.059925093633 5.50796995687e-18 0) (-0.059925093633 4.37144920167e-18 0) (-0.059925093633 -7.89600336872e-18 0) (-0.059925093633 -4.04424678019e-18 0));
+    }
+    frontAndBack
+    {
+        type            empty;
+    }
+}
+
+
+// ************************************************************************* //

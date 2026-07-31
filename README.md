@@ -742,6 +742,23 @@ here: an exact relation the discrete solution must satisfy, independent of the
 physics being modelled. Multi-outlet coronary cases are where it matters most,
 because the failure mode is likelier and harder to spot by eye.
 
+**CORRECTION: the mass tier is weaker than first claimed.** In SIMPLE/PISO the
+pressure equation is constructed so the corrected face flux satisfies
+div(phi) = 0 in every cell to the p-solver tolerance; summing over cells,
+interior faces cancel pairwise and what remains is the boundary sum. So
+closure is a direct consequence of the pressure solve converging — OpenFOAM
+already prints it every step as the global continuity error. It confirms the
+pressure equation converged and is NOT independent of what the solver gates
+on. A check implied by something already enforced is close to vacuous, which
+is lesson 2 in another costume.
+
+It also does NOT catch a mis-coupled Windkessel, contrary to the claim first
+made for it: a wrong resistance changes the flow SPLIT between outlets while
+total mass still balances exactly. It catches an outlet not participating at
+all — a typo'd BC type, a truncated write — not one with wrong parameters. On
+multi-outlet coronaries the named failure mode is precisely the one this tier
+cannot see.
+
 **Result on production output: clean.** Five cases across both pipelines, all
 closing at the linear-solver tolerance rather than merely "small":
 
@@ -757,11 +774,80 @@ A clean bill of health is worth having and worth stating plainly. This is the
 original use #1 that justified building the harness, and the answer is that
 the production code conserves mass.
 
-**One reproducibility note.** Four of the nine cases examined had NO written
-`phi` field, so their closure cannot be checked after the fact at all. That is
-not a failure, but it is a gap: a quantity that was never written cannot be
-audited, and `phi` costs little to keep. Worth adding to the write set if
-these results are ever to be re-verified.
+**One reproducibility note, corrected.** Four of the nine cases examined have
+no written time directories AT ALL — not specifically a missing `phi`, as
+first reported. The five that do write output carry the complete set
+(`phi`, `p`, `U`, `wallShearStress`). A quantity never written cannot be
+audited, so keeping them is what makes any of this checkable after the fact.
+
+### Momentum tier
+
+**What it tests, stated precisely.** Summed over cells with the solver's own
+discrete operators, the momentum equation telescopes to its boundary terms —
+so a momentum balance built that way is implied by the solve, exactly as the
+mass balance is. This tier does NOT claim independence from the solve.
+
+Its value is different: **WSS as published does not come from the solver's
+momentum assembly.** The `wallShearStress` / `forces` functionObjects
+reconstruct it from snGrad and the viscosity model, a separate code path.
+Comparing that reconstruction against the balance the solver enforced tests
+the POST-PROCESSING CHAIN — which is where the published number comes from,
+and which nothing else checks.
+
+| case | closed surface | momentum residual (x, y, z) | wall \|p\|/\|visc\| |
+|---|---|---|---|
+| coronaryCFD SUK_BIF_CPD10 | 2.0e-16 | 2.8e-6, 6.5e-6, 1.9e-5 | 413 |
+| coronaryCFD SUK_BIF_CPD14 | 1.1e-16 | 3.4e-6, 1.2e-5, 1.2e-5 | 405 |
+| coronaryCFD SUK_BIF_CPD20 | 2.4e-16 | 1.6e-6, 1.1e-5, 7.5e-6 | 401 |
+| AortaCFD BPM120 lesson01 | 7.1e-17 | **4.8e-3, 3.7e-3, 2.6e-3** | 13 |
+| AortaCFD PAT_0000 | 3.2e-16 | 2.2e-5, 3.9e-5, 4.6e-4 | 709 |
+
+Closure is at the momentum-residual level, two to three decades looser than
+the mass tier's 1e-8, exactly as predicted: the momentum residual is the
+binding constraint, not the pressure solve. Per-component reporting earns its
+keep — PAT_0000's z component is an order of magnitude worse than x and y,
+which a norm would have hidden.
+
+**BPM120 stands out at 4.8e-3, two to three decades worse than the other
+four.** That is reported, not explained: it may be a looser convergence
+setting, a coarser mesh, or something else. It is the one case that would
+merit a look before its numbers were published.
+
+**Wall traction is NOT wall shear stress**, and the ratio makes it concrete:
+the pressure part of the wall traction exceeds the viscous part by **400-700x**
+on the coronary and PAT_0000 geometries. Anyone integrating `wallShearStress`
+alone and calling it the wall force is out by that factor. (BPM120's 13 is
+another way that case is unlike the others.)
+
+**Two traps that bit during construction, both worth recording.** First, `p`
+is `zeroGradient` on walls and inlets, so its boundary values are never
+written; omitting those patches left the traction integral
+reference-dependent and the residual at 0.08-0.21 — an apparent physics error
+that was pure instrument. Reconstructing the face value from the owner cell
+(exact for zeroGradient) brought closure to the levels above. Second, the
+normalising scale must be the GROSS per-patch magnitude, not the net: a
+Couette channel's two walls cancel by construction, and dividing by that net
+reports a relative residual of 1.0 for a perfect balance.
+
+### The instrument has its own null test
+
+`tests/test_identity_checker.py`, in the oracle CI tier — pure file parsing
+against a committed 76 kB fixture, no solver, milliseconds. It checks the
+closed surface (round-off), the volume from the boundary alone
+(V = 1/3 closed-integral x.n dS, exact), mass closure, and the momentum
+identity on a case whose answer is known exactly (tau_w = G h), requiring
+**per-component residuals below 1e-12**. Measured on the three betaflow null
+cases: **8.8e-17 (channel), 8.3e-17 (Couette), 1.25e-12 (pipe)** — the pipe
+matching its own case identity of 2.5e-12, so that is the case's convergence
+rather than the instrument.
+
+This exists because the mass parser's first run reported a spurious 33%
+imbalance, caught only because 33% is implausible; the same bug at 1e-4 would
+have read as mild under-convergence and been believed. An instrument needs
+calibrating against a known answer before it is pointed at unknown data —
+the analytic-oracle argument, one level up. It earned its keep twice more
+during this work: a display artefact printed BPM120's residual as exactly
+[0, 0, 0], which investigation turned into the worst result of the five.
 
 ## Adding a case
 
