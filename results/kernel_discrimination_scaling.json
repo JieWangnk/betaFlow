@@ -50,6 +50,22 @@
     },
     "prefactor_note": "the closed form gives 0.25*2^0.75 = 0.4204 for |chan - pipe|; the metric is the AMPLITUDE misfit ||chan|-|pipe||, which retains only the projection along the unperturbed vector, hence the factor ~0.48",
     "numerics": "requires exponentially-scaled kernels (scipy jve, and cosh written as exp(K(y-1))) - the naive forms overflow above alpha ~ 1000",
-    "consequence": "the honest law is ratio ~ alpha^(3/2) asymptotically, with the PHYSIOLOGICAL window alpha 10-20 sitting in transition at ~alpha^1.8. The transition is now explained rather than fitted."
+    "consequence": "the honest law is ratio ~ alpha^(3/2) asymptotically, with the PHYSIOLOGICAL window alpha 10-20 sitting in transition at ~alpha^1.8. The transition is now explained rather than fitted.",
+    "projection_factor": {
+      "why": "the metric is the AMPLITUDE misfit ||u_p|-|u_c||, not |u_p-u_c|, so it retains only Re(d conj(u_c))/|u_c| - the projection of the perturbation onto the unperturbed vector",
+      "integral": "sqrt( int_0^inf s^2 (e^-s cos s - e^-2s)^2 / (1 - 2 e^-s cos s + e^-2s) ds ) / sqrt( int_0^inf s^2 e^-2s ds )",
+      "numerator": 0.0575850515,
+      "denominator": 0.25,
+      "value": 0.479938,
+      "sign_change_of_numerator_at_s": 1.292696
+    },
+    "closed_form_prefactor": {
+      "expression": "0.25 * 2^0.75 * projection",
+      "value": 0.201789,
+      "measured_extrapolated": 0.201782,
+      "agreement_percent": 0.004,
+      "extrapolation": "prefactor(alpha) = p_inf + c/alpha fitted over alpha = 200..3200 (0.204248, 0.203007, 0.202395, 0.202091, 0.201940); the finite-alpha correction is O(1/alpha)"
+    },
+    "status": "COMPLETE - exponent, prefactor and metric projection all derived; nothing absorbed as residual"
   }
 }
