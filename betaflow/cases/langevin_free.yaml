@@ -34,8 +34,36 @@ study:
   # the 2 of a discretisation study.
   particle_counts: [1000, 10000, 100000]
   replicas: 8
-  reference_particles: 10000
+  reference_particles: 100000
+  # Slow tier: 20 seeds, checking the DISTRIBUTION of the error rather than
+  # one draw from it. The only test that catches a sampler whose mean is
+  # right and whose variance is wrong.
+  distribution_seeds: 20
 
 metrics:
+  # SIGMA-SCALED, not fixed. |r|^2/(2Dt) ~ chi^2_3, so one particle carries
+  # relative sd sqrt(6)/3 = 0.8165 and the ensemble carries 0.8165/sqrt(N).
+  # A FIXED tolerance on a Monte Carlo quantity always passes at large enough
+  # N and therefore tests nothing about the sampler; scaling by the predicted
+  # error asks the question that has content — "is the answer within its own
+  # error bar" — and is N-independent in units of sigma (failure rate 6.3e-5
+  # at 4 sigma, at any N). An RNG with correlated draws inflates the measured
+  # spread and fails this immediately while sailing through a fixed 2e-2.
+  # COEFFICIENT CORRECTED, and the distribution check is what caught it.
+  # sqrt(6)/3 = 0.8165 is the relative sd of the MSD at a SINGLE time
+  # (|r|^2/(2Dt) ~ chi^2_3). The metric does not use a single time: it fits a
+  # slope through the origin over all sampled times, and those MSD values are
+  # correlated — Cov(|r(s)|^2, |r(t)|^2) = 24 D^2 min(s,t)^2 — so the fit is
+  # BETTER than any single time. Carrying the sums through gives
+  #     sd(slope)/6D = sqrt(18)/6 / sqrt(N) = (1/sqrt(2)) / sqrt(N)
+  # Verified three ways: discrete sum 0.707133, independent direct simulation
+  # 0.708732, continuum limit 0.707107; and 60 seeds of the runner itself give
+  # 0.769 +/- 9%, i.e. RMS z = 1.09 against the derived value.
+  #
+  # NOTE there are now THREE distinct sigma laws in play, and they must not be
+  # interchanged: 0.8165/sqrt(N) for a single-time 3-D MSD, 0.7071/sqrt(N) for
+  # this through-origin slope fit, and sqrt(2/N) for a variance estimator such
+  # as an axial dispersion coefficient.
   - name: msd_slope_relative
-    tol: 2.0e-2
+    sigma_coefficient: 0.7071067811865476   # 1/sqrt(2) = sqrt(18)/6
+    tol_sigma: 4.0

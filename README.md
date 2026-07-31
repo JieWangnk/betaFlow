@@ -612,13 +612,42 @@ the true increment is Gaussian with variance 2 D dt, which is precisely what
 is sampled); and isotropy (per-component MSD spread 3.0e-2 against a
 statistical scale sqrt(2/N) = 1.4e-2, i.e. ~2 sigma).
 
-**A defect in the case definition, reported rather than fixed.** The declared
-tolerance of 2e-2 sits only ~2.4x the RMS statistical error at the stated
-N = 10 000, so roughly 1 seed in 60 would fail it. The committed reference run
-(seed 0) gives 1.58e-2 — passing, but at 1.9x the RMS, so with little margin.
-The tolerance was NOT adjusted. The right fix is to declare the case at
-N = 100 000, where the same tolerance carries 8x margin; that is a change to
-the case, not to the threshold.
+**The tolerance is now sigma-scaled, which is the half of the fix that
+matters.** The original 2e-2 sat only ~2.4x the statistical error at
+N = 10 000, so ~1 seed in 60 would have failed. Raising N to 100 000 fixes
+that — and is the WEAKER half, because a fixed tolerance on a Monte Carlo
+quantity always passes at large enough N and therefore verifies nothing about
+the sampler. The assertion with content is scaled to the predicted error:
+
+    |slope/(6D) - 1| < 4 * sigma(N)
+
+which is N-independent in units of sigma (failure rate 6.3e-5 at any N) and
+asks the question that has content — not "is the answer close" but **"is the
+answer within its own error bar"**. A sampler with correlated draws inflates
+the measured spread and fails this immediately while sailing through a fixed
+2e-2 at N = 100 000. This is the same rule as the conservation gate: there,
+the residual measured step size while the identity measured distance to the
+fixed point; here, a fixed tolerance measures "is N big enough" while the
+sigma-scaled one measures the statistical model.
+
+**The distribution check then caught a wrong error MODEL — mine.** Running 20
+seeds and testing the DISTRIBUTION of z (roughly 68% within 1 sigma, 95%
+within 2) is the Monte Carlo analogue of an order-of-accuracy test: it tests
+the error model rather than one draw from it. It immediately showed RMS z =
+0.64, i.e. the real spread was ~35% below the assumed sigma. The assumed
+sqrt(6)/3 = 0.8165 is the relative sd of the MSD at a SINGLE time; the metric
+fits a slope through the origin over all times, whose MSD values are
+correlated by Cov(|r(s)|², |r(t)|²) = 24 D² min(s,t)². Carrying the sums
+through gives **sd(slope)/6D = sqrt(18)/6 / sqrt(N) = (1/sqrt(2))/sqrt(N)**,
+confirmed three ways (discrete sum 0.707133, independent direct simulation
+0.708732, continuum 0.707107) and against 60 seeds of the runner itself
+(0.769 ± 9%, RMS z = 1.09).
+
+**Three distinct sigma laws now exist in the harness and must not be
+interchanged**: 0.8165/sqrt(N) for a single-time 3-D MSD, 0.7071/sqrt(N) for a
+through-origin slope fit, and sqrt(2/N) for a variance estimator such as an
+axial dispersion coefficient. Baking any one of them in as "the Monte Carlo
+error law" is the statistical analogue of reusing a channel oracle on a pipe.
 
 Fluctuation-dissipation is asserted directly: the friction coefficient in the
 noise amplitude and in Stokes drag must be one and the same zeta = 6 pi mu a
