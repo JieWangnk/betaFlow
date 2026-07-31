@@ -1,0 +1,22 @@
+{
+  "paper": "A hyperbolic-regularized Casson model for pulsatile blood flow simulation in a rigid artery",
+  "doi": "10.26678/abcm.cobem2017.cob17-1545",
+  "venue": "COBEM 2017 (ABCM conference proceedings)",
+  "year": 2017,
+  "read": "full text, 8 pages, 21235 characters extracted",
+  "what_it_does": [
+    "Jeffreys viscoelastic model for shear stress + Casson regularised by PAPANASTASIOU (1987) for apparent viscosity",
+    "1-D pulsatile flow in a rigid tube, solved in Mathematica and FORTRAN",
+    "studies the effect of dimensionless yield stress Y0, relaxation time tauR0, retardation time tauR1",
+    "reports that the PHYSICAL plug radius grows with Y0, reducing mean velocity and raising friction factor",
+    "mesh convergence: a single sentence, '200 intervals obtained convergence in three significant digits'"
+  ],
+  "what_it_does_NOT_do": [
+    "different regularisation FAMILY: Papanastasiou exponential stress growth, not a bi-viscosity / nuMax ceiling",
+    "no study of the regularisation parameter's effect on the COMPUTED plug width",
+    "no cost or mesh-resolution scaling with the regularisation parameter",
+    "no measurability coupling (the mesh needed to resolve the defect scaling with the cap)",
+    "the plug discussion is about the PHYSICAL yield-stress effect, not the regularisation artefact"
+  ],
+  "verdict": "NARROWS finding 1 but does not close it. Regularised Casson in haemodynamics is established, so no novelty there. The specific contribution that survives is the measurability/cost coupling - that resolving a cap defect of relative size eps needs N > 1/(xi*sqrt(nu_c/nuMax)) while convergence cost grows as ~N^2*nuMax, so the two requirements forbid the same corner. Not present here, and not in Frigaard & Nouar's error-order framing either."
+}

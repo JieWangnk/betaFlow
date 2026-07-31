@@ -1,0 +1,33 @@
+{
+  "claim_tested": "WSS/profile misfit ratio scales as alpha^2",
+  "verdict": "QUALITATIVE MECHANISM CONFIRMED, EXPONENT NOT 2",
+  "wss_misfit_saturates": {
+    "alpha_5": 0.4643,
+    "alpha_10": 0.4821,
+    "alpha_20": 0.4911,
+    "alpha_60": 0.497,
+    "asymptote": 0.5,
+    "mechanism": "normalised wall-shear transfer functions tend to 1/alpha (channel) and 2/alpha (pipe); ratio exactly 2, verified to 4 digits at alpha=300"
+  },
+  "profile_misfit_local_exponent": {
+    "8_to_10": -1.884,
+    "10_to_12": -2.043,
+    "12_to_15": -1.795,
+    "15_to_20": -1.7,
+    "20_to_25": -1.64,
+    "30_to_40": -1.582,
+    "50_to_60": -1.548
+  },
+  "profile_misfit_fitted_exponent": {
+    "global_8_to_60": -1.689,
+    "physiological_10_to_20": -1.811
+  },
+  "ratio_exponent": {
+    "10_to_20": 1.85,
+    "20_to_60": 1.6,
+    "alpha_squared_would_give": 2.0
+  },
+  "note": "These are EXACT oracle values, not measurements, so the departure from -2 is signal rather than noise. The two-point estimate at alpha 10 and 20 gives 3.53 where alpha^2 predicts 4.00.",
+  "what_survives": "The mechanism claim is unaffected and is the strong part: profile misfit DECAYS while WSS misfit SATURATES at exactly 0.5, so they scale in opposite directions. A uniformly more sensitive quantity cannot do that. Quote the exponent as ~alpha^1.8 over the physiological window, or avoid a power law and quote the ratio at the operating point (53x at alpha=10, 190x at alpha=20).",
+  "numerical_limit": "the J0 kernel overflows for alpha >~ 1000 (complex Bessel argument); not a physics limit"
+}
