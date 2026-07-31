@@ -69,6 +69,12 @@ def ks_critical(n_samples, alpha=0.05):
     This is the statistical FLOOR of the KS statistic: a sample drawn from the
     reference distribution sits at or below it. A value above the floor that
     FALLS with a numerical parameter is a real error being resolved, not noise.
+
+    NOTE ON WHAT "AT FLOOR" LOOKS LIKE. 1.36/sqrt(N) is the 95th PERCENTILE,
+    not the typical value: a correct sampler sits near the MEDIAN, which is
+    about 0.83/sqrt(N), i.e. ~0.61 of this figure. So KS/floor landing
+    consistently in 0.6-0.9 is exactly what drawing from the true
+    distribution looks like. Sitting AT 1.0 would be suspicious, not ideal.
     """
     coefficients = {0.10: 1.22, 0.05: 1.36, 0.01: 1.63}
     if alpha not in coefficients:

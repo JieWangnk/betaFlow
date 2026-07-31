@@ -721,6 +721,48 @@ sits on the convection-dominated branch — which IS the content of Decuzzi
 Eq. 18. Making the minimum observable requires a slow flow. Same status as
 xi = 0.2 in casson_steady: a verification setting, not physiology.
 
+## Conservation check on production code
+
+`tools/identity_check.py` is a standalone, READ-ONLY flux-closure checker. It
+is deliberately coupled to nothing — not to betaflow, not to AortaCFD, not to
+any pipeline. It takes a case directory, reads the written `phi` field, and
+reports whether the discrete continuity identity closes:
+
+    sum over all boundary faces of phi = 0
+
+It runs no solver and writes nothing into the case, so it is safe to point at
+production output. Handles ascii and binary fields.
+
+**Why this check and not another.** A mis-coupled outlet — a Windkessel with
+the wrong sign, a flow split that does not sum to the inlet, an outlet left on
+a default BC — produces a plausible velocity field, a plausible pressure
+field, and a plausible WSS map. Nothing in those outputs reveals it. The flux
+balance does, immediately. It is the same structural rule as everything else
+here: an exact relation the discrete solution must satisfy, independent of the
+physics being modelled. Multi-outlet coronary cases are where it matters most,
+because the failure mode is likelier and harder to spot by eye.
+
+**Result on production output: clean.** Five cases across both pipelines, all
+closing at the linear-solver tolerance rather than merely "small":
+
+| case | throughput | relative imbalance |
+|---|---|---|
+| coronaryCFD SUK_BIF_0000_CPD10 | 6.46e-6 | 5.5e-8 |
+| coronaryCFD SUK_BIF_0000_CPD14 | 6.49e-6 | 1.7e-7 |
+| coronaryCFD SUK_BIF_0000_CPD20 | 6.50e-6 | 5.7e-8 |
+| AortaCFD BPM120 validation_lesson01 | 1.66e-4 | 2.4e-7 |
+| AortaCFD PAT_0000 | 1.64e-4 | 1.2e-8 |
+
+A clean bill of health is worth having and worth stating plainly. This is the
+original use #1 that justified building the harness, and the answer is that
+the production code conserves mass.
+
+**One reproducibility note.** Four of the nine cases examined had NO written
+`phi` field, so their closure cannot be checked after the fact at all. That is
+not a failure, but it is a gap: a quantity that was never written cannot be
+audited, and `phi` costs little to keep. Worth adding to the write set if
+these results are ever to be re-verified.
+
 ## Adding a case
 
 1. Write the oracle in `betaflow/analytic/` — a pure function returning

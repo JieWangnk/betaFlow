@@ -36,6 +36,28 @@ P(r) = 2r/a^2:
     Var(u) = 4U^2/3 - U^2 = U^2/3        exactly.
 This U^2/3 is the short-time prefactor in anchor 2.
 
+GEOMETRY-SPECIFIC. That constant is Poiseuille's alone: it comes from
+int_0^1 4(1-s^2)^2 * 2s ds with P(r) = 2r/a^2. A plug, a power-law or a
+Casson profile gives a different number, so the prefactor check is tied to
+the velocity profile in the same way the wall-shear lever arm (h vs a/2) is
+tied to the cross-section. Do not carry it to another profile.
+
+MEASURED SHORT-TIME DEFICITS, and why they are physics. The fitted exponent
+comes in at ~1.93 and the fitted prefactor at ~0.93 of U^2/3. BOTH are
+deficits, and they share a sign because they are two symptoms of one
+correction: at finite t radial diffusion has already begun decorrelating the
+velocity a particle samples, so sigma_x^2 grows slower than t^2, which drags
+the exponent below 2 AND the back-extrapolated prefactor below Var(u). Two
+independent errors would not reliably share a sign. Verified by moving the
+fit window: over the physics-dominated range both deficits shrink together
+(exponent -0.081 -> -0.049, log-prefactor -0.091 -> -0.066 as the window
+moves from [0.004, 0.02] to [0.002, 0.01] tau_r). They reverse at the two
+earliest windows, but that is statistical rather than physical: there the
+subtracted 2 D t is ~90% of sigma_x^2 so the residual carries ~10x amplified
+noise, and quadrupling the ensemble recovers the trend (exponent 1.881 ->
+1.945, prefactor 0.809 -> 0.901 at N = 6e4 -> 2.4e5, while the mid-window
+barely moves).
+
 WHEN THE ASYMPTOTIC REGIME ARRIVES. Radial relaxation in a cylinder with
 no-flux walls has eigenfunctions J0(beta_n r/a) with J1(beta_n) = 0; the first
 nonzero root is beta_1 = 3.8317, so the pre-asymptotic correction decays as
