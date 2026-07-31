@@ -1,6 +1,6 @@
 {
   "claim_tested": "WSS/profile misfit ratio scales as alpha^2",
-  "verdict": "QUALITATIVE MECHANISM CONFIRMED, EXPONENT NOT 2",
+  "verdict": "MECHANISM CONFIRMED; asymptotic exponent is -3/2 (derived and verified), not -2. Physiological window is transitional at ~-1.8.",
   "wss_misfit_saturates": {
     "alpha_5": 0.4643,
     "alpha_10": 0.4821,
@@ -29,5 +29,27 @@
   },
   "note": "These are EXACT oracle values, not measurements, so the departure from -2 is signal rather than noise. The two-point estimate at alpha 10 and 20 gives 3.53 where alpha^2 predicts 4.00.",
   "what_survives": "The mechanism claim is unaffected and is the strong part: profile misfit DECAYS while WSS misfit SATURATES at exactly 0.5, so they scale in opposite directions. A uniformly more sensitive quantity cannot do that. Quote the exponent as ~alpha^1.8 over the physiological window, or avoid a power law and quote the ratio at the operating point (53x at alpha=10, 190x at alpha=20).",
-  "numerical_limit": "the J0 kernel overflows for alpha >~ 1000 (complex Bessel argument); not a physics limit"
+  "numerical_limit": "the J0 kernel overflows for alpha >~ 1000 (complex Bessel argument); not a physics limit",
+  "asymptotic_law_DERIVED": {
+    "prediction": "profile amplitude misfit ~ alpha^(-3/2), from the Stokes-layer curvature correction",
+    "mechanism": "at large alpha the channel kernel is a pure exponential while the pipe carries an extra sqrt(a/r) from J0(z) ~ sqrt(2/pi z) cos(z - pi/4). The pointwise difference is therefore [(a-r)/2a] exp(-(a-r)/delta): linear growth away from the wall, killed exponentially at the layer edge. Two factors of alpha^(-1/2) follow - the amplitude difference is O(delta/a), and the layer occupies only O(1/alpha) of the cross-section so the L2 norm picks up another sqrt(1/alpha).",
+    "local_exponent": {
+      "20_to_30": -1.626,
+      "50_to_80": -1.542,
+      "120_to_200": -1.516,
+      "300_to_500": -1.506,
+      "500_to_800": -1.504
+    },
+    "fitted_200_to_800": -1.5052,
+    "predicted": -1.5,
+    "prefactor_convergence": {
+      "alpha_200": 0.2042,
+      "alpha_300": 0.2034,
+      "alpha_500": 0.2028,
+      "alpha_800": 0.2024
+    },
+    "prefactor_note": "the closed form gives 0.25*2^0.75 = 0.4204 for |chan - pipe|; the metric is the AMPLITUDE misfit ||chan|-|pipe||, which retains only the projection along the unperturbed vector, hence the factor ~0.48",
+    "numerics": "requires exponentially-scaled kernels (scipy jve, and cosh written as exp(K(y-1))) - the naive forms overflow above alpha ~ 1000",
+    "consequence": "the honest law is ratio ~ alpha^(3/2) asymptotically, with the PHYSIOLOGICAL window alpha 10-20 sitting in transition at ~alpha^1.8. The transition is now explained rather than fitted."
+  }
 }
