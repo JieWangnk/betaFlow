@@ -179,7 +179,7 @@
     "d_eff": "slope_fit_variance_1d = sqrt(6)/2",
     "note": "NOT sqrt(2) (single-time variance) and NOT 0.7071 (fitted 3-D MSD); four laws differ by up to 2x"
   },
-  "timestamp": "2026-07-31T11:50:22+00:00",
-  "git_sha": "8d2387273c12-dirty",
+  "timestamp": "2026-07-31T12:15:53+00:00",
+  "git_sha": "09f9295cc187",
   "particle_count_mc_exponent": 1.3478407016749436
 }

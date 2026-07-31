@@ -77,7 +77,7 @@ physics.
 
     python3 -m pytest -m oracle -v   # oracles only, NO solver needed (~0.4 s)
     python3 -m pytest tests/ -v      # default: skips @slow studies (~9 min)
-    python3 -m pytest -m "" -v       # everything (19 tests, ~28 min)
+    python3 -m pytest -m "" -v       # everything (21 tests, ~32 min)
     python3 -m pytest -m slow -v     # the slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and
