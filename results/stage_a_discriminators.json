@@ -1,0 +1,192 @@
+{
+  "purpose": "Discriminate the three named explanations for the Stage A momentum residual. No new solve: every number below comes from the SAME three solutions already on disk.",
+  "hypotheses": {
+    "a_surface_quadrature": {
+      "test": "wedge areas and volume against their closed forms; the END faces matter and had never been tested, because on a cyclic case the two ends cancel and so would any error in them",
+      "worst_relative_error": 8.881784197001252e-16,
+      "verdict": "REFUTED - exact to 9e-16 at every level"
+    },
+    "b_functionObject_vs_assembly": {
+      "test": "wall viscous force from the wallShearStress FO, differenced against nu*snGrad(U) built from the solver's own cell values and cell centres",
+      "relative_difference": [
+        7.327133527320832e-07,
+        8.213944346058977e-08,
+        2.9555282331329182e-09
+      ],
+      "apparent_orders": [
+        3.16,
+        4.8
+      ],
+      "verdict": "REFUTED - 7.3e-07 falling to 3.0e-09, three decades below the residual and converging fast. This was the production-relevant hypothesis: had it held, every published WSS number would inherit it."
+    },
+    "c_incomplete_development": {
+      "test": "inlet-to-outlet change in the radial profile",
+      "max_rel_profile_change": [
+        0.008686250550586536,
+        0.0031659866042973582,
+        0.0009241459797605661
+      ],
+      "apparent_orders": [
+        1.46,
+        1.78
+      ],
+      "verdict": "NOT the residual's rate - the profile converges at ~2, the residual at 0.36-0.69"
+    }
+  },
+  "what_it_actually_is": {
+    "claim": "a FIRST-ORDER defect in the discrete solution at the inlet, which the identity detects and the velocity profile does not",
+    "wall_viscous_force_vs_exact_orders": [
+      1.66,
+      1.74
+    ],
+    "inlet_pressure_force_vs_exact_orders": [
+      0.79,
+      0.91
+    ],
+    "pressure_odd_even_oscillation": {
+      "note": "the discrete p carries a period-2 oscillation in x, measured both on a single radial line and on the station mean",
+      "amplitude_near_inlet": [
+        0.057066,
+        0.030791,
+        0.015858
+      ],
+      "orders_near_inlet": [
+        0.89,
+        0.96
+      ],
+      "amplitude_near_outlet": [
+        0.016618,
+        0.0033163,
+        0.00022502
+      ],
+      "orders_near_outlet": [
+        2.33,
+        3.88
+      ]
+    },
+    "interior_control_volume": {
+      "definition": "same balance over the downstream half; the upstream face is an interior x-plane using the solver's own central interpolation and its own phi, so the inlet patch is never touched",
+      "relative": [
+        0.0005252894423930181,
+        0.0002764401668240885,
+        6.56408832738774e-05
+      ],
+      "apparent_orders": [
+        0.93,
+        2.07
+      ],
+      "full_domain_relative": [
+        0.002214,
+        0.001725,
+        0.00107
+      ],
+      "ratio_at_finest": 16.3
+    }
+  },
+  "LIMIT_OF_THIS_RESULT": "The two REFUTATIONS are firm: they rest on differences of 1e-16 and 1e-9 against quantities with exact answers. The positive claim is weaker. Three levels give two apparent orders, and for the interior control volume they are 0.93 and 2.07 - not constant, so the asymptotic rate is not established. What IS established is that the interior volume closes 8x better at the finest level while excluding only the inlet patch.",
+  "CONSEQUENCE_FOR_THE_AUDIT": "The ~1e-3 is NOT an instrument artefact, so the production momentum residuals are not explained away by it. The checker was reporting a real defect. Note what the same runs do: velocity converges at 2.04 and 3.02 against the exact solution while this is happening, so a profile-based verification passes the case cleanly. That is the paper's central claim, on the configuration production actually uses.",
+  "MY_OWN_ERROR_DURING_THIS_WORK": "The first development metric reported an 85% inlet-to-outlet profile change, which would have 'confirmed' hypothesis (c) immediately after the other two were refuted. Cell-centre x carries 1e-16 jitter, so lexsorting on the raw value interleaved the stations: it was comparing r=0.16 against r=0.94. The recorded momentum flux (4.7e-07, three decades below the residual) contradicted it, which is what prompted the check.",
+  "runs": [
+    {
+      "case": "pipe_poiseuille_io_openfoam_n40_n_cells40_cell",
+      "time": "2000",
+      "n_cells": 320,
+      "nu": 0.02,
+      "quadrature": {
+        "closed_surface_over_area": 1.5119866946648653e-16,
+        "volume_from_boundary": 0.17464377163404812,
+        "volume_from_cells": 0.17464377163404815,
+        "volume_exact": 0.17464377163404823,
+        "volume_rel_error": 6.661338147750939e-16,
+        "wall_area_rel_error": 8.881784197001252e-16,
+        "inlet_area_rel_error": 6.661338147750939e-16,
+        "outlet_area_rel_error": 4.440892098500626e-16
+      },
+      "wall_force_fo_x": -0.027888243230591907,
+      "wall_force_assembly_x": -0.027888222796503707,
+      "fo_minus_assembly_over_fo": 7.327133527320832e-07,
+      "development": {
+        "n_x_stations": 8,
+        "max_rel_profile_change": 0.008686250550586536,
+        "u_max_first_station": 1.98497649355,
+        "u_max_last_station": 1.9984260787,
+        "momentum_flux_rel_change": 0.023491717111086663
+      },
+      "interior_control_volume": {
+        "pressure_x": 0.01390878405703096,
+        "viscous_x": -0.013951251773802192,
+        "flux_x": -2.781852130905732e-05,
+        "residual_x": -1.4649195462174483e-05,
+        "relative": 0.0005252894423930181
+      }
+    },
+    {
+      "case": "pipe_poiseuille_io_openfoam_n80_n_cells80_cell",
+      "time": "5120",
+      "n_cells": 1280,
+      "nu": 0.02,
+      "quadrature": {
+        "closed_surface_over_area": 4.798914291763241e-16,
+        "volume_from_boundary": 0.17464377163404812,
+        "volume_from_cells": 0.17464377163404815,
+        "volume_exact": 0.17464377163404823,
+        "volume_rel_error": 6.661338147750939e-16,
+        "wall_area_rel_error": 8.881784197001252e-16,
+        "inlet_area_rel_error": 6.661338147750939e-16,
+        "outlet_area_rel_error": 4.440892098500626e-16
+      },
+      "wall_force_fo_x": -0.027925708002019364,
+      "wall_force_assembly_x": -0.02792570570821725,
+      "fo_minus_assembly_over_fo": 8.213944346058977e-08,
+      "development": {
+        "n_x_stations": 16,
+        "max_rel_profile_change": 0.0031659866042973582,
+        "u_max_first_station": 1.99450870431,
+        "u_max_last_station": 1.99957142484,
+        "momentum_flux_rel_change": 0.008629279135969226
+      },
+      "interior_control_volume": {
+        "pressure_x": 0.0139551391129513,
+        "viscous_x": -0.013967729996239108,
+        "flux_x": -4.870534281747885e-06,
+        "residual_x": -7.720349006061153e-06,
+        "relative": 0.0002764401668240885
+      }
+    },
+    {
+      "case": "pipe_poiseuille_io_openfoam_n160_n_cells160_cell",
+      "time": "20480",
+      "n_cells": 5120,
+      "nu": 0.02,
+      "quadrature": {
+        "closed_surface_over_area": 2.290988535176856e-15,
+        "volume_from_boundary": 0.17464377163404812,
+        "volume_from_cells": 0.17464377163404815,
+        "volume_exact": 0.17464377163404823,
+        "volume_rel_error": 6.661338147750939e-16,
+        "wall_area_rel_error": 8.881784197001252e-16,
+        "inlet_area_rel_error": 7.771561172376096e-16,
+        "outlet_area_rel_error": 7.771561172376096e-16
+      },
+      "wall_force_fo_x": -0.027937822420398006,
+      "wall_force_assembly_x": -0.027937822337826983,
+      "fo_minus_assembly_over_fo": 2.9555282331329182e-09,
+      "development": {
+        "n_x_stations": 32,
+        "max_rel_profile_change": 0.0009241459797605661,
+        "u_max_first_station": 1.99835664651,
+        "u_max_last_station": 1.99988595669,
+        "momentum_flux_rel_change": 0.0025433366398086577
+      },
+      "interior_control_volume": {
+        "pressure_x": 0.013968688118490126,
+        "viscous_x": -0.013971010410893681,
+        "flux_x": -4.882738629530259e-07,
+        "residual_x": -1.8340185406022502e-06,
+        "relative": 6.56408832738774e-05
+      }
+    }
+  ],
+  "timestamp": "2026-08-01T12:36:11+00:00",
+  "git_sha": "175308ec7a89-dirty"
+}
