@@ -1,0 +1,48 @@
+{
+  "case": "taylor_aris",
+  "runner": "openfoam_particles",
+  "solver": "openfoam_particles",
+  "note": "OpenFOAM 14 brownianTracer in a frozen analytic Poiseuille pipe (solver functions + subSolver incompressibleFluid); specular walls reflect the noise velocity as well as U. Long-time anchor + KS gate only (agreed scope).",
+  "openfoam_version": "14",
+  "cloud_library": "/home/mchi4jw4/OpenFOAM/mchi4jw4-14/platforms/linux64GccDPInt32Opt/lib/libbrownianTracerCloud.so",
+  "wall_scheme": "specular rebound (brownianReboundVelocity: reflects U and the noise velocity; e=1, mu=0)",
+  "reference": {
+    "n_particles": 10000,
+    "peclet": 20.784220076705363,
+    "stokes_number": 1.5749999999999997e-07,
+    "d_eff_over_d": 9.999662587435884,
+    "d_eff_relative": 0.003303937485886199,
+    "sigma_theory": 0.01224744871391589,
+    "z_score": 0.2697653660825029,
+    "ks_statistic": 0.006933554695421118,
+    "ks_floor": 0.013600000000000001,
+    "ks_over_floor": 0.5098201981927293,
+    "ks_history": {
+      "t_over_tau_r": [
+        0.09999999999974296,
+        1.500000000000686,
+        2.9000000000001145,
+        4.299999999999543,
+        5.699999999998973,
+        7.099999999999915,
+        8.499999999999345,
+        10.000000000001544
+      ],
+      "statistic": [
+        0.007245489140742634,
+        0.009029729551112142,
+        0.008394981876040042,
+        0.006274831722429763,
+        0.010382879081031748,
+        0.008994964497987312,
+        0.005806687529747778,
+        0.006933554695421118
+      ]
+    }
+  },
+  "error_laws_used": {
+    "d_eff": "slope_fit_variance_1d = sqrt(6)/2"
+  },
+  "timestamp": "2026-08-10T08:52:47+00:00",
+  "git_sha": "8f37da211400-dirty"
+}

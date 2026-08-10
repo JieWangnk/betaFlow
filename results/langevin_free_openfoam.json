@@ -1,0 +1,22 @@
+{
+  "case": "langevin_free",
+  "runner": "openfoam_particles",
+  "solver": "openfoam_particles",
+  "note": "OpenFOAM 14 modular Lagrangian, brownianTracer cloud - displacement-level walk; stock BrownianMotionForce measured D/D_SE = 0.38-0.59 (maxCo-dependent) on this machine",
+  "openfoam_version": "14",
+  "cloud_library": "/home/mchi4jw4/OpenFOAM/mchi4jw4-14/platforms/linux64GccDPInt32Opt/lib/libbrownianTracerCloud.so",
+  "diffusivity": 1.2974953340516854e-12,
+  "stokes_number": 4.9999999999999985e-09,
+  "rms_displacement_m": 2.785980353491226e-06,
+  "reference": {
+    "n_particles": 100000,
+    "slope_error": 0.0023718512548984716,
+    "sigma_theory": 0.0022360679774997894,
+    "tol_sigma": 4.0,
+    "tol_absolute": 0.008944271909999158,
+    "z_score": 1.0607241276942327
+  },
+  "isotropy_spread": 0.011329807435561948,
+  "timestamp": "2026-08-10T08:49:49+00:00",
+  "git_sha": "8f37da211400-dirty"
+}
