@@ -12,12 +12,14 @@ import numpy as np
 import pytest
 
 from betaflow.analytic import (
+    advection_diffusion,
     brownian,
     carreau,
     casson,
     couette,
     pipe,
     poiseuille,
+    taylor_aris,
     womersley,
 )
 
@@ -152,3 +154,60 @@ def test_brownian_fluctuation_dissipation():
                                rtol=1e-15)
     # Overdamped limit is justified only if St << 1.
     assert brownian.stokes_number(1050.0, 50e-9, 3.5e-3, 0.3, 0.01) < 1e-6
+
+
+def test_advection_diffusion_self_verification():
+    """The Eulerian scalar oracle, and its cross-check against taylor_aris.
+
+    `verify_limits` raises on any failure, so calling it IS the test. The
+    assertions below restate the results a reader would want named.
+    """
+    ad = advection_diffusion
+    out = ad.verify_limits()
+    assert out, "verify_limits returned no checks"
+
+    # Both constants re-derived numerically from the cell problem, not
+    # compared against themselves.
+    assert ad.dispersion_factor_numeric("pipe") == pytest.approx(1 / 48, rel=1e-8)
+    assert ad.dispersion_factor_numeric("channel") == pytest.approx(2 / 105, rel=1e-8)
+
+    # POSITIVE CONTROL for the whole route: the channel answer is only
+    # trustworthy because the identical code path reproduces Aris's pipe value.
+    assert ad.DISPERSION_FACTOR["pipe"] == pytest.approx(1 / 48, rel=1e-15)
+
+    # Cross-module. Two independent implementations of the same physics.
+    d, a, u = 5e-13, 2e-5, 1.5e-6
+    assert ad.d_eff(d, a, u, "pipe") == pytest.approx(taylor_aris.d_eff(d, a, u), rel=1e-15)
+    assert ad.velocity_variance(u, "pipe") == pytest.approx(
+        taylor_aris.velocity_variance(u), rel=1e-15
+    )
+
+    # The channel is NOT the pipe; if these ever coincide the geometry
+    # argument is being ignored somewhere.
+    assert ad.DISPERSION_FACTOR["channel"] != ad.DISPERSION_FACTOR["pipe"]
+    assert ad.VELOCITY_VARIANCE_FACTOR["channel"] != ad.VELOCITY_VARIANCE_FACTOR["pipe"]
+
+    # The channel's COUPLED mode is pi^2, not its slowest transverse
+    # eigenvalue pi^2/4; the latter would double the apparent time to reach
+    # the Taylor regime.
+    assert ad.COUPLED_EIGENVALUE["channel"] == pytest.approx(np.pi**2, rel=1e-15)
+    assert ad.asymptotic_onset("channel") > ad.asymptotic_onset("pipe")
+
+    # Green's function: exact moments at all times, not just asymptotically.
+    t = 12.0
+    x = np.linspace(-0.2, 0.4, 400001)
+    c = ad.pulse_concentration(x, t, 1e-3, 4e-9)
+    m0 = float(np.trapezoid(c, x))
+    assert m0 == pytest.approx(1.0, rel=1e-9)
+    assert float(np.trapezoid(x * c, x)) / m0 == pytest.approx(1e-3 * t, rel=1e-9)
+
+    # Ballistic and asymptotic limits are DIFFERENT powers of t.
+    for geom in ad.GEOMETRIES:
+        early = ad.variance_short_time(np.array([1e-4, 2e-4]), 1.0, 1e-9, geom)
+        assert early[1] / early[0] > 3.0, "short-time growth must be superlinear"
+
+
+def test_advection_diffusion_rejects_unknown_geometry():
+    """The geometry argument is validated, not silently defaulted."""
+    with pytest.raises(ValueError):
+        advection_diffusion.d_eff(1e-9, 1e-3, 1e-3, "annulus")
