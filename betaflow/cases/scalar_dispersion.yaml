@@ -1,0 +1,69 @@
+# Eulerian advection-diffusion of a passive scalar in laminar duct flow.
+#
+# WHY THIS CASE EXISTS. Every transport case in betaflow so far is Lagrangian:
+# langevin_free and taylor_aris track particles and measure a variance of
+# POSITIONS. A lattice-Boltzmann or finite-volume molecular-communications
+# channel model is Eulerian - it carries a CONCENTRATION FIELD - and nothing
+# here tested that formulation. The physics and the exact answers are the
+# same, so a solver that gets one right and the other wrong has a bug that
+# neither case alone can localise.
+#
+# SCOPE, stated because it is narrow. The `moments` runner solves the Aris
+# moment hierarchy on the cross-section and has NO AXIAL DISCRETISATION AT
+# ALL, so it isolates the transverse operator and says nothing whatever about
+# a solver's axial advection scheme or its numerical diffusion. Those need the
+# Green's-function anchor and a real axial mesh.
+#
+# CITATIONS: see betaflow/analytic/advection_diffusion.py, which records the
+# status of every source individually - including one published WRONG value
+# for the plane-channel constant (Beard 2001, 33/560) and one attribution
+# withdrawn after checking (Wooding 1960 is a Hele-Shaw stability paper).
+name: scalar_dispersion
+
+geometry:
+  # 'pipe' (radius) or 'channel' (HALF-width, walls at +/- h). The convention
+  # matters: full gap instead of half-width changes the dispersion constant by
+  # a factor of 4.
+  type: pipe
+  length_scale: 1.0
+
+physical:
+  diffusivity: 1.0
+  mean_velocity: 40.0     # Pe = U L / D = 40, well above the balance Pe of 6.93
+
+nondim:
+  # Pe at which the molecular and shear terms of D_eff are equal; the run
+  # should sit clearly on one side of it or the comparison is uninformative.
+  balance_peclet_pipe: 6.928203230275509
+
+numerics:
+  n_cells: 200
+  n_steps: 120
+  t_end_over_tau: 6.0
+  # Asymptotic fitting window, in units of tau_r = L^2/D. The onset is 0.941
+  # tau_r for an axisymmetric release; 2.0 is generous. It would NOT be
+  # generous for an asymmetric release, which reaches the asymptote 4.331x
+  # later - see analytic.advection_diffusion.asymptotic_onset.
+  fit_window_tau: [2.0, 6.0]
+
+study:
+  # Second-order convergence of the transverse operator is asserted on the
+  # INTERCEPT rather than on D_eff, because D_eff is already at 1e-9 at the
+  # coarsest level and has no headroom left to measure an order with.
+  mesh_levels: [50, 100, 200]
+  geometries: [pipe, channel]
+
+metrics:
+  - name: d_eff_relative
+    tol: 1.0e-6
+  - name: variance_intercept_relative
+    tol: 1.0e-3
+  - name: cumulant_slope_relative
+    tol: 1.0e-3
+  - name: centroid_relative
+    # Round-off, not a discretisation tolerance. Against the DISCRETE mean
+    # velocity the centroid is exactly u_disc * t at every step; an earlier
+    # version compared against the nominal U and measured 1.25e-5 converging
+    # at second order, which looked like physics and was the velocity
+    # quadrature error accumulating as a linear drift.
+    tol: 1.0e-9

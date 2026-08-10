@@ -166,3 +166,65 @@ def radial_ks(r_over_a):
     from betaflow.analytic.taylor_aris import radial_cdf
 
     return float(kstest(np.asarray(r_over_a, dtype=float), radial_cdf).statistic)
+
+
+def _line_fit(values, times, window):
+    """(slope, intercept) of a straight-line fit over `window`."""
+    t = np.asarray(times, dtype=float)
+    v = np.asarray(values, dtype=float)
+    sel = (t >= window[0]) & (t <= window[1])
+    if sel.sum() < 3:
+        raise ValueError("fit window contains fewer than three points")
+    slope, intercept = np.polyfit(t[sel], v[sel], 1)
+    return float(slope), float(intercept)
+
+
+def variance_intercept_relative(var_x, times, window, intercept_exact):
+    """|fitted intercept of sigma_x^2 / exact - 1|.
+
+    The INTERCEPT, not the slope. Once D_eff is a free parameter any axial
+    numerical diffusion is invisible in the slope, because it simply enlarges
+    the fitted D_eff. The intercept weights the transverse eigenspectrum as
+    beta^-8 where D_eff weights it as beta^-6, so fitting both imposes two
+    independent constraints on the same operator instead of one.
+    """
+    _, intercept = _line_fit(var_x, times, window)
+    return abs(intercept / float(intercept_exact) - 1.0)
+
+
+def cumulant_slope_relative(kappa3, times, window, slope_exact):
+    """|fitted d(kappa_3)/dt / exact - 1|.
+
+    The third cumulant is EXACTLY blind to axial molecular diffusion: any
+    symmetric axial kernel contributes nothing beyond the second cumulant. So
+    unlike the variance it needs no 2 D t subtracted before it says anything,
+    and that subtraction is precisely where scheme-induced axial diffusion
+    hides. Its sign is geometry-dependent, which no other anchor here is.
+    """
+    slope, _ = _line_fit(kappa3, times, window)
+    return abs(slope / float(slope_exact) - 1.0)
+
+
+def centroid_relative(centroid, times, u_mean, offset_exact=0.0):
+    """|max deviation of the centroid from U t + offset| / (U * t_end).
+
+    Pass the DISCRETE mean velocity, not the nominal one. A scheme advances
+    the centroid at the mean velocity its own quadrature realises, and the
+    difference accumulates as a linear drift: read at a single late time it
+    is indistinguishable from an offset error, and it doubles when the run
+    doubles in length. Comparing against the discrete value isolates the
+    centroid behaviour from the velocity quadrature.
+
+    For a cross-sectionally uniform release the centroid is U t EXACTLY at all
+    times, independent of D, Pe, mesh and numerical diffusion, because a
+    uniform transverse profile is its own steady state. That makes it a pure
+    test of discrete advection consistency: a first-order upwind scheme
+    smeared beyond usefulness still returns U t to round-off, while a wrong
+    cell-volume weighting or an inconsistent flux reconstruction does not.
+    None of that is visible in sigma_x^2, which absorbs it into an apparent
+    dispersivity.
+    """
+    t = np.asarray(times, dtype=float)
+    c = np.asarray(centroid, dtype=float)
+    scale = abs(float(u_mean) * t[-1])
+    return float(np.max(np.abs(c - (float(u_mean) * t + float(offset_exact)))) / scale)

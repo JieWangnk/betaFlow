@@ -1,0 +1,107 @@
+{
+  "case": "scalar_dispersion",
+  "runner": "moments",
+  "note": "NO axial discretisation exists in this runner; it isolates the transverse operator and says nothing about axial advection",
+  "oracle_self_verification_checks": 43,
+  "oracle_worst_check": 2.187516834339931e-11,
+  "geometries": {
+    "pipe": {
+      "runs": [
+        {
+          "n_cells": 50,
+          "mass_drift": 2.2466473126314668e-12,
+          "operator_row_sum": 3.618764437576268e-14,
+          "d_eff_relative": 4.658779848565331e-07,
+          "variance_intercept_relative": 0.0004998802326869889,
+          "cumulant_slope_relative": 0.00040208480221815,
+          "centroid_relative": 1.5865614642380423e-14
+        },
+        {
+          "n_cells": 100,
+          "mass_drift": 3.916200697062777e-12,
+          "operator_row_sum": 7.237528875152536e-14,
+          "d_eff_relative": 2.867144033302793e-08,
+          "variance_intercept_relative": 0.00012500932136050302,
+          "cumulant_slope_relative": 0.00010004319864753697,
+          "centroid_relative": 1.6192459325006432e-12
+        },
+        {
+          "n_cells": 200,
+          "mass_drift": 5.883626919001017e-12,
+          "operator_row_sum": 1.4475057750305072e-13,
+          "d_eff_relative": 2.2663396714861506e-09,
+          "variance_intercept_relative": 3.123291152351548e-05,
+          "cumulant_slope_relative": 2.5049787992337258e-05,
+          "centroid_relative": 2.1401279685098154e-12
+        }
+      ],
+      "intercept_order": [
+        2.0,
+        2.001
+      ],
+      "dispersion_factor": 0.020833333333333332,
+      "skewness_factor": 0.0020833333333333333,
+      "balance_peclet": 6.92820323027551,
+      "onset_symmetric": 0.9409847557061809,
+      "onset_asymmetric": 4.075421135761309,
+      "point_release": {
+        "xi_requested": 0.7071067811865475,
+        "xi_actual": 0.7075,
+        "velocity_deviation_there": 2.220446049250313e-16,
+        "offset_expected": -0.4194463695963546,
+        "u_mean_discretisation_error": 1.2499999999970868e-05,
+        "offset_measured": -0.41945682136304185
+      }
+    },
+    "channel": {
+      "runs": [
+        {
+          "n_cells": 50,
+          "mass_drift": 1.7852386235972517e-13,
+          "operator_row_sum": 7.105427357601002e-15,
+          "d_eff_relative": 3.252066668402165e-06,
+          "variance_intercept_relative": 0.0013322040488459308,
+          "cumulant_slope_relative": 3.0048448635522362e-05,
+          "centroid_relative": 1.7416656073837024e-13
+        },
+        {
+          "n_cells": 100,
+          "mass_drift": 8.841816168114747e-13,
+          "operator_row_sum": 1.4210854715202004e-14,
+          "d_eff_relative": 2.0325479677119063e-07,
+          "variance_intercept_relative": 0.00033326428622149074,
+          "cumulant_slope_relative": 1.8592392279082048e-06,
+          "centroid_relative": 2.9261055281622714e-13
+        },
+        {
+          "n_cells": 200,
+          "mass_drift": 9.829470570821286e-12,
+          "operator_row_sum": 1.4210854715202004e-14,
+          "d_eff_relative": 1.2784645897490066e-08,
+          "variance_intercept_relative": 8.332678243894165e-05,
+          "cumulant_slope_relative": 1.3905403106750924e-07,
+          "centroid_relative": 8.692197481663376e-14
+        }
+      ],
+      "intercept_order": [
+        1.999,
+        2.0
+      ],
+      "dispersion_factor": 0.01904761904761905,
+      "skewness_factor": -0.0013852813852813853,
+      "balance_peclet": 7.245688373094719,
+      "onset_symmetric": 1.3998038823561547,
+      "onset_asymmetric": 5.599215529424619,
+      "point_release": {
+        "xi_requested": 0.5773502691896258,
+        "xi_actual": 0.5750000000000001,
+        "velocity_deviation_there": -1.1102230246251565e-16,
+        "offset_expected": -0.42635221354166697,
+        "u_mean_discretisation_error": 1.2499999999526779e-05,
+        "offset_measured": -0.4263515399794642
+      }
+    }
+  },
+  "timestamp": "2026-08-10T12:32:02+00:00",
+  "git_sha": "81e2eb8087b3-dirty"
+}

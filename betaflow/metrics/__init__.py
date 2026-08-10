@@ -1,6 +1,8 @@
 """Error metrics, looked up by the name used in case YAML files."""
 
 from betaflow.metrics.norms import (
+    centroid_relative,
+    cumulant_slope_relative,
     l2_phase,
     l2_velocity,
     d_eff_relative,
@@ -12,6 +14,7 @@ from betaflow.metrics.norms import (
     plug_width_cap_active,
     plug_width_flatness,
     relative_error_scalar,
+    variance_intercept_relative,
 )
 
 METRICS = {
@@ -36,4 +39,10 @@ METRICS = {
     "d_eff_slope": d_eff_slope,
     "short_time_exponent": short_time_exponent,
     "radial_ks": radial_ks,
+    # Eulerian scalar transport. d_eff_relative is REUSED unchanged from the
+    # Lagrangian case -- same oracle, same metric, different runner -- which
+    # is the cross-check made concrete at the metric level.
+    "variance_intercept_relative": variance_intercept_relative,
+    "cumulant_slope_relative": cumulant_slope_relative,
+    "centroid_relative": centroid_relative,
 }
