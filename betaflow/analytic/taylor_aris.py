@@ -105,8 +105,14 @@ def radial_relaxation_time(a, diffusivity):
 def asymptotic_onset(tolerance=1e-6):
     """t/tau_r at which the pre-asymptotic correction falls below `tolerance`.
 
-    exp(-beta_1^2 t/tau_r) < tolerance. Returns ~0.63 at 1e-6, which is why
+    exp(-beta_1^2 t/tau_r) < tolerance. Returns 0.941 at 1e-6, which is why
     fitting from 2 tau_r is generous rather than marginal.
+
+    CORRECTED: this docstring said 0.63, which is the value at a tolerance of
+    ~1e-4, not 1e-6. The code was always right and the conclusion is unchanged
+    (0.941 < 2 either way). Found by writing the Eulerian twin module and
+    quoting the number across to it, which is the argument for independent
+    reimplementation in one line.
     """
     return -np.log(tolerance) / BESSEL_J1_FIRST_ROOT**2
 
