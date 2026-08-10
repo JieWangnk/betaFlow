@@ -59,32 +59,47 @@ cross-checked by the test against the viscosity the runner actually used.
       analytic/   oracles — pure functions, no solver knowledge
       cases/      YAML case definitions (geometry, Re, oracle path, metric+tol)
       runners/    solver adapters — the ONLY layer that knows a solver exists
+                  (openfoam, openfoam_particles, langevin)
       metrics/    error norms over plain arrays
     tests/        pytest, one test per case
     results/      logged JSON records, committed
+    tools/        standalone, READ-ONLY, imports nothing from betaflow —
+                  so they can be pointed at production case directories
 
 The design constraint: nothing above `runners/` may know OpenFOAM exists.
 
-    run_case(case, runner="openfoam", n_cells=80)
-      -> {"y": ndarray, "u": ndarray, "u_ref": float, "meta": {...}}
+    run_case(case, runner="openfoam", n_cells=80) -> {..., "meta": {...}}
 
-Metrics and tests consume only that dict. `u_ref` is the velocity the oracle
-normalises by (for Poiseuille, the analytic peak velocity); `meta` carries
-provenance (solver version, cell counts, viscosity) and is never used for
-physics.
+Metrics and tests consume only that dict. What is REQUIRED of a runner is a
+`meta` sub-dict and arrays the case's declared metrics can consume — nothing
+more. Fluid cases conventionally return `{"y", "u", "u_ref"}`, where `u_ref`
+is the velocity the oracle normalises by, but that is a convention of those
+cases and not of the harness: `runners/langevin.py` returns
+`{"t", "msd", "msd_components", "D_expected"}` and plugged in with no change
+above this layer. `meta` carries provenance (solver version, cell counts,
+viscosity) and is never used for physics.
+
+`tools/` sits outside the package on purpose. `identity_check.py` and
+`wall_traction_compare.py` run no solver and write nothing into the case
+directory they read, which is what makes them safe to point at production
+output; `foam_mesh.py` therefore duplicates some parsing the runner also does,
+and that duplication is the price of the isolation.
 
 ## Running
 
     python3 -m pytest -m oracle -v   # oracles only, NO solver needed (~0.4 s)
     python3 -m pytest tests/ -v      # default: skips @slow studies (~9 min)
-    python3 -m pytest -m "" -v       # everything (21 tests, ~32 min)
-    python3 -m pytest -m slow -v     # the slow studies alone
+    python3 -m pytest -m "" -v       # everything (27 tests; > 32 min, not re-timed)
+    python3 -m pytest -m slow -v     # the 6 slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and
 wired into `.github/workflows/ci.yml`: the oracle tier gates every push with no
-solver install, the default tier runs on push, the full tier runs nightly. The
-casson two-axis grid and womersley_carreau are marked slow. `langevin_free`
-needs no solver at all and runs in ~5 s.
+solver install, the default tier runs on push, the full tier runs nightly. Six
+tests are marked slow — the casson two-axis grid, womersley_carreau,
+taylor_aris, the langevin error distribution, and both `openfoam_particles`
+tests. `langevin_free` needs no solver and runs in ~5 s under the `langevin`
+runner; the same case under `openfoam_particles` needs OpenFOAM 14 and
+`libbrownianTracerCloud.so`.
 
 The runner sources `/opt/openfoam14/etc/bashrc` itself; set
 `BETAFLOW_OPENFOAM_BASHRC` to point elsewhere (the templates use OpenFOAM 14
@@ -741,6 +756,54 @@ sits on the convection-dominated branch — which IS the content of Decuzzi
 Eq. 18. Making the minimum observable requires a slow flow. Same status as
 xi = 0.2 in casson_steady: a verification setting, not physiology.
 
+## openfoam_particles: the three-way check
+
+`betaflow/runners/openfoam_particles.py` is the THIRD runner, and it is the
+first time one oracle has been answered by two independent solvers. Until now
+the layering claim rested on one non-OpenFOAM runner plugging in without
+changes above `runners/`; now `langevin_free` and `taylor_aris` each run
+through two of them, against the same analytic oracle and the same metrics —
+oracle vs `langevin` vs OpenFOAM 14's modular Lagrangian `brownianTracer`
+cloud. A disagreement can be localised rather than merely detected.
+
+**It closes.** Results in separate `*_openfoam.json` files, deliberately, so
+the committed `langevin` records stay byte-stable and the CI diff gate still
+means something.
+
+| case | metric | error | sigma law | z |
+|---|---|---|---|---|
+| langevin_free | MSD slope vs 6·D·t | **0.24%** | 0.7071/sqrt(N), N=1e5 | 1.06 |
+| taylor_aris | D_eff vs Eq. 15 | **0.33%** | (sqrt6/2)/sqrt(N), N=1e4 | 0.27 |
+| taylor_aris | radial KS vs P(r)=2r/a² | 6.93e-3 | floor 1.36e-2 | **0.51x floor** |
+
+**The stock force model does NOT reproduce Stokes-Einstein here.** OpenFOAM's
+`BrownianMotionForce` measured D/D_SE = **0.38 to 0.59 on this machine,
+varying with maxCo** — a diffusivity that depends on the timestep control is
+not a diffusivity. The replacement works at displacement level and holds the
+amplitude-dt / applied-dt identity by construction, which is the same move as
+everywhere else in this repo: pin the quantity with an exact relation rather
+than hope the discretisation preserves it. Caveat stated plainly: this is one
+machine and one OF14 build, and no attempt has been made to trace the stock
+model's factor to its source.
+
+**The radial KS gate earned its keep, exactly as specified.** A plain rebound
+wall — reflecting the resolved velocity but not the noise velocity — leaves an
+effectively STICKY wall: KS **3.31x** its floor and D_eff **+8.3%**. The
++8.3% alone would have read as ordinary Monte Carlo scatter. What caught it is
+that P(r) = 2r/a² is exact, independent of the dispersion physics, and
+therefore able to discriminate; `brownianReboundVelocity` reflects the noise
+velocity as well as U, and the KS drops to 0.51x floor. This is the third
+recorded case of an exact side-relation catching what the headline number
+could not (after the wedge faceting and the kernel swap).
+
+**Scope, stated because it is narrower than the langevin coverage.** Free
+diffusion and the long-time D_eff anchor with the radial KS gate. The
+short-time t² ballistic anchor and the radius sweep for R* stay langevin-only.
+Both tests are `@slow` and need OpenFOAM 14 plus
+`libbrownianTracerCloud.so`; the runner resolves `FOAM_USER_LIBBIN` through
+the OF14 bashrc, because fresh shells on this machine default to OF12. The
+oracle tier is unaffected (14/14, no solver).
+
 ## Conservation check on production code
 
 `tools/identity_check.py` is a standalone, READ-ONLY flux-closure checker. It
@@ -910,6 +973,88 @@ calibrating against a known answer before it is pointed at unknown data —
 the analytic-oracle argument, one level up. It earned its keep twice more
 during this work: a display artefact printed BPM120's residual as exactly
 [0, 0, 0], which investigation turned into the worst result of the five.
+
+**And here is the limit of a null test, stated because Stage A below is
+exactly it.** A null test certifies the instrument only in the CONFIGURATION
+it was run in. Every null case above drives flow with cyclic streamwise
+patches and a body force; in that configuration the inlet and outlet
+contributions to the momentum balance cancel identically, so the
+pressure-force and momentum-flux terms were never exercised against a known
+answer — and those terms carry the entire balance in a patient case with a
+prescribed inlet and Windkessel outlets.
+
+### Stage A: the null test in the configuration production actually uses
+
+`betaflow/cases/pipe_poiseuille_io.yaml` closes that gap while keeping an
+exact answer. A straight pipe on a circumscribed wedge; the exact developed
+Poiseuille profile written at the true face centroids after `blockMesh`; fixed
+outlet pressure; no body force. The flow is developed throughout so momentum
+flux cancels between the ends, and the balance reduces to
+(p_in − p_out)·A = tau_w·2·pi·a·L.
+
+**It does not close at the level cyclic cases reach.**
+
+| nx × nr | inlet p-force | wall viscous | flux | residual | relative |
+|---|---|---|---|---|---|
+| 8 × 40 | 0.0278271 | −0.0278882 | 4.70e-07 | −6.161e-05 | **2.214e-03** |
+| 16 × 80 | 0.0278761 | −0.0279257 | −1.51e-06 | −4.808e-05 | **1.725e-03** |
+| 32 × 160 | 0.0279074 | −0.0279378 | −5.95e-07 | −2.986e-05 | **1.070e-03** |
+
+The velocity converges at **2.04 then 3.02** against the exact profile on the
+same three runs.
+
+**"Floor" was not merely unsupported — it was the wrong model.** The apparent
+orders are 0.36 then 0.69, *increasing*, which is a floor's opposite
+signature; fitting r = C + A·h^p to the three levels returns
+C = **+3.654e-03**, larger than all three measured residuals, so the model
+contradicts the monotone decrease that motivated it. The structural reason
+came later: a residual formed as the difference of two contributions
+converging at DIFFERENT rates has no single apparent order, and r = C + A·h^p
+has no term that can represent one rate cancelling against another.
+
+**All three explanations tested, with no new solve.**
+`tools/wall_traction_compare.py` (read-only), `results/stage_a_discriminators.json`.
+
+| hypothesis | test | verdict |
+|---|---|---|
+| (a) the checker's surface quadrature | wedge areas and volume against their closed forms | **REFUTED** — 9e-16 at every level, including the END faces no cyclic case can exercise |
+| (b) `wallShearStress` FO ≠ the solver's momentum assembly | wall force from the FO, differenced against nu·snGrad(U) on the solver's own cell values and cell centres | **REFUTED** — 7.3e-07, 8.2e-08, 3.0e-09 (orders 3.16, 4.80) |
+| (c) incomplete development | inlet-to-outlet change in the radial profile | 8.7e-03, 3.2e-03, 9.2e-04 (orders 1.46, 1.78) — second order, not the residual's rate |
+
+(b) is the one that mattered. Had the post-processing chain disagreed with the
+solver's momentum assembly at 1e-3, every published wall-shear number from
+either production pipeline would inherit that discrepancy. It does not.
+
+**What it actually is: pressure-velocity decoupling at the inlet.** The
+discrete pressure carries a period-2 oscillation in the streamwise index —
+measured both along a single radial line and on the cross-sectional mean, so
+it is not an averaging artefact. Amplitude near the inlet falls at FIRST order
+(0.89, 0.96) while it damps downstream (2.33, 3.88), and the wall viscous
+force converges at second (1.66, 1.74). A momentum balance over the downstream
+half, whose upstream face is an interior plane using the solver's own
+interpolation and its own face fluxes, closes **8x better** at the finest
+level. Its own apparent orders are 0.93 and 2.07 — not constant over three
+levels, so **8x is the quotable number and the rate is not**. Rhie-Chow
+momentum interpolation suppresses the mode in the interior and is weakest at a
+boundary where pressure is specified and velocity is not, which is where the
+oscillation is largest and why excluding that one patch accounts for most of
+the residual.
+
+**Consequence.** The ~1e-3 is NOT an instrument artefact, so the production
+momentum residuals above are not explained away by it. Instrument failure #7
+is resolved: the checker was not at fault, it was reporting a real defect.
+And the pairing is the strongest statement this repo makes — one solution, one
+run, an exact analytic reference, a textbook second-order convergence study
+that passes cleanly, and a real defect that only the conservation identity
+sees. The two earlier instances both have an escape route (the kernel swap
+compares two *different* governing solutions; womersley_carreau has no exact
+oracle). This one has none.
+
+**NOT reproducible from the repo as it stands, and this is the first thing to
+fix here.** The three runs came from an ad-hoc script: the committed runner
+fixes `_N_STREAMWISE = 4` while the meshes on disk are 8/16/32 streamwise.
+There is no `tests/test_pipe_io.py`. The case YAML and the results are
+committed; the path that produced them is not.
 
 ## Adding a case
 
