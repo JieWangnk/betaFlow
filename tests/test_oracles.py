@@ -13,6 +13,7 @@ import pytest
 
 from betaflow.analytic import (
     advection_diffusion,
+    numerical_diffusion,
     brownian,
     carreau,
     casson,
@@ -288,3 +289,56 @@ def test_advection_diffusion_independent_anchors():
         uu = ad.balance_peclet(geom) * d / length
         assert ad.d_eff(d, length, uu, geom) == pytest.approx(2 * d, rel=1e-12)
     assert ad.balance_peclet("pipe") == pytest.approx(np.sqrt(48), rel=1e-15)
+
+
+def test_numerical_diffusion_self_verification():
+    """The scheme's own error, as an oracle.
+
+    Verified against a real 1-D solver before being committed: with the
+    physical diffusivity set to exactly zero, the measured variance growth
+    matches (u dx/2)(1 - Co) to a ratio of 1.0000 at nine combinations of mesh
+    and Courant number, and 1.000000 up to N = 3200.
+    """
+    nd = numerical_diffusion
+    out = nd.verify_limits()
+    assert out, "verify_limits returned no checks"
+
+    u, dx = 1.0, 1.0 / 400.0
+
+    # The two structural anchors, which are sharper than the coefficient.
+    assert nd.numerical_diffusivity(u, dx, 1.0) == 0.0, (
+        "upwind at unit Courant number is a pure one-cell shift and therefore "
+        "EXACT; measured variance change was -1.9e-17"
+    )
+    assert nd.numerical_diffusivity(u, dx, 0.0) == pytest.approx(0.5 * u * dx)
+
+    # Monotone in Co: the temporal truncation cancels part of the spatial one.
+    vals = [nd.numerical_diffusivity(u, dx, c) for c in (0.1, 0.5, 0.9)]
+    assert vals[0] > vals[1] > vals[2] > 0.0
+
+    # Central differencing is NEGATIVE at every Co. That is the instability,
+    # written as a transport coefficient rather than a stability condition.
+    for co in (0.05, 0.5, 0.95):
+        assert nd.numerical_diffusivity(u, dx, co, "central_explicit") < 0.0
+
+    # Dispersion-free Courant numbers are roots of E3, and E3 is not
+    # identically zero, or the roots would be vacuous.
+    for co in nd.dispersion_free_courant():
+        assert nd.dispersive_coefficient(u, dx, co) == pytest.approx(0.0, abs=1e-18)
+    assert nd.dispersive_coefficient(u, dx, 0.75) != 0.0
+
+    # The point of the module: what a profile comparison actually measures is
+    # D + D_num, and at haemodynamic parameters that is dominated by D_num.
+    d_phys = 1e-9
+    frac = nd.artefact_fraction(d_phys, 0.3, 5e-4, 0.5)
+    assert frac > 0.99, (
+        f"at u = 0.3 m/s, dx = 0.5 mm and D = 1e-9 m2/s the scheme contributes "
+        f"{frac:.5f} of the spreading; if this ever drops below 0.99 the case "
+        f"parameters have changed and the claim in the docstring is stale"
+    )
+    assert nd.total_spreading(d_phys, 0.3, 5e-4, 0.5) > 1e4 * d_phys
+
+
+def test_numerical_diffusion_rejects_unknown_scheme():
+    with pytest.raises(ValueError):
+        numerical_diffusion.numerical_diffusivity(1.0, 0.01, 0.5, "quick")
