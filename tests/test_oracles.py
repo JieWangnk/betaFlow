@@ -211,3 +211,80 @@ def test_advection_diffusion_rejects_unknown_geometry():
     """The geometry argument is validated, not silently defaulted."""
     with pytest.raises(ValueError):
         advection_diffusion.d_eff(1e-9, 1e-3, 1e-3, "annulus")
+
+
+def test_advection_diffusion_release_symmetry_changes_the_fit_window():
+    """The onset depends on the RELEASE, not on the geometry alone.
+
+    A CORRECTION to the first version of this oracle, which claimed the pipe
+    had no odd/even selection rule. It has the same rule and a larger gap: the
+    Neumann Laplacian on a disc carries non-axisymmetric modes J_p(beta r/a)
+    with J_p'(beta) = 0, and j'_{1,1}^2 = 3.390 is 4.331x slower than the
+    j_{1,1}^2 = 14.682 the symmetric case uses. Nothing excites those modes
+    while both u' and the release are axisymmetric — which is exactly why the
+    original justification looked sound.
+    """
+    ad = advection_diffusion
+    from scipy.special import jnp_zeros
+
+    # The claimed slowest mode really is the slowest, and really is p != 0.
+    slowest = min(b**2 for p in range(4) for b in jnp_zeros(p, 2) if b > 1e-9)
+    assert slowest == pytest.approx(ad.ASYMMETRIC_EIGENVALUE["pipe"], rel=1e-6)
+    assert slowest < ad.COUPLED_EIGENVALUE["pipe"], (
+        "if the axisymmetric mode were the slowest, the original claim would "
+        "have been right and this test is stale"
+    )
+
+    # Breaking the symmetry moves the fit window by more than 4x in both
+    # geometries. A window chosen on the symmetric assumption is then wrong,
+    # and silently so, because the fit still returns a number.
+    for geom, factor in (("pipe", 4.331), ("channel", 4.0)):
+        ratio = ad.asymptotic_onset(geom, symmetric_release=False) / ad.asymptotic_onset(geom)
+        assert ratio == pytest.approx(factor, rel=1e-3)
+
+
+def test_advection_diffusion_independent_anchors():
+    """The anchors that are NOT the dispersion coefficient.
+
+    Each is here because it catches something D_eff cannot.
+    """
+    ad = advection_diffusion
+
+    # The third cumulant is blind to axial diffusion, and its SIGN differs
+    # between the geometries — the only quantity here that does.
+    assert ad.SKEWNESS_FACTOR["pipe"] > 0 > ad.SKEWNESS_FACTOR["channel"]
+
+    # <u'^3> is an exact ZERO for a pipe. Zeros are much harder to hit by
+    # accident than numbers.
+    assert ad.THIRD_MOMENT_FACTOR["pipe"] == 0.0
+    assert ad.THIRD_MOMENT_FACTOR["channel"] != 0.0
+
+    # The variance intercept is negative and is NOT absorbable into a fitted
+    # D_eff: it weights the same spectrum as beta^-8 rather than beta^-6.
+    d, length, u = 2e-9, 1e-3, 5e-4
+    for geom in ad.GEOMETRIES:
+        assert ad.variance_intercept(length, u, d, geom) < 0.0
+
+    # Released exactly on the u = U streamline, the pulse still ends up
+    # permanently BEHIND. "Seeded at the mean velocity, so no offset" is the
+    # plausible wrong answer this anchor exists to refute.
+    for geom, xi0 in (("pipe", 1 / np.sqrt(2)), ("channel", 1 / np.sqrt(3))):
+        assert ad.velocity_deviation(xi0, geom) == pytest.approx(0.0, abs=1e-15)
+        assert ad.centroid_offset(xi0, length, u, d, geom) < 0.0
+
+    # A cross-sectionally uniform release has NO centroid transient at all.
+    assert ad.pulse_centroid(3.0, u) == pytest.approx(3.0 * u, rel=1e-15)
+
+    # The transverse gate is a probability density in both geometries.
+    for geom in ad.GEOMETRIES:
+        lo = 0.0 if geom == "pipe" else -1.0
+        xi = np.linspace(lo, 1.0, 200001)
+        assert float(np.trapezoid(ad.transverse_pdf(xi, geom), xi)) == pytest.approx(
+            1.0, rel=1e-12
+        )
+
+    # Balance Peclet: the two terms of D_eff are equal there, by construction.
+    for geom in ad.GEOMETRIES:
+        uu = ad.balance_peclet(geom) * d / length
+        assert ad.d_eff(d, length, uu, geom) == pytest.approx(2 * d, rel=1e-12)
+    assert ad.balance_peclet("pipe") == pytest.approx(np.sqrt(48), rel=1e-15)
