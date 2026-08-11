@@ -120,9 +120,12 @@ Corrections are recorded in place, never amended away. A withdrawn
 conclusion stays in the history with the reason for its withdrawal, because
 the record of failure is data about how errors present. Current examples on
 record: the depleted-tail prediction for the `mc_channel` departure run
-(wrong in direction; the measured structure is enhancement first,
-termination near the radial relaxation eigentime), the withdrawn error-floor
-claim, and the 8x/16.3x discriminator correction.
+(wrong in direction; the measured structure is enhancement first, then
+termination), the eigentime attribution for the termination clock
+(withdrawn after the pre-registered Peclet sweep measured the layer-escape
+scaling instead — a one-point match to a named constant that dissolved
+under the sweep, `results/eigentime_pe_sweep.json`), the withdrawn
+error-floor claim, and the 8x/16.3x discriminator correction.
 
 ## Out of scope, deliberately
 

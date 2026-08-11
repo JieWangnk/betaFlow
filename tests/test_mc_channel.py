@@ -10,8 +10,10 @@ Two legs, one release each:
   DEPARTURE (D > 0, Pe = 200). The flow-dominated analytic reference fails in a
   MEASURED structure: softened onset, depressed peak, and a two-regime
   tail — enhanced while the upstream reservoir of slower particles feeds
-  the window, then terminated near the radial relaxation eigentime
-  tau_r/beta_1^2. The pre-measurement prediction was a DEPLETED tail; it
+  the window, then terminated (crossover clock: the layer-escape scaling
+  t_cross = K tau_r^0.31 dbar^0.73, measured by the pre-registered Pe
+  sweep; an earlier eigentime attribution is withdrawn there).
+  The pre-measurement prediction was a DEPLETED tail; it
   was wrong in direction at intermediate times, and the assertions below
   encode what was measured, not what was expected.
 
@@ -204,9 +206,12 @@ def test_mc_channel_departure():
         f"— the tail should have terminated"
     )
 
-    # The crossover, recorded in eigentime units. Observed 0.95 tau_r/beta_1^2
-    # at this seed and parameter point — a HYPOTHESIS the record carries, not
-    # a law: one seed, one Pe, one geometry.
+    # The crossover, still recorded in eigentime units for continuity with
+    # the earlier records. The eigentime ATTRIBUTION is withdrawn: the
+    # pre-registered Pe sweep (results/eigentime_pe_sweep.json) measured
+    # t_cross = K tau_r^0.31 dbar^0.73 — the layer-escape scaling — and
+    # the 0.95-of-eigentime value below is a coincidence of this
+    # parameter point.
     beyond = t > 2.0 * t2
     ratio = cm[beyond] / np.maximum(co[beyond], 1e-300)
     t_cross = float(t[beyond][np.argmax(ratio < 1.0)])
@@ -222,9 +227,12 @@ def test_mc_channel_departure():
             "cir_at_12_t2_reference": float(co[k12]),
             "crossover_t_over_tau_r": t_cross / tau_r,
             "crossover_t_beta1sq_over_tau_r": t_cross * BETA_1**2 / tau_r,
-            "eigentime_hypothesis": (
-                "crossover ~ tau_r/beta_1^2, from one seed at one parameter "
-                "point; a Pe sweep would test it"
+            "crossover_clock": (
+                "eigentime attribution WITHDRAWN by the pre-registered Pe "
+                "sweep (results/eigentime_pe_sweep.json): measured "
+                "t_cross = K tau_r^0.31 dbar^0.73, the layer-escape "
+                "scaling; the 0.95-of-eigentime value here is a "
+                "coincidence of this parameter point"
             ),
         },
         "prediction_correction": (

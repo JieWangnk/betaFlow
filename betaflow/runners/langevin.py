@@ -190,10 +190,16 @@ def _run_cir(case, n_particles, seed, epsilon, diffusivity=None,
     reservoir outweighs the window population (mass ratio ~ dbar/c_x). So
     the measured tail is first ENHANCED (up to 1.6x at 5 t2), then crosses
     below and TERMINATES: exactly zero by 12 t2 at the middle receiver,
-    where the analytic reference's log-divergent tail still predicts 1e-2. The measured
-    crossover, 0.065 tau_r at one seed and one parameter point, sits at
-    0.95 tau_r/beta_1^2 — consistent with the radial relaxation EIGENTIME
-    tau_r/beta_1^2 (beta_1 = 3.8317), recorded as a hypothesis, not a law.
+    where the analytic reference's log-divergent tail still predicts 1e-2.
+    The crossover CLOCK: first attributed to the radial relaxation
+    eigentime tau_r/beta_1^2 on a one-point match (0.95 of it at Pe = 200,
+    middle receiver) — WITHDRAWN after the pre-registered Peclet sweep
+    (tools/eigentime_pe_sweep.py, results/eigentime_pe_sweep.json), which
+    measured t_cross = K tau_r^0.31 dbar^0.73 over Pe 50-800: the
+    LAYER-ESCAPE scaling (exponents 1/3, 2/3 — the wall layer carrying the
+    tail at time t has thickness a*dbar/(4Vt) and dies when diffusion
+    crosses it), prefactor 2.78x the crude balance. The one-point
+    eigentime match was a coincidence of the parameter point.
     The radial invariant P(r) = 2r/a^2 stays exact and is this mode's gate.
     """
     from betaflow.analytic import channel_impulse as ci

@@ -43,8 +43,11 @@ results/mc_channel_departure.json) has two regimes: the tail is first
 ENHANCED above 1/t, because radial diffusion pumps the upstream reservoir
 of still-slower particles into the window faster than it clears the window
 population, and then TERMINATES — measured exactly zero by 12 t2 at the
-middle receiver — with the crossover observed at ~ tau_r/beta_1^2, the
-radial relaxation eigentime, not at tau_r itself. The tail is precisely
+middle receiver. The crossover clock, measured by the pre-registered
+Peclet sweep (results/eigentime_pe_sweep.json): t_cross = K tau_r^0.31
+dbar^0.73, the layer-escape scaling (1/3, 2/3) — a first attribution to
+the relaxation eigentime tau_r/beta_1^2 rested on a one-point match and
+is withdrawn. The tail is precisely
 what sets inter-symbol interference, so past the crossover the
 flow-dominated model is qualitatively wrong for ISI — it UNDERESTIMATES
 interference while the tail is enhanced and OVERESTIMATES it after the

@@ -6,15 +6,24 @@ doi:10.1109/ACCESS.2024.3438243) from closed forms alone, and records the
 numbers so the benchmark phases can cite them.
 
 QUESTION 1 — how much of each receiver's tail can the flow-dominated model
-describe at all? The mc_channel departure measurement (commit 76cfc40,
-results/mc_channel_departure.json) put the crossover where the measured CIR
-leaves the model at ~0.95 tau_r/beta_1^2 — the radial relaxation eigentime,
-an order of magnitude before tau_r itself. This audit converts that eigentime
-into units of each receiver's own peak time t2: past roughly
-(tau_r/beta_1^2)/t2 peak-times, the model's log-divergent tail describes
-nothing, first UNDERestimating inter-symbol interference (enhancement
-regime) and then OVERestimating it (termination). One seed, one parameter
-point; the eigentime attribution is recorded as a hypothesis.
+describe at all? Past the crossover, the model's log-divergent tail
+describes nothing: it first UNDERestimates inter-symbol interference
+(enhancement regime) and then OVERestimates it (termination).
+
+CORRECTION, RECORDED IN PLACE (11 Aug 2026). The first version of this
+audit converted the crossover to peak-times through the radial relaxation
+EIGENTIME tau_r/beta_1^2, on the strength of a single-point agreement
+(measured 0.95 of it at Pe = 200, middle receiver). The pre-registered
+Peclet sweep (tools/eigentime_pe_sweep.py,
+results/eigentime_pe_sweep.json) REFUTED that clock: the measured scaling
+is t_cross = K tau_r^0.31 dbar^0.73 — the layer-escape family
+(exponents 1/3, 2/3), prefactor 2.78x the crude balance — and the
+one-point eigentime match was a coincidence of the parameter point. The
+eigentime-based extents (27.2 / 6.8 / 3.4 t2) are kept in this record as
+the WITHDRAWN prediction; the measured extents at Pe = 200 are
+7.9 / 6.4 / 5.5 t2, wrong in shape as well as size (the true extent
+SHRINKS with receiver distance far more slowly than the eigentime form
+said, and the near receiver's 27.2 was off by 3.4x).
 
 QUESTION 2 — what would an Eulerian finite-volume discretisation have
 suffered at these parameters? Their published method is Lagrangian
@@ -60,15 +69,21 @@ def main():
     receivers = []
     for dbar in ci.HOFMANN_TABLE_1["mid_receiver_distances"]:
         t2 = ci.peak_time(V_MEAN, dbar, c_x)
+        # WITHDRAWN eigentime form, kept per the correction policy:
+        # 2 Pe a / (beta_1^2 (dbar + c_x/2)).
+        withdrawn = 2.0 * peclet * a / (BETA_1**2 * (dbar + c_x / 2.0))
+        # MEASURED law (results/eigentime_pe_sweep.json): the layer-escape
+        # scaling with its measured prefactor, t_cross = 2.78 *
+        # (a^2 dbar^2 / (32 D V^2))^(1/3), converted to this receiver's t2.
+        t_cross = 2.78 * (a**2 * dbar**2
+                          / (32.0 * DIFFUSIVITY * V_MEAN**2))**(1.0 / 3.0)
         receivers.append({
             "dbar_um": dbar * 1e6,
             "flow_dominated_ratio_paper": ci.flow_dominated(peclet, dbar, a),
             "t1_s_split_dependent": ci.onset_time(V_MEAN, dbar, c_x),
             "t2_s_split_dependent": t2,
-            # Pe-based, split-independent: eigentime/t2 = (a^2/D) / beta_1^2
-            # / ((dbar + c_x/2)/(2V)) = 2 Pe a / (beta_1^2 (dbar + c_x/2)).
-            "model_valid_tail_extent_t2_units":
-                2.0 * peclet * a / (BETA_1**2 * (dbar + c_x / 2.0)),
+            "model_valid_tail_extent_t2_units_measured": t_cross / t2,
+            "model_valid_tail_extent_t2_units_WITHDRAWN_eigentime": withdrawn,
             "peak_value": ci.peak_value(dbar, c_x),
         })
 
@@ -94,10 +109,12 @@ def main():
         "tau_r_s_split_dependent": tau_r,
         "eigentime_s_split_dependent": eigentime,
         "eigentime_over_tau_r": 1.0 / BETA_1**2,
-        "crossover_hypothesis": (
-            "measured CIR leaves the flow-dominated model at ~0.95 "
-            "tau_r/beta_1^2 (one seed, one parameter point; "
-            "results/mc_channel_departure.json)"
+        "crossover_finding": (
+            "the eigentime attribution is WITHDRAWN: the pre-registered "
+            "Pe sweep (results/eigentime_pe_sweep.json) measured "
+            "t_cross = K tau_r^0.31 dbar^0.73 — the layer-escape scaling "
+            "(1/3, 2/3), prefactor 2.78x the crude balance; the one-point "
+            "0.95-of-eigentime match at Pe = 200 was a coincidence"
         ),
         "receivers": receivers,
         "eulerian_counterfactual": {
@@ -118,7 +135,9 @@ def main():
     print(f"tau_r = {tau_r:.1f} s, eigentime tau_r/beta_1^2 = {eigentime:.2f} s")
     for r in receivers:
         print(f"  dbar {r['dbar_um']:6.0f} um: ratio {r['flow_dominated_ratio_paper']:5.1f}, "
-              f"model tail extent {r['model_valid_tail_extent_t2_units']:6.1f} t2")
+              f"model tail extent {r['model_valid_tail_extent_t2_units_measured']:5.1f} t2 "
+              f"(withdrawn eigentime form said "
+              f"{r['model_valid_tail_extent_t2_units_WITHDRAWN_eigentime']:.1f})")
     for m in mesh_sweep:
         print(f"  dx = a/{m['cells_per_radius']:>3}: cell Pe {m['cell_peclet']:7.1f}, "
               f"D_num/D {m['d_num_over_d']:8.2f}, artefact {m['artefact_fraction']:.4f}")

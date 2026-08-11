@@ -1009,12 +1009,22 @@ independently via the uniform-speed lemma before use
 (`betaflow/analytic/channel_impulse.py`, 18 self-checks). The dimensional
 split V = 1.5 mm/s, D = 1.5e-9 m^2/s is ours and the case YAML says so.
 
-**The analytic model's own limits, from the analytic tier**
-(`results/hofmann_validity_audit.json`): the model's log-divergent tail can
-describe at most 27 / 6.8 / 3.4 peak-times past release at the three
-receivers — the crossover eigentime 2 Pe a / (beta_1^2 (dbar + c_x/2)),
-split-independent. The middle receiver's predicted 6.8 t2 agrees with the
-crossover MEASURED at 6.5 t2, two independent routes to one number.
+**The analytic model's own limits, measured then corrected**
+(`results/hofmann_validity_audit.json`, `eigentime_pe_sweep.json`): the
+model's log-divergent tail describes at most 8.5 / 6.2 / 5.0 peak-times
+past release at the three receivers. The first version of this claim
+(27 / 6.8 / 3.4) converted the crossover through the radial relaxation
+eigentime tau_r/beta_1^2, resting on a one-point agreement (predicted 6.8
+vs measured 6.5 at the middle receiver) — and the pre-registered Peclet
+sweep REFUTED that clock: over Pe 50-800 and all three receivers the
+measured scaling is t_cross = K tau_r^0.31 dbar^0.73, the layer-escape
+family (exponents 1/3, 2/3; the wall layer carrying the tail dies when
+diffusion crosses it), with the one-point match a coincidence of the
+parameter point. Three crossover extractors were needed before the sweep
+could be trusted: the first measured the peak-depression dip, the second
+fell to correlated-sample noise, and the third (cumulative excess mass,
+parameter-free) reproduces the original 1.73 s measurement to 0.8% as its
+consistency anchor. Both failures are recorded in the tool.
 
 **Three solver legs, one referee** (`results/mc_channel*.json`, collated in
 `results/mc_channel_benchmark.json`):
