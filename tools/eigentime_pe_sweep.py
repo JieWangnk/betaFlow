@@ -30,7 +30,7 @@ SCALING over a 16x range of tau_r with three seeds per point, and the
 receiver dependence inside every run. Whatever wins is recorded — the
 attribution is upgraded or withdrawn, never defended.
 
-VERDICT (measured 11 Aug 2026, this file's record): H1 is REFUTED and
+OUTCOME (measured 11 Aug 2026, this file's record): H1 is REFUTED and
 WITHDRAWN — the joint fit over 12 (Pe, dbar) points gives
 t_cross = K * tau_r^0.306 * dbar^0.729 (rms log-residual 0.018, at the
 level of seed scatter), against H1's (1, 0). The LAYER-ESCAPE family H2
@@ -205,7 +205,7 @@ def main():
         "rms_log_residual": float(np.sqrt(np.mean(resid**2))),
         "measured_over_H2_absolute_mean": float(np.mean(t_mean / h2_abs)),
         "measured_over_H2_absolute_sd": float(np.std(t_mean / h2_abs)),
-        "verdict": (
+        "outcome": (
             "H1 eigentime REFUTED (predicted exponents 1, 0); H2 "
             "layer-escape scaling matches (1/3, 2/3) within 0.06 on both "
             "exponents; prefactor 2.78x the crude balance constant"),

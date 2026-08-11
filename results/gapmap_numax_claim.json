@@ -48,5 +48,5 @@
     "Query-set dependent. Three query families per pillar is a smell test, not a systematic review.",
     "A direct precedent was surfaced and must be read before any novelty claim: the hyperbolic-regularized Casson paper sits squarely in the intersection."
   ],
-  "verdict": "The two literatures are structurally disconnected (ratio 0.10, p=6e-18, against an enriched control at 1.96). That supports a DISCONNECTION claim. It does NOT establish a reporting rate, and the mechanism itself is not novel - see Frigaard & Nouar (2005)."
+  "outcome": "The two literatures are structurally disconnected (ratio 0.10, p=6e-18, against an enriched control at 1.96). That supports a DISCONNECTION claim. It does NOT establish a reporting rate, and the mechanism itself is not novel - see Frigaard & Nouar (2005)."
 }

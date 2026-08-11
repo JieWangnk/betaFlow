@@ -4,7 +4,7 @@
     "a_surface_quadrature": {
       "test": "wedge areas and volume against their closed forms; the END faces matter and had never been tested, because on a cyclic case the two ends cancel and so would any error in them",
       "worst_relative_error": 8.881784197001252e-16,
-      "verdict": "REFUTED - exact to 9e-16 at every level"
+      "outcome": "REFUTED - exact to 9e-16 at every level"
     },
     "b_functionObject_vs_assembly": {
       "test": "wall viscous force from the wallShearStress FO, differenced against nu*snGrad(U) built from the solver's own cell values and cell centres",
@@ -17,7 +17,7 @@
         3.16,
         4.8
       ],
-      "verdict": "REFUTED - 7.3e-07 falling to 3.0e-09, three decades below the residual and converging fast. This was the production-relevant hypothesis: had it held, every published WSS number would inherit it."
+      "outcome": "REFUTED - 7.3e-07 falling to 3.0e-09, three decades below the residual and converging fast. This was the production-relevant hypothesis: had it held, every published WSS number would inherit it."
     },
     "c_incomplete_development": {
       "test": "inlet-to-outlet change in the radial profile",
@@ -30,7 +30,7 @@
         1.46,
         1.78
       ],
-      "verdict": "NOT the residual's rate - the profile converges at ~2, the residual at 0.36-0.69"
+      "outcome": "NOT the residual's rate - the profile converges at ~2, the residual at 0.36-0.69"
     }
   },
   "what_it_actually_is": {

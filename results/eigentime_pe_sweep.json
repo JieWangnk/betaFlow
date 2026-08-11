@@ -7,7 +7,7 @@
     "rms_log_residual": 0.017886842253067272,
     "measured_over_H2_absolute_mean": 2.783293462809612,
     "measured_over_H2_absolute_sd": 0.170850144994551,
-    "verdict": "H1 eigentime REFUTED (predicted exponents 1, 0); H2 layer-escape scaling matches (1/3, 2/3) within 0.06 on both exponents; prefactor 2.78x the crude balance constant"
+    "outcome": "H1 eigentime REFUTED (predicted exponents 1, 0); H2 layer-escape scaling matches (1/3, 2/3) within 0.06 on both exponents; prefactor 2.78x the crude balance constant"
   },
   "pre_registered": {
     "H1_eigentime": {

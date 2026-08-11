@@ -1,6 +1,6 @@
 {
   "claim_tested": "WSS/profile misfit ratio scales as alpha^2",
-  "verdict": "MECHANISM CONFIRMED; asymptotic exponent is -3/2 (derived and verified), not -2. Physiological window is transitional at ~-1.8.",
+  "outcome": "MECHANISM CONFIRMED; asymptotic exponent is -3/2 (derived and verified), not -2. Physiological window is transitional at ~-1.8.",
   "wss_misfit_saturates": {
     "alpha_5": 0.4643,
     "alpha_10": 0.4821,

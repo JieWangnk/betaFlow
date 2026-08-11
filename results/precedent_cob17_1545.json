@@ -18,5 +18,5 @@
     "no measurability coupling (the mesh needed to resolve the defect scaling with the cap)",
     "the plug discussion is about the PHYSICAL yield-stress effect, not the regularisation artefact"
   ],
-  "verdict": "NARROWS finding 1 but does not close it. Regularised Casson in haemodynamics is established, so no novelty there. The specific contribution that survives is the measurability/cost coupling - that resolving a cap defect of relative size eps needs N > 1/(xi*sqrt(nu_c/nuMax)) while convergence cost grows as ~N^2*nuMax, so the two requirements forbid the same corner. Not present here, and not in Frigaard & Nouar's error-order framing either."
+  "outcome": "NARROWS finding 1 but does not close it. Regularised Casson in haemodynamics is established, so no novelty there. The specific contribution that survives is the measurability/cost coupling - that resolving a cap defect of relative size eps needs N > 1/(xi*sqrt(nu_c/nuMax)) while convergence cost grows as ~N^2*nuMax, so the two requirements forbid the same corner. Not present here, and not in Frigaard & Nouar's error-order framing either."
 }
