@@ -297,7 +297,14 @@ UNRESOLVED = {
         "lattice-verified for flow along a lattice axis on D1Q3 and the "
         "D2Q5(omega) family (see diffusivity_first_order_eq). Diagonal flow "
         "directions and the 3-D sets are conjectured to follow the same law "
-        "and are NOT derived; anisotropy of the error tensor is untested."
+        "and are NOT derived; anisotropy of the error tensor is untested. "
+        "SCOPE AT LARGE TAU: the law is the k -> 0 coefficient, and the "
+        "k-expansion saturates slowly when tau is large. At tau = 5, "
+        "u = 0.4 (OpenLB's shipped ADE benchmark), the k -> 0 law gives "
+        "0.78 while the exact conserved eigenvalue at the benchmark's own "
+        "k = 2 pi/51 gives 0.9031 -- and OpenLB's field data measures "
+        "0.908 (tools/openlb_first_contact.py). Quote the eigenvalue at "
+        "the actual wavenumber when tau is large, not the limit law."
     ),
     "bounce_back_wall_position": (
         "MOMENTUM lattice: for halfway bounce-back the effective wall "
