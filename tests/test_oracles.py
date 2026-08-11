@@ -488,8 +488,96 @@ def test_lattice_boltzmann_declares_what_it_has_not_established():
     refinement-independent framing across.
     """
     lb = lattice_boltzmann
-    for key in ("ma_squared_advection_error", "bounce_back_wall_position",
+    # ma_squared_advection_error is gone because it is RESOLVED (derived and
+    # lattice-verified); what remains open is its off-axis/3-D scope.
+    assert "ma_squared_advection_error" not in lb.UNRESOLVED
+    for key in ("ma_squared_off_axis", "bounce_back_wall_position",
                 "openlb_d3q7_descriptor"):
         assert key in lb.UNRESOLVED and lb.UNRESOLVED[key].strip()
     with pytest.raises(ValueError):
         lb.diffusivity(1.0, "D3Q13")
+
+
+def _run_ade_lattice(n, tau, u, order2, cs2, weights, velocities, steps, sigma0):
+    """Minimal BGK ADE lattice on a periodic ring — the measurement leg of the
+    Ma^2 test. Kept in the test so the oracle tier carries an actual lattice
+    run, not only algebra. Step bookkeeping: `elapsed` counts COMPLETED
+    updates; the first version divided by steps//2 while 751 had completed,
+    and the constant 749/750 deficit was mis-attributed to a plausible k^4
+    truncation story until a pulse-width sweep refuted it.
+    """
+    x = np.arange(n, dtype=float)
+    rho = np.exp(-((x - n / 2) ** 2) / (2 * sigma0**2))
+
+    def feq(r):
+        out = np.empty((len(velocities), n))
+        for i, (wi, ei) in enumerate(zip(weights, velocities)):
+            c = 1 + ei * u / cs2
+            if order2:
+                c += (ei**2 - cs2) * u**2 / (2 * cs2**2)
+            out[i] = wi * r * c
+        return out
+
+    def var_of(r):
+        th = 2 * np.pi * x / n
+        mu = np.angle((r * np.exp(1j * th)).sum()) / (2 * np.pi) * n % n
+        d = (x - mu + n / 2) % n - n / 2
+        return float((r * d**2).sum() / r.sum())
+
+    g = feq(rho)
+    mark = steps // 2
+    halfway = done_at_half = None
+    for t in range(steps):
+        r = g.sum(axis=0)
+        g += -(g - feq(r)) / tau
+        for i, ei in enumerate(velocities):
+            if ei:
+                g[i] = np.roll(g[i], int(ei))
+        if t == mark:
+            halfway = var_of(g.sum(axis=0))
+            done_at_half = t + 1
+    return (var_of(g.sum(axis=0)) - halfway) / (2 * (steps - done_at_half))
+
+
+def test_lattice_boltzmann_ma2_advection_error():
+    """D_eff = (c_s^2 - u^2)(tau - 1/2): derived, and measured on a lattice.
+
+    The Ma^2 coefficient is exactly -1 for the first-order (linear)
+    equilibrium OpenLB's ADE lattice uses; the second-order equilibrium
+    cancels it — but ONLY at the standard weights. On the D2Q5(omega) family
+    the residual is -u^2(3 omega - 2)/omega^2: zero at omega = 2/3, and a
+    +5 u^2 OVERCORRECTION at OpenLB's thermal omega = 2/5.
+    """
+    lb = lattice_boltzmann
+
+    # The law and its structure.
+    for tau in (0.6, 1.0, 2.0):
+        assert lb.diffusivity_first_order_eq(tau, 0.0, "D2Q9") == pytest.approx(
+            lb.diffusivity(tau, "D2Q9"), rel=1e-15
+        )
+    assert lb.ma2_relative_error(0.3, "D2Q9") == pytest.approx(-0.27, rel=1e-12)
+    assert lb.d2q5_second_order_residual(0.5, 2 / 3) == pytest.approx(0.0, abs=1e-15)
+    assert lb.d2q5_second_order_residual(0.2, 0.4) == pytest.approx(0.2, rel=1e-12)
+    # Advection magic 1/12 differs from the wall's 3/16: no single Lambda
+    # kills both, which is the TRT no-free-lunch result by direct derivation.
+    assert lb.advection_magic_lambda() == pytest.approx(1 / 12, rel=1e-15)
+    assert lb.advection_magic_lambda() != pytest.approx(3 / 16, rel=0.3)
+
+    # THE MEASUREMENT: an actual D1Q3 lattice, first-order equilibrium.
+    w3, v3 = [2 / 3, 1 / 6, 1 / 6], [0, 1, -1]
+    for tau, u in ((1.0, 0.3), (0.6, 0.2)):
+        measured = _run_ade_lattice(512, tau, u, False, 1 / 3, w3, v3, 400, 25.0)
+        predicted = lb.diffusivity_first_order_eq(tau, u, "D2Q9")
+        assert measured == pytest.approx(predicted, rel=1e-5), (
+            f"lattice disagrees with the derived Ma^2 law at tau={tau}, u={u}"
+        )
+    # Second-order equilibrium: the u^2 depletion is gone on standard weights.
+    measured = _run_ade_lattice(512, 1.0, 0.3, True, 1 / 3, w3, v3, 400, 25.0)
+    assert measured == pytest.approx(lb.diffusivity(1.0, "D2Q9"), rel=1e-5)
+    # ... and OpenLB's thermal D2Q5 weights OVERCORRECT by the predicted +20%.
+    w5, v5 = [3 / 5, 1 / 10, 1 / 10, 1 / 10, 1 / 10], [0, 1, -1, 0, 0]
+    measured = _run_ade_lattice(512, 1.0, 0.2, True, 0.2, w5, v5, 400, 25.0)
+    expected = lb.diffusivity(1.0, "D2Q5") * 0.0 + 0.2 * 0.5 * (
+        1.0 + lb.d2q5_second_order_residual(0.2, 0.4)
+    )
+    assert measured == pytest.approx(expected, rel=1e-5)

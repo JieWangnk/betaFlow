@@ -134,18 +134,62 @@ velocity set alone and is cited; its CONSEQUENCES are then checked here.
      recurrence form of the TRT update — an independent self-verification
      route requiring no Chapman-Enskog expansion.
 
-WHAT THIS MODULE STILL DOES NOT CLAIM. The O(Ma^2) advection error has no
-published leading coefficient located even by a 24-source search — but it now
-has a documentary handle on the target code: OpenLB's ADE equilibrium is
-truncated at FIRST order in velocity (g_i^eq = w_i rho (1 + c_i.v/c_s^2),
-user guide Eq. 4.21) while its fluid lattices use SECOND-order equilibria, so
-the two lattices of a coupled run are truncated at different orders in u. The
-velocity-sweep design stands: the error vanishes as u -> 0 and grows
-quadratically, so it is isolated by a sweep whether or not its coefficient is
-ever published. The tau-dependent wall position of MOMENTUM bounce-back also
-remains open here: the one claim tying it to a readable source failed
-adversarial verification (0-3), so this module still cites the anchors as
-NOT READ and states no coefficient.
+  6. THE O(Ma^2) ADVECTION ERROR — RESOLVED BY DERIVATION, for the linear
+     (first-order) equilibrium that OpenLB's ADE lattice uses. The BGK ADE
+     update with a linear equilibrium is LINEAR in the distributions, so its
+     exact amplification matrix G(k) is computable — the same von Neumann
+     route that produced the upwind coefficients in `numerical_diffusion`.
+     Expanding the conserved eigenvalue's logarithm in k gives, exactly, for
+     flow and wavevector along a lattice axis:
+
+         first-order equilibrium:   u_eff = u,
+                                    D_eff = (c_s^2 - u^2)(tau - 1/2)
+                                          = D (1 - Ma^2)
+         second-order equilibrium:  D_eff = c_s^2 (tau - 1/2), the u^2 term
+                                    cancelled identically — WHEN c_s^2 takes
+                                    its standard value.
+
+     So the Ma^2 coefficient is exactly -1: the scheme's advection DEPLETES
+     its own diffusivity by the squared lattice Mach number, and a code
+     running a solute at u = 0.3 lattice units under-diffuses by 27%
+     (Ma^2 = 3 u^2 on a c_s^2 = 1/3 lattice) with a concentration field that
+     looks entirely plausible.
+
+     ON THE REDUCED-WEIGHT FAMILIES THE SECOND-ORDER FIX FAILS. For the
+     D2Q5(omega) family the same derivation gives a residual relative
+     diffusivity error of -u^2 (3 omega - 2)/omega^2 even WITH the
+     second-order equilibrium term: zero only at omega = 2/3 (the
+     c_s^2 = 1/3 member), and +5 u^2 — an OVERCORRECTION — at OpenLB's
+     thermal weights omega = 2/5. The standard second-order term is built
+     for the standard moments, and the reduced weights do not have them.
+
+     The dispersive term closes the circle with the research findings:
+     E3 = 2 u^3 (Lambda - 1/12) for the first-order D1Q3 scheme, vanishing
+     at Ginzburg's ADVECTION magic value Lambda = 1/12 — a different value
+     from the wall's 3/16, confirming by direct derivation the TRT claim
+     that no single Lambda kills both errors.
+
+     VERIFIED ON AN ACTUAL LATTICE, ratio 1.000000000 (worst 3.7e-9) across
+     tau in {0.6, 1, 2} x u in {0, 0.1, 0.3}, both equilibria, and the
+     D2Q5 omega = 2/5 overcorrection — after one instrument failure worth
+     recording: the first measurement showed a CONSTANT 0.998667 ratio
+     everywhere, which was attributed to finite-pulse-width k^4 truncation,
+     a plausible physical mechanism. Doubling the pulse width twice refuted
+     the attribution (the deficit did not move), and the true cause was an
+     off-by-one — 749 elapsed steps divided by 750. The plausible physics
+     story was pasted onto a bookkeeping bug, and only the named-alternative
+     test caught it.
+
+WHAT THIS MODULE STILL DOES NOT CLAIM. The Ma^2 result above is exact for
+flow along a lattice axis on D1Q3 and the D2Q5(omega) family with BGK; other
+sets and diagonal flow directions are conjectured to follow the same law and
+are NOT derived here. No published statement of the -1 coefficient was
+located even by a 24-source search, so the derivation above is its own
+anchor — flagged as this-repo-derived rather than literature-backed. The
+tau-dependent wall position of MOMENTUM bounce-back remains open: the one
+claim tying it to a readable source failed adversarial verification (0-3),
+so this module still cites the anchors as NOT READ and states no
+coefficient.
 
 CITATIONS
   arXiv:1603.09577 (MRT for nonlinear convection-diffusion; Eqs. 26, 30b,
@@ -248,16 +292,12 @@ SOUND_SPEED_SQUARED = {
 NAVIER_STOKES_CAPABLE = ("D2Q9", "D3Q19", "D3Q27")
 
 UNRESOLVED = {
-    "ma_squared_advection_error": (
-        "LBM advection carries an O(Ma^2) error, Ma = u/c_s. NO published "
-        "leading coefficient was located even by a 24-source search, so none "
-        "is stated. What IS established (OpenLB guide, Eq. 4.21, verified "
-        "2-1): the target code's ADE equilibrium is FIRST order in velocity "
-        "while its fluid equilibria are second order, so a coupled run's two "
-        "lattices are truncated at different orders in u. The sweep design "
-        "stands regardless: the error vanishes as u -> 0 and grows "
-        "quadratically, so a velocity sweep at fixed tau, mesh and "
-        "diffusivity isolates it without knowing its coefficient."
+    "ma_squared_off_axis": (
+        "The Ma^2 result D_eff = (c_s^2 - u^2)(tau - 1/2) is DERIVED and "
+        "lattice-verified for flow along a lattice axis on D1Q3 and the "
+        "D2Q5(omega) family (see diffusivity_first_order_eq). Diagonal flow "
+        "directions and the 3-D sets are conjectured to follow the same law "
+        "and are NOT derived; anisotropy of the error tensor is untested."
     ),
     "bounce_back_wall_position": (
         "MOMENTUM lattice: for halfway bounce-back the effective wall "
@@ -458,6 +498,104 @@ def mrt_zero_slip_s1(s3):
     return 8.0 * (s3 - 2.0) / (s3 - 8.0)
 
 
+# --------------------------------------------------------------------------
+# The O(Ma^2) advection error — derived in this repo by von Neumann analysis
+# of the exact amplification matrix (the ADE update with a linear equilibrium
+# is linear in the distributions), verified on an actual lattice to 3.7e-9.
+# --------------------------------------------------------------------------
+
+
+def diffusivity_first_order_eq(tau, u, velocity_set="D3Q19", dt=1.0):
+    """D_eff = (c_s^2 - u^2)(tau - 1/2) dt — the FIRST-order-equilibrium BGK
+    scheme's actual diffusivity, exactly, for flow along a lattice axis.
+
+    This is what OpenLB's ADE lattice (guide Eq. 4.21) realises: the scheme's
+    advection depletes its own diffusivity by Ma^2 = u^2/c_s^2. At u = 0.3 on
+    a c_s^2 = 1/3 lattice that is a 27% deficit, and the concentration field
+    still looks entirely plausible. Derived for D1Q3 and D2Q5(omega); other
+    sets conjectured (see UNRESOLVED["ma_squared_off_axis"]).
+    """
+    cs2 = sound_speed_squared(velocity_set)
+    return (cs2 - float(u) ** 2) * (float(tau) - 0.5) * float(dt)
+
+
+def ma2_relative_error(u, velocity_set="D3Q19"):
+    """The exact fractional diffusivity error of the first-order-equilibrium
+    scheme: -u^2/c_s^2 = -Ma^2. The coefficient is exactly -1."""
+    return -float(u) ** 2 / sound_speed_squared(velocity_set)
+
+
+def d2q5_second_order_residual(u, omega):
+    """Relative diffusivity error REMAINING with the second-order equilibrium
+    on the D2Q5(omega) family: -u^2 (3 omega - 2) / omega^2.
+
+    Zero only at omega = 2/3, where c_s^2 takes its standard 1/3. At OpenLB's
+    thermal weights (omega = 2/5) it is +5 u^2 — the standard second-order
+    term OVERCORRECTS, because it is built for moments the reduced weights do
+    not have. Lattice-verified at (omega, tau, u) = (2/5, 1, 0.2): predicted
+    +20.0%, measured ratio 1.000000000.
+    """
+    if not 0.0 < omega <= 1.0:
+        raise ValueError(f"omega must be in (0, 1], got {omega}")
+    return -float(u) ** 2 * (3.0 * omega - 2.0) / omega**2
+
+
+def advection_magic_lambda():
+    """Lambda = 1/12: the value at which the D1Q3 first-order scheme's
+    third-order dispersive error E3 = 2 u^3 (Lambda - 1/12) vanishes.
+
+    A DIFFERENT value from the wall slip's 3/16 (`zero_slip_tau`), confirming
+    by direct derivation the TRT result that no single Lambda kills both. The
+    corresponding BGK tau is 1/2 + 1/(2 sqrt(3)) = 0.78868.
+    """
+    return 1.0 / 12.0
+
+
+def _dispersion_numeric(tau, u, weights, velocities_1d, order2, cs2, k=1e-10):
+    """ln(conserved eigenvalue) coefficients from the EXACT amplification
+    matrix at 50-digit precision — the independent route the closed forms are
+    checked against. Tiny k needs no Richardson: at k = 1e-10 the k^2 term
+    sits 30 digits above the mpmath floor."""
+    from mpmath import mp, matrix, exp as mexp, log as mlog, mpc
+
+    mp.dps = 50
+    n = len(weights)
+    kk = mp.mpf(k)
+    # THE WEIGHTS MUST BE EXACT AT WORKING PRECISION. Passed as doubles,
+    # 2/3 + 1/6 + 1/6 = 1 - 5e-17, and that normalisation defect sits
+    # directly in the conserved eigenvalue — at k = 1e-10 it swamps the
+    # physical D k^2 ~ 2e-22 by five orders of magnitude and read as
+    # d_eff ~ 9252 on the first run of this check. Renormalise in mpf and
+    # derive c_s^2 from the weights so every internal identity holds at
+    # 50 digits by construction; the caller's cs2 argument only names the
+    # equilibrium convention and is superseded here.
+    w_mp = [mp.mpf(wi) for wi in weights]
+    total = sum(w_mp)
+    w_mp = [wi / total for wi in w_mp]
+    cs2_mp = sum(wi * ei**2 for wi, ei in zip(w_mp, velocities_1d))
+    q = []
+    for wi, ei in zip(w_mp, velocities_1d):
+        c = 1 + ei * mp.mpf(u) / cs2_mp
+        if order2:
+            c += (ei**2 - cs2_mp) * mp.mpf(u) ** 2 / (2 * cs2_mp**2)
+        q.append(wi * c)
+    G = matrix(n, n)
+    for i in range(n):
+        ph = mexp(mpc(0, -1) * kk * velocities_1d[i])
+        for j in range(n):
+            G[i, j] = ph * (
+                (1 - 1 / mp.mpf(tau)) * (1 if i == j else 0) + q[i] / mp.mpf(tau)
+            )
+    from mpmath import eig
+
+    vals = eig(G, left=False, right=False)
+    lam = max(vals, key=lambda z: abs(z))  # conserved mode: |lambda| -> 1
+    lnl = mlog(lam)
+    u_eff = float(-lnl.imag / kk)
+    d_eff = float(-lnl.real / kk**2)
+    return u_eff, d_eff
+
+
 def verify_limits(rtol=1e-13):
     """Derive the lattice constants from the velocity sets and check them.
 
@@ -605,7 +743,36 @@ def verify_limits(rtol=1e-13):
         (1.0 / s_bgk - 0.5) ** 2 / (3.0 / 16.0) - 1.0
     )
 
-    # 12. The unresolved items are DECLARED, not silently absent.
+    # 12. THE Ma^2 LAW, against the exact amplification matrix at 50-digit
+    #     precision — an independent numeric route, not the symbolic
+    #     derivation re-run. D1Q3 first- and second-order equilibria, and the
+    #     D2Q5 family residual at OpenLB's thermal weights.
+    d1q3_v = [0, 1, -1]
+    d1q3_w = [2.0 / 3.0, 1.0 / 6.0, 1.0 / 6.0]
+    for tau, u in ((0.6, 0.3), (1.0, 0.1), (2.0, 0.3)):
+        u_eff, d_eff = _dispersion_numeric(tau, u, d1q3_w, d1q3_v, False, 1.0 / 3.0)
+        errors[f"ma2_first_order_t{tau}_u{u}"] = abs(
+            d_eff / ((1.0 / 3.0 - u**2) * (tau - 0.5)) - 1.0
+        )
+        errors[f"ma2_u_exact_t{tau}_u{u}"] = abs(u_eff / u - 1.0)
+    _, d_eff = _dispersion_numeric(1.0, 0.3, d1q3_w, d1q3_v, True, 1.0 / 3.0)
+    errors["ma2_second_order_cancels"] = abs(d_eff / ((1.0 / 3.0) * 0.5) - 1.0)
+    om = 0.4
+    d2q5_v = [0, 1, -1, 0, 0]
+    d2q5_w = [1.0 - om] + [om / 4.0] * 4
+    _, d_eff = _dispersion_numeric(1.0, 0.2, d2q5_w, d2q5_v, True, om / 2.0)
+    expected = (om / 2.0) * 0.5 * (1.0 + d2q5_second_order_residual(0.2, om))
+    errors["ma2_d2q5_family_residual"] = abs(d_eff / expected - 1.0)
+    # ... and the residual really is zero at omega = 2/3, or the "standard
+    # weights are special" claim is hollow.
+    errors["ma2_d2q5_zero_at_two_thirds"] = abs(
+        d2q5_second_order_residual(0.5, 2.0 / 3.0)
+    )
+    # The two magic values are DIFFERENT, which is the no-free-lunch result.
+    if abs(advection_magic_lambda() - 3.0 / 16.0) < 0.05:
+        raise AssertionError("advection and wall magic values should differ")
+
+    # 13. The unresolved items are DECLARED, not silently absent.
     if not UNRESOLVED.get("bounce_back_wall_position"):
         raise AssertionError(
             "the tau-dependent wall-position gap must stay declared until it "
