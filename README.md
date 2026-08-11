@@ -6,6 +6,84 @@ explicit tolerance, logging a provenance-stamped record. It is a regression
 suite, not a one-off check: rerun it after any solver upgrade, scheme change,
 or new boundary-condition library, and diff the committed results.
 
+## Finding your way around
+
+**I want to…**
+
+| Goal | Do this |
+|---|---|
+| Run the fast checks (no solver install) | `python3 -m pytest -m analytic -v` — 27 tests, ~2 s |
+| Run everything my machine supports | `python3 -m pytest tests/ -v` (default, needs OpenFOAM 14) — see [Running](#running) |
+| Run one case, including a slow one | `python3 -m pytest tests/test_mc_channel.py -q -m ""` (the `-m ""` also selects `@slow`) |
+| See what a case tests and why | Read its YAML in `betaflow/cases/` — each carries its citations, tolerances, and their reasons |
+| Look up a measured number | `results/*.json` — see [Inspecting a results record](#inspecting-a-results-record) below |
+| Understand the design and where every case sits | `docs/DESIGN.md` (architecture, case taxonomy table, correction policy) and [The hierarchy](#the-hierarchy) |
+| Check an exact solution's own self-tests | `python3 -c "from betaflow.analytic import channel_impulse as m; print(m.verify_limits())"` — every module in `betaflow/analytic/` has `verify_limits()` |
+| Inspect a generated OpenFOAM case | `_runs/<case>/` after any run (gitignored, kept for inspection) |
+| Inspect the OpenLB app | `openlb_cases/mcChannel3d/` (C++ source with the findings as comments) + `betaflow/runners/openlb.py` |
+| Point the instruments at production output | `tools/identity_check.py`, `tools/wall_traction_compare.py` — read-only by design |
+| Re-run a solver-free audit | `python3 tools/hofmann_validity_audit.py`, `tools/eigentime_pe_sweep.py`, `tools/mc_channel_benchmark.py` |
+| Add a case or runner | [Adding a case](#adding-a-case), [Adding a runner](#adding-a-runner) |
+| Trace a correction or withdrawn claim | `git log` plus the `WITHDRAWN`/correction fields kept inside the records and docstrings |
+
+**Contents, grouped by what each section is for**
+
+*Orientation*
+- [What "validated" means here](#what-validated-means-here)
+- [The hierarchy](#the-hierarchy) — the replicate / re-examine / benchmark ladder
+- [Layout](#layout) · [Running](#running)
+
+*The fluid ladder (Tier 1, OpenFOAM)*
+- [Current cases](#current-cases) — Poiseuille, Couette, refinement, Stage A
+- [When error-accumulation reasoning applies — and when it does not](#when-error-accumulation-reasoning-applies--and-when-it-does-not)
+- [Pipe geometry: what the harness assumed](#pipe-geometry-what-the-harness-assumed) — seven quietly channel-specific assumptions
+
+*Rheology (yield stress and shear thinning)*
+- [casson_steady](#casson_steady-a-non-physical-parameter-that-changes-the-answer) · [carreau_steady](#carreau_steady-the-contrast-case) · [womersley_carreau](#womersley_carreau-verification-without-an-analytic-reference)
+
+*Particle transport (three runners, one physics)*
+- [langevin_free](#langevin_free-the-first-non-openfoam-runner) · [taylor_aris](#taylor_aris-the-last-exact-analytic-reference) · [openfoam_particles](#openfoam_particles-the-three-way-check)
+
+*The Eulerian scalar and LBM ladder*
+- [The Eulerian scalar ladder](#the-eulerian-scalar-ladder-advection-diffusion-the-schemes-own-error-and-lbm) — advection_diffusion, moments, numerical_diffusion, lattice_boltzmann, the lbm runner, OpenLB first contact
+
+*The comms benchmark (Tier 2)*
+- [mc_channel](#mc_channel-the-comms-case-and-the-first-tier-2-benchmark) — three solvers against one exact CIR; the two-regime tail; the crossover-clock sweep
+
+*Production and contribution*
+- [Conservation check on production code](#conservation-check-on-production-code) — the read-only audit of real patient runs
+- [Adding a case](#adding-a-case) · [Adding a runner](#adding-a-runner) · [OpenFOAM runner notes](#openfoam-runner-notes)
+
+## Inspecting a results record
+
+Every quoted number in this README traces to a JSON record in `results/`,
+committed alongside the code. The naming rule: case `x.yaml` ↔ test
+`tests/test_x.py` ↔ record `results/x.json` (variants get suffixes, e.g.
+`mc_channel_openfoam.json`; solver-free audits are written by their
+`tools/` script instead of a test). To read one:
+
+    python3 -m json.tool results/mc_channel_benchmark.json | less
+
+What the fields mean, in every record:
+
+- **the numbers** — whatever the case measured, with names that say which
+  quantity and which units;
+- **`meta`** — how the run was configured (solver version, mesh or particle
+  counts, timestep choices and what constrained them);
+- **`git_sha`** — the 12-character commit the code was at, suffixed
+  `-dirty` if anything tracked differed from it (regenerated outputs in
+  `results/` and `report/` do not count as dirt);
+- **`timestamp`** — UTC, seconds precision;
+- **correction fields** — a claim that was withdrawn stays in the record
+  under a `WITHDRAWN` name next to its replacement, with the reason. The
+  repository treats the trail of corrections as data, so records are
+  corrected in place, never silently swapped.
+
+CI re-runs the suite and compares every record numerically against the
+committed one (`tools/compare_results.py`, rtol 1e-3 / atol 2e-7, both
+measured); `timestamp`/`git_sha` churn is excluded, anything larger fails
+the build as a stale record.
+
 ## What "validated" means here
 
 A case is validated when, for a stated Reynolds number and mesh level,
@@ -1285,7 +1363,7 @@ has no term that can represent one rate cancelling against another.
 **All three explanations tested, with no new solve.**
 `tools/wall_traction_compare.py` (read-only), `results/stage_a_discriminators.json`.
 
-| hypothesis | test | verdict |
+| hypothesis | test | outcome |
 |---|---|---|
 | (a) the checker's surface quadrature | wedge areas and volume against their closed forms | **REFUTED** — 9e-16 at every level, including the END faces no cyclic case can exercise |
 | (b) `wallShearStress` FO ≠ the solver's momentum assembly | wall force from the FO, differenced against nu·snGrad(U) on the solver's own cell values and cell centres | **REFUTED** — 7.3e-07, 8.2e-08, 3.0e-09 (orders 3.16, 4.80) |
