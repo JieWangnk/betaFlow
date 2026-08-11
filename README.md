@@ -59,7 +59,7 @@ cross-checked by the test against the viscosity the runner actually used.
       analytic/   oracles — pure functions, no solver knowledge
       cases/      YAML case definitions (geometry, Re, oracle path, metric+tol)
       runners/    solver adapters — the ONLY layer that knows a solver exists
-                  (openfoam, openfoam_particles, langevin)
+                  (openfoam, openfoam_particles, langevin, moments, lbm)
       metrics/    error norms over plain arrays
     tests/        pytest, one test per case
     results/      logged JSON records, committed
@@ -87,9 +87,9 @@ and that duplication is the price of the isolation.
 
 ## Running
 
-    python3 -m pytest -m oracle -v   # oracles only, NO solver needed (~0.4 s)
+    python3 -m pytest -m oracle -v   # oracles only, NO solver needed (~2 s)
     python3 -m pytest tests/ -v      # default: skips @slow studies (~9 min)
-    python3 -m pytest -m "" -v       # everything (27 tests; > 32 min, not re-timed)
+    python3 -m pytest -m "" -v       # everything (42 tests; > 32 min, not re-timed)
     python3 -m pytest -m slow -v     # the 6 slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and
@@ -755,6 +755,172 @@ so at physiological velocities it is sub-nanometre and every real nanoparticle
 sits on the convection-dominated branch — which IS the content of Decuzzi
 Eq. 18. Making the minimum observable requires a slow flow. Same status as
 xi = 0.2 in casson_steady: a verification setting, not physiology.
+
+## The Eulerian scalar ladder: advection-diffusion, the scheme's own error, and LBM
+
+Everything above transports PARTICLES. A lattice-Boltzmann or finite-volume
+molecular-communications channel model transports a CONCENTRATION FIELD, and
+nothing here tested that formulation. Five components close the gap, built in
+the order oracle -> runner -> case, with the constants derived rather than
+quoted at every step.
+
+### advection_diffusion: the Eulerian twin (43 self-checks)
+
+`betaflow/analytic/advection_diffusion.py` is the Eulerian twin of
+`taylor_aris.py`: same physics, same exact answers, independent
+implementation, cross-checked module against module. The Taylor-Aris
+constants are DERIVED from the Aris cell problem with the pipe as a positive
+control — the route must return Aris's published 1/48 before its channel
+answer (2/105) is worth anything. Var(u)/U² = 1/3 (pipe) and 1/5 (channel).
+Six anchors beyond D_eff, each catching something D_eff cannot: the variance
+intercept (weights the transverse spectrum as beta^-8 where D_eff weights it
+beta^-6, so a fitted D_eff cannot absorb it), the third cumulant (EXACTLY
+blind to axial diffusion, and its sign differs between the geometries),
+<u'^3> = 0 exactly for a pipe, the transverse-distribution gate, the
+point-release centroid offset (a pulse released exactly on the u = U
+streamline still ends up permanently BEHIND, by -1/96 and -1/90), and the
+balance Peclet. A spectral route closes the same constants on Rayleigh sums
+over zeros of J1 and on zeta(4), zeta(6), zeta(8) — arithmetic identities no
+algebra slip can reproduce by luck.
+
+CITATION TRAIL, recorded per source: the channel 2/105 is anchored to
+Ajdari, Bontoux & Stone (2006), read in full; the Wooding (1960) attribution
+was WITHDRAWN after checking (it is a Hele-Shaw stability paper); and Beard
+(2001) PUBLISHED 33/560 for exactly this constant — three times the correct
+value, corrected in print by Dorfman & Brenner — which is the best available
+evidence the constant is easy to get wrong.
+
+**Corrections along the way, kept in the record:** the docstring's
+`asymptotic_onset` figure (0.63) was the value at tolerance 1e-4, not 1e-6
+(0.941); a first version claimed the pipe "has no odd/even selection rule"
+when the disc's true slowest Neumann mode is non-axisymmetric at
+beta² = 3.390, 4.331x slower than the 14.682 the symmetric case uses —
+`asymptotic_onset` now takes `symmetric_release` and returns 4.075/5.599
+when the symmetry is broken.
+
+### The moments runner: no axial mesh, on purpose
+
+`betaflow/runners/moments.py` solves the Aris moment hierarchy on the
+cross-section — the axial coordinate is integrated out EXACTLY, so the
+runner measures the transverse operator to high precision and says NOTHING
+about a solver's axial advection scheme. That scope is stated in the module,
+the case (`scalar_dispersion`), and a test that fails if the claim is
+silently outgrown. Time integration is by matrix exponential (no timestep
+error), which is what lets the variance INTERCEPT be measured to 3e-5 and
+shown to converge at second order (2.0, 2.001 pipe; 1.999, 2.0 channel) —
+the convergence assertion lives on the intercept because D_eff is already at
+1e-9 at the coarsest level and has no headroom left to measure an order
+with. One instrument finding: the point-release offset came out 7e-3 in BOTH
+geometries — two geometries agreeing to 1% is a common-cause signature — and
+was the discrete mean velocity differing from the nominal U (the G_disc
+lesson again); comparing against u_disc collapsed it to 2.5e-5.
+
+### numerical_diffusion: the scheme's own error as the oracle (16 self-checks)
+
+A solver with physical diffusivity D and numerical diffusivity D_num
+produces a pulse IDENTICAL to the exact solution for D + D_num — no single
+profile separates them. What separates them is that D_num depends on dx, Co
+and the scheme while D depends on none of those, so the discriminating
+experiment is a SWEEP. `betaflow/analytic/numerical_diffusion.py` gives
+D_num = (u dx/2)(1 - Co) for explicit upwind, derived by von Neumann
+analysis of the exact amplification factor and verified against a real 1-D
+solver at D = 0: ratio 1.0000 at nine (N, Co) combinations. At Co = 1 the
+scheme is a pure one-cell shift and EXACT (measured -1.9e-17); the -Co term
+is entirely temporal truncation. The dispersive coefficient E3 is exported
+for its SIGN STRUCTURE only (roots at Co = 1/2 and 1, both observed): its
+measured magnitude sits ~8% above prediction and does not converge, which is
+stated as unresolved rather than absorbed into a tolerance. The application
+number: at u = 0.3 m/s, dx = 0.5 mm, D = 1e-9 m²/s the artefact fraction is
+0.99999 — the scheme contributes five orders of magnitude more spreading
+than the fluid, invisibly.
+
+### lattice_boltzmann: constants derived, gaps declared, then measured (95 self-checks)
+
+`betaflow/analytic/lattice_boltzmann.py` computes every lattice constant
+from the velocity sets rather than tabulating it, and RAISES if table and
+derivation disagree. The findings, in order of sharpness:
+
+- **D = c_s²(tau - 1/2), and the -1/2 is a silent failure.** Dropping it
+  gives an error factor tau/(tau - 1/2): 1.33x at tau = 2 but 51x at
+  tau = 0.51 — a code calibrated at large tau fails by orders of magnitude
+  exactly where a low-diffusivity solute lives. tau < 1/2 is NEGATIVE
+  diffusivity: the stability boundary as a transport coefficient.
+- **c_s² is a WEIGHT FAMILY, not a lattice-name constant.** D3Q7:
+  c_s² = omega/3 with rest weight 1 - omega; the textbook omega = 3/4 gives
+  1/4, omega = 1 gives 1/3 — both published values are right for different
+  weights. The name-keying trap exists WITHIN OpenLB itself: its general
+  D2Q5 descriptor is 1/3 while its thermal MRT D2Q5 declares 0.2. Confirmed
+  at source level against an OpenLB 1.9 checkout: cs2<3,7> = {1,4} in
+  src/descriptor/definition/common.h.
+- **The reduced sets cannot carry momentum**: D2Q5 and D3Q7 fail
+  fourth-moment isotropy, so a coupled simulation needs a full set for the
+  fluid lattice whatever the scalar uses.
+- **The Ma² law, RESOLVED by derivation**: the first-order-equilibrium BGK
+  scheme (which OpenLB's ADE dynamics use, source-confirmed) realises
+  D_eff = (c_s² - u²)(tau - 1/2) = D(1 - Ma²) — the coefficient is exactly
+  -1. The second-order equilibrium cancels it at standard weights and
+  OVERCORRECTS by +5u² on OpenLB's thermal D2Q5 weights. Derived by the
+  same von Neumann route, then verified on an actual lattice at ratio
+  1.000000000.
+- **The ADE Dirichlet slip and the magic parameter**: anti-bounce-back
+  walls leave a uniform offset vanishing only at
+  Lambda = (tau - 1/2)² = 3/16 (arXiv:1603.09577, whose printed Eq. 73
+  carries a SIGN ERROR — the corrected relation satisfies the magic
+  condition identically, recorded alongside Beard 2001). The slip converges
+  as 1/N², so it is NOT the wedge-bias analogue: it inflates the constant,
+  not the order.
+
+Still open, declared in `UNRESOLVED`: the Ma² law off-axis and in 3-D, and
+the tau-dependent MOMENTUM bounce-back wall position (its one sourced claim
+failed adversarial verification 0-3; He/Zou/Luo/Dembo 1997 and Ginzburg's
+TRT papers remain unread).
+
+### The lbm runner: the oracle measured on an actual lattice
+
+`betaflow/runners/lbm.py` (pure numpy, D1Q3 + D2Q5(omega), both equilibrium
+orders, periodic ring + anti-bounce-back walls with source) confronts every
+oracle claim with a real collide-and-stream lattice — `tests/test_lbm.py`,
+~5 s, default tier. The slip experiment BISECTS the measured slip and lands
+the zero at tau = 0.9330127019 against the exact 1/2 + sqrt(3)/4 =
+0.9330127019: Lambda = 3/16 to ten digits, MEASURED. Three convention
+findings the measurement forced: the published prefactor is off by exactly 4
+until the paper's N is read as the HALF-width; the simple source scheme
+shifts the whole curve by exactly -S/2 (the missing half-step of the He-Luo
+scalar redefinition); and at fixed lattice source the slip is N-independent,
+which IS the published 1/N² law since Delta_phi grows as N².
+
+### OpenLB first contact: the depletion law in the wild
+
+OpenLB 1.9 was built from source and its shipped ADE benchmark
+(advectionDiffusion1d, the Simonis-Frank-Krause 2020 setup) run as shipped:
+N = 50, latticeU = 0.4, tau = 5, requested D = 1.5. Measured FROM ITS OWN
+WRITTEN FIELDS (`tools/openlb_first_contact.py`, read-only;
+`results/openlb_first_contact.json`):
+
+    D_eff = 0.908   against a requested 1.5    (40% deficit)
+    u_eff = 9.09    against a requested 10     (9% slow)
+
+against the exact-eigenvalue prediction 0.9031 / 9.102 — agreement 0.5% and
+0.1%. The converter itself is right (its tau = 5 satisfies
+D = c_s²(tau - 1/2) exactly); the depletion is the SCHEME's. The example's
+own error print decays reassuringly (0.161 -> 0.024) while the realised
+transport coefficients sit 40% and 9% off — the reassuring-headline-next-to-
+silently-wrong-physics structure again, in the target code's shipped
+benchmark. No blame attaches to the published EOC study (diffusive scaling
+puts this error inside the O(N^-2) budget); the trap is any FIXED-resolution
+run at the shipped latticeU. One refinement flowed back into the oracle: at
+large tau the k -> 0 law saturates slowly (0.78 vs the true 0.9031 even at
+k = 0.123), so quote the eigenvalue at the actual wavenumber.
+
+**Instrument failures during this strand, recorded where they happened:**
+the modified-equation route gave E3 a single root where the measurement
+showed two (the Fourier route needs no substitution and got both); a
+constant 0.998667 measurement ratio was attributed to a plausible k⁴
+truncation story until a pulse-width sweep refuted it — the cause was an
+off-by-one, 749 elapsed steps divided by 750; and a 50-digit eigenvalue
+check read d_eff ~ 9252 because weights passed as doubles sum to 1 - 5e-17,
+which sits directly in the conserved eigenvalue. Naming the alternative was
+not enough for the first of these; TESTING it was what caught the bug.
 
 ## openfoam_particles: the three-way check
 
