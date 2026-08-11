@@ -13,6 +13,7 @@ import pytest
 
 from betaflow.analytic import (
     advection_diffusion,
+    lattice_boltzmann,
     numerical_diffusion,
     brownian,
     carreau,
@@ -342,3 +343,93 @@ def test_numerical_diffusion_self_verification():
 def test_numerical_diffusion_rejects_unknown_scheme():
     with pytest.raises(ValueError):
         numerical_diffusion.numerical_diffusivity(1.0, 0.01, 0.5, "quick")
+
+
+def test_lattice_boltzmann_constants_are_derived_not_tabulated():
+    """Every lattice constant is computed from the velocity set itself.
+
+    The tabulated values exist for convenience; `verify_limits` re-derives
+    c_s^2 from the second moment and the Navier-Stokes capability from the
+    fourth, and raises if the table and the derivation ever disagree.
+    """
+    lb = lattice_boltzmann
+    out = lb.verify_limits()
+    assert out, "verify_limits returned no checks"
+
+    # c_s^2 read off the second moment, not from the table.
+    for name in lb.VELOCITY_SETS:
+        _, m2, _, _ = lb.moment_tensors(name)
+        assert float(np.diag(m2)[0]) == pytest.approx(
+            lb.sound_speed_squared(name), rel=1e-14
+        )
+
+    # THE D3Q7 TRAP: every other set is 1/3, and D3Q7 is 1/4. It is the
+    # smallest 3-D set, so it is the one a scalar lattice reaches for.
+    assert lb.sound_speed_squared("D3Q7") == pytest.approx(0.25, rel=1e-15)
+    for name in ("D1Q3", "D2Q5", "D2Q9", "D3Q19", "D3Q27"):
+        assert lb.sound_speed_squared(name) == pytest.approx(1 / 3, rel=1e-15)
+    # Using 1/3 for D3Q7 inflates every diffusivity by exactly 4/3.
+    assert (1 / 3) / lb.sound_speed_squared("D3Q7") == pytest.approx(4 / 3, rel=1e-15)
+
+    # The reduced sets cannot carry momentum: their FOURTH moment is not
+    # isotropic, so they are advection-diffusion lattices only.
+    assert not lb.is_navier_stokes_capable("D2Q5")
+    assert not lb.is_navier_stokes_capable("D3Q7")
+    for name in ("D2Q9", "D3Q19", "D3Q27"):
+        assert lb.is_navier_stokes_capable(name)
+
+
+def test_lattice_boltzmann_relaxation_relation():
+    """D = c_s^2 (tau - 1/2) dt, and what dropping the -1/2 costs.
+
+    The error factor is tau/(tau - 1/2): 1.33x at tau = 2 and 51x at
+    tau = 0.51. That tau-dependence is what makes it a SILENT failure — a code
+    calibrated at large tau looks acceptable and is then wrong by orders of
+    magnitude in the low-diffusivity regime a solute transport case demands,
+    while the concentration field still looks like a diffusing pulse.
+    """
+    lb = lattice_boltzmann
+
+    # The relation and its inverse are consistent at every set and tau.
+    for name in lb.VELOCITY_SETS:
+        for tau in (0.55, 1.0, 3.0):
+            d = lb.diffusivity(tau, name, dt=0.25)
+            assert lb.tau_from_diffusivity(d, name, dt=0.25) == pytest.approx(
+                tau, rel=1e-13
+            )
+
+    # tau = 1/2 is exactly zero diffusivity; below it the diffusivity is
+    # NEGATIVE — the stability boundary as a transport coefficient, the same
+    # structure central differencing has in numerical_diffusion.
+    assert lb.diffusivity(0.5, "D3Q19") == 0.0
+    assert lb.diffusivity(0.49, "D3Q19") < 0.0
+    assert numerical_diffusion.numerical_diffusivity(
+        1.0, 0.01, 0.5, "central_explicit"
+    ) < 0.0
+
+    # The error factor is independent of the velocity set and of dt, because
+    # c_s^2 dt cancels — so it is a property of the omission, not of the case.
+    for tau, expect in ((2.0, 4 / 3), (1.0, 2.0), (0.6, 6.0), (0.51, 51.0)):
+        assert lb.naive_error_factor(tau) == pytest.approx(expect, rel=1e-12)
+        for name, dt in (("D3Q7", 3.3), ("D2Q9", 0.1)):
+            ratio = lb.diffusivity_naive(tau, name, dt) / lb.diffusivity(tau, name, dt)
+            assert ratio == pytest.approx(expect, rel=1e-12)
+
+    # It DIVERGES as tau -> 1/2, which is exactly the low-diffusivity limit.
+    assert lb.naive_error_factor(0.5001) > 1000.0
+
+
+def test_lattice_boltzmann_declares_what_it_has_not_established():
+    """The unverified items must stay declared rather than silently absent.
+
+    The tau-dependent bounce-back wall position is the analogue of the wedge
+    faceting bias this repo documents — refinement-independent and invisible
+    in a velocity profile. No coefficient is given because none has been
+    verified here, and deleting the entry is not the same as closing it.
+    """
+    lb = lattice_boltzmann
+    for key in ("ma_squared_advection_error", "bounce_back_wall_position",
+                "ade_wall_condition"):
+        assert key in lb.UNRESOLVED and lb.UNRESOLVED[key].strip()
+    with pytest.raises(ValueError):
+        lb.diffusivity(1.0, "D3Q13")
