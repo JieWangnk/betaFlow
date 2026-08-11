@@ -93,8 +93,11 @@ def complex_wall_shear(alpha):
     Identical magnitude and phase at both walls. Equals tanh(K)/K, which is
     also h(G - d<u>/dt) in these units — the conservation identity.
     As alpha -> 0 this tends to 1 (quasi-steady Poiseuille tau = G h);
-    for large alpha, |tanh(K)/K| ~ sqrt(2)/alpha — the WSS becomes a small
-    difference between the two large terms G and d<u>/dt.
+    for large alpha, |tanh(K)/K| -> 1/alpha exactly (|K| = alpha, tanh -> 1;
+    measured 1.000000/alpha at alpha = 100) — the WSS becomes a small
+    difference between the two large terms G and d<u>/dt. CORRECTED: this
+    line said sqrt(2)/alpha, conflating |K| with alpha/sqrt(2); the code was
+    always right and the pipe/channel ratio (exactly 2) is unaffected.
     """
     K = _K(alpha)
     return np.tanh(K) / K
