@@ -1,0 +1,62 @@
+# Lattice-Boltzmann advection-diffusion, measured against its own oracle.
+#
+# WHY THIS CASE EXISTS. betaflow/analytic/lattice_boltzmann.py states what an
+# LBM ADE code must satisfy - D = c_s^2(tau - 1/2), the Ma^2 depletion law
+# D_eff = (c_s^2 - u^2)(tau - 1/2), and the anti-bounce-back Dirichlet slip
+# vanishing at Lambda = 3/16. Until this case those were checked by algebra
+# (symbolic dispersion relations, 50-digit eigenvalue expansions). This case
+# runs an ACTUAL collide-and-stream lattice (runners/lbm.py, pure numpy)
+# against the same statements, closing the loop before any external LBM code
+# (OpenLB) is measured against the oracle.
+#
+# TWO EXPERIMENTS in one case, mirroring the runner:
+#   dispersion    - the relaxation relation and the Ma^2 law, from the
+#                   variance growth of a pulse on a periodic ring
+#   dirichlet_slip- the anti-bounce-back slip: zero at tau = 1/2 + sqrt(3)/4,
+#                   sign flip, published prefactor under the matched
+#                   convention (the paper's N is the HALF-width)
+#
+# CITATIONS: all in betaflow/analytic/lattice_boltzmann.py, including the
+# recorded status of each source (read / abstract-only / not read).
+name: lbm_scalar
+
+experiment: dispersion   # default; the test overrides per sub-experiment
+
+numerics:
+  lattice: D1Q3
+  n_cells: 1024
+  steps: 800
+  sigma0: 30.0
+  # Slip experiment defaults
+  source: 1.0e-4
+  phi_wall: 1.0
+  steady_tol: 1.0e-13
+  max_steps: 400000
+  source_scheme: corrected
+
+study:
+  # The -1/2 at its sharpest: at tau = 0.51 the naive relation D = c_s^2 tau
+  # is 51x too large, and the run must land on the correct 0.00333.
+  tau_sweep: [0.51, 0.6, 1.0, 2.0]
+  # Ma^2 law: fractional depletion is exactly -u^2/c_s^2 for the first-order
+  # equilibrium; the second-order equilibrium cancels it at standard weights.
+  u_sweep: [0.0, 0.1, 0.3]
+  # Slip sweep straddles the magic tau = 0.9330127.
+  slip_tau_sweep: [0.6, 0.8, 0.9, 1.0, 1.2, 1.5]
+  slip_n: 32
+  slip_n_sweep: [16, 32, 64]
+
+metrics:
+  - name: d_relative
+    # The dispersion measurement is deterministic and the prediction exact;
+    # the tolerance covers only the finite-pulse sampling of the dispersion
+    # relation's higher-k terms.
+    tol: 1.0e-6
+  - name: slip_vs_published
+    # Under the matched half-width convention the agreement is exact; 1e-3
+    # covers the steady-state iteration floor relative to small slips.
+    tol: 1.0e-3
+  - name: slip_zero_tau
+    # The measured zero-crossing must land on 1/2 + sqrt(3)/4 within the
+    # resolution of the tau sweep's interpolation.
+    tol: 1.0e-3
