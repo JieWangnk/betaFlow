@@ -488,11 +488,14 @@ def test_lattice_boltzmann_declares_what_it_has_not_established():
     refinement-independent framing across.
     """
     lb = lattice_boltzmann
-    # ma_squared_advection_error is gone because it is RESOLVED (derived and
-    # lattice-verified); what remains open is its off-axis/3-D scope.
+    # ma_squared_advection_error is RESOLVED (derived and lattice-verified);
+    # openlb_d3q7_descriptor is RESOLVED against an OpenLB 1.9.0 checkout
+    # (cs2<3,7> = {1,4} in src/descriptor/definition/common.h). What remains
+    # open is the Ma^2 law's off-axis/3-D scope and the momentum-lattice
+    # wall position.
     assert "ma_squared_advection_error" not in lb.UNRESOLVED
-    for key in ("ma_squared_off_axis", "bounce_back_wall_position",
-                "openlb_d3q7_descriptor"):
+    assert "openlb_d3q7_descriptor" not in lb.UNRESOLVED
+    for key in ("ma_squared_off_axis", "bounce_back_wall_position"):
         assert key in lb.UNRESOLVED and lb.UNRESOLVED[key].strip()
     with pytest.raises(ValueError):
         lb.diffusivity(1.0, "D3Q13")

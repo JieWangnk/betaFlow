@@ -310,11 +310,19 @@ UNRESOLVED = {
         "(see ade_dirichlet_slip), so do not carry the 'refinement-"
         "independent' framing across to it."
     ),
-    "openlb_d3q7_descriptor": (
-        "OpenLB's c_s^2 = 1/4 for D3Q7 is INFERRED by inverting guide "
-        "Eq. 4.58; the guide never prints the weights. Confirm cs2<3,7> in "
-        "src/dynamics/latticeDescriptors.h of a checkout before relying on it."
-    ),
+    # RESOLVED 2026-08-11 against an OpenLB 1.9.0 checkout (gitlab.com/
+    # openlb/release, commit 3dedbdd2c4d5). src/descriptor/definition/
+    # common.h defines cs2<3,7> = {1,4} with weights t<3,7> = {1/4, 1/8 x6}
+    # — the omega = 3/4 family member, exactly as inferred from guide
+    # Eq. 4.58. The same file defines cs2<2,5> = {1,3} (weights 1/3, 1/6 x4,
+    # the omega = 2/3 member) for the GENERAL D2Q5 descriptor, while the
+    # guide's thermal MRT D2Q5 declares c_s^2 = 0.2 — so the two-conventions-
+    # under-one-name trap exists WITHIN OpenLB itself, not only across the
+    # literature. And src/dynamics/advectionDiffusionDynamics.h builds every
+    # ADE dynamics from equilibria::FirstOrder (lines 107, 177, 189), which
+    # upgrades the guide-level 2-1 claim to source-verified: the Ma^2
+    # depletion law D_eff = (c_s^2 - u^2)(tau - 1/2) is the law OpenLB's
+    # scalar lattice obeys.
 }
 
 
