@@ -81,7 +81,7 @@ why it needed its own null test first.
       analytic/   analytic references — pure functions, no solver knowledge
       cases/      YAML case definitions (geometry, Re, analytic reference path, metric+tol)
       runners/    solver adapters — the ONLY layer that knows a solver exists
-                  (openfoam, openfoam_particles, langevin, moments, lbm)
+                  (openfoam, openfoam_particles, langevin, moments, lbm, openlb)
       metrics/    error norms over plain arrays
     tests/        pytest, one test per case
     results/      logged JSON records, committed
@@ -110,16 +110,17 @@ and that duplication is the price of the isolation.
 ## Running
 
     python3 -m pytest -m analytic -v   # analytic tier, NO solver needed (27 tests, ~2 s)
-    python3 -m pytest tests/ -v      # default: skips @slow studies (39 tests)
-    python3 -m pytest -m "" -v       # everything (46 tests; > 32 min, not re-timed)
-    python3 -m pytest -m slow -v     # the 7 slow studies alone
+    python3 -m pytest tests/ -v      # default: skips @slow studies (40 tests)
+    python3 -m pytest -m "" -v       # everything (49 tests; > 45 min, not re-timed)
+    python3 -m pytest -m slow -v     # the 9 slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and
 wired into `.github/workflows/ci.yml`: the analytic tier gates every push with no
-solver install, the default tier runs on push, the full tier runs nightly. Seven
+solver install, the default tier runs on push, the full tier runs nightly. Nine
 tests are marked slow — the casson two-axis grid, womersley_carreau,
-taylor_aris, the langevin error distribution, and both `openfoam_particles`
-tests. `langevin_free` needs no solver and runs in ~5 s under the `langevin`
+taylor_aris, the langevin error distribution, the three `openfoam_particles`
+tests, and the OpenLB mc_channel run (skipped cleanly when the OpenLB build
+is absent). `langevin_free` needs no solver and runs in ~5 s under the `langevin`
 runner; the same case under `openfoam_particles` needs OpenFOAM 14 and
 `libbrownianTracerCloud.so`.
 
@@ -996,6 +997,67 @@ Both tests are `@slow` and need OpenFOAM 14 plus
 `libbrownianTracerCloud.so`; the runner resolves `FOAM_USER_LIBBIN` through
 the OF14 bashrc, because fresh shells on this machine default to OF12. The
 analytic tier is unaffected (14/14, no solver).
+
+## mc_channel: the comms case, and the first Tier-2 benchmark
+
+The molecular-communications channel impulse response (CIR): release
+particles at t = 0, uniformly over a pipe's cross-section, and count the
+fraction inside a transparent receiver window over time. Geometry and
+Pe = 200 are Hofmann et al. 2024's Table 1 (doi:10.1109/ACCESS.2024.3438243);
+the exact flow-dominated solution (their Eq. 13) was re-derived
+independently via the uniform-speed lemma before use
+(`betaflow/analytic/channel_impulse.py`, 18 self-checks). The dimensional
+split V = 1.5 mm/s, D = 1.5e-9 m^2/s is ours and the case YAML says so.
+
+**The analytic model's own limits, from the analytic tier**
+(`results/hofmann_validity_audit.json`): the model's log-divergent tail can
+describe at most 27 / 6.8 / 3.4 peak-times past release at the three
+receivers — the crossover eigentime 2 Pe a / (beta_1^2 (dbar + c_x/2)),
+split-independent. The middle receiver's predicted 6.8 t2 agrees with the
+crossover MEASURED at 6.5 t2, two independent routes to one number.
+
+**Three solver legs, one referee** (`results/mc_channel*.json`, collated in
+`results/mc_channel_benchmark.json`):
+
+- **langevin** — exact kinematics at D = 0 (closed-form positions, binomial
+  tolerances: RMSE at 1.06-1.27x its floor, pre-onset counts exactly zero);
+  at physical D the tail departs in TWO regimes, in the OPPOSITE order to
+  the prediction written beforehand: enhanced up to 1.6x at 5 t2 (the
+  upstream reservoir, ~ dbar/c_x times the window population, is pumped in
+  faster than the window drains), then terminated — exactly zero by 12 t2
+  where the model predicts 1e-2. The wrong prediction stays in
+  `runners/langevin.py` with its correction.
+- **openfoam_particles** — the Hofmann replication rung: their published
+  model has no diffusion, so the D = 0 run IS their model class
+  (MPPIC-faithful replication is impossible in stock OF14, and the authors'
+  DMPPIC source is deleted with no archive — both recorded). RMSE
+  1.22-1.39x the binomial floor; the predicted one-sign interpolation bias
+  is below resolution at N = 2e4 and recorded as unresolved. At physical D
+  it CROSS-CONFIRMS the two-regime tail: enhancement 9.2x its noise bound,
+  termination to exactly zero at 12 t2.
+- **openlb** — the Eulerian scalar on the D3Q7 ADE lattice, prescribed
+  Poiseuille, bounce-back walls. Stability PINS tau against 1/2
+  (u_lat = (tau-1/2) c_s^2 Pe_cell; tau = 0.6 diverged, measured), which
+  forces the corner where only the eigenvalue law D = c_s^2(tau-1/2)
+  survives. OpenLB's converter realises the requested tau to 6 decimals.
+  Peaks lag t2 by +4.0% at all three receivers; the far tail reads
+  1.3-1.6x the flow-dominated reference — ABOVE the particle legs'
+  physical enhancement, the excess being numerical dispersion at cell
+  Peclet 33 (ringing minima to -9.5e-3 at the near receiver). Three
+  instrumentation findings en route: `momenta::setDensity` never reaches
+  bounce-back cells; stock `BounceBack` density reads a FIXED 1; the
+  `BulkDensity` variant reads the Revert collision's period-2 cycle — so
+  no density functor on bounce-back cells is mass accounting, and the CIR
+  uses bulk-only sums with the parked-mass decline (-2.7%) named, bounded,
+  and recorded.
+
+The Tier-2 statement: what the two independent particle implementations
+agree on is the physics; OpenLB's excess over that is its numerical
+transport error at the parameter point stability forces on it. For
+inter-symbol interference the flow-dominated model underestimates while
+the tail is enhanced and overestimates after the termination — and its
+Eulerian competitors carry the same limitation plus their scheme's own
+dispersion.
 
 ## Conservation check on production code
 

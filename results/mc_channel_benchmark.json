@@ -1,0 +1,115 @@
+{
+  "case": "mc_channel",
+  "tier": 2,
+  "referee": "betaflow/analytic/channel_impulse.py (18 self-checks)",
+  "validity_audit": "results/hofmann_validity_audit.json",
+  "legs_present": [
+    "langevin",
+    "openfoam_particles",
+    "openlb"
+  ],
+  "legs_missing": [],
+  "legs": {
+    "langevin": {
+      "record": "results/mc_channel.json, mc_channel_departure.json",
+      "replication_rung": {
+        "rmse_over_binomial_floor": [
+          1.060404662479428,
+          1.2675280920852996,
+          1.1974146940549533
+        ],
+        "pre_onset_exact_zero": true
+      },
+      "own_prediction_status": "binomial laws hold (band 1.06-1.27x)",
+      "departure_peak_over_reference": [
+        0.9399999999999997,
+        0.9325333333333333,
+        0.9343999999999998
+      ],
+      "departure_middle_tail": {
+        "enhancement_excess_3_to_5_t2": 0.007854805828044152,
+        "enhancement_sigma_bound": 0.0005382378529980656,
+        "cir_at_12_t2_measured": 0.0,
+        "cir_at_12_t2_reference": 0.010416666666666673,
+        "crossover_t_over_tau_r": 0.020149999999999998,
+        "crossover_t_beta1sq_over_tau_r": 0.29584170843763635,
+        "eigentime_hypothesis": "crossover ~ tau_r/beta_1^2, from one seed at one parameter point; a Pe sweep would test it"
+      },
+      "wall_clock_this_machine": "~7 s (both rungs, numpy)"
+    },
+    "openfoam_particles": {
+      "record": "results/mc_channel_openfoam.json",
+      "replication_rung": {
+        "rmse_over_binomial_floor": [
+          1.3868372914766525,
+          1.2178013945385706,
+          1.2209218238924264
+        ],
+        "pre_onset_exact_zero": true,
+        "centroid_shift_t2_units": [
+          -0.39574887952683097,
+          -0.023726760653240347,
+          0.0755178577992165
+        ]
+      },
+      "own_prediction_status": "binomial laws hold; the one-sign interpolation-bias prediction is UNRESOLVED at N = 2e4 (centroid shifts sub-0.1% of t2, mixed signs)",
+      "departure_peak_over_reference": [
+        0.9141999999999998,
+        0.9408,
+        0.9487999999999998
+      ],
+      "departure_middle_tail": {
+        "enhancement_excess_3_to_5_t2": 0.008537902950511383,
+        "enhancement_sigma_bound": 0.0009265870236740538,
+        "cir_at_12_t2_measured": 0.0,
+        "cir_at_12_t2_reference": 0.010416666666666671
+      },
+      "replication_claim": "D = 0 replicates Hofmann et al. 2024's published model class (Lagrangian particles in flow, no diffusion). Method-class, not MPPIC-faithful: stock OF14 registers the Brownian force only for thermo-family clouds MPPIC cannot construct, and the authors' DMPPIC solver source is deleted from GitHub with no archived copy (both verified 2026-08).",
+      "wall_clock_this_machine": "~4 min (both rungs, OF14 tracking)"
+    },
+    "openlb": {
+      "record": "results/mc_channel_openlb.json",
+      "peak_lag_relative": [
+        0.03999999999949999,
+        0.039999999998749924,
+        0.04000000000062509
+      ],
+      "peak_over_slug_averaged_reference": [
+        1.1544968872433246,
+        1.1672553178302474,
+        1.039857323532789
+      ],
+      "ringing_min": [
+        -0.00953998059647,
+        -0.00141653540612,
+        -0.000807477321926
+      ],
+      "mass_final_over_initial": 0.9725773078283978,
+      "own_prediction_status": "stability-pinned tau realised by OpenLB's converter to 6 decimals; predicted first-order depletion 0.64% (sub-dominant); wall instrumentation findings recorded",
+      "wall_clock_this_machine": "~2 min (res 12, 15.6k steps, SISD; the full pytest leg measured 115 s)"
+    }
+  },
+  "cross_solver": {
+    "statement": "Two independent particle implementations agree on the two-regime tail (enhancement then termination) and on peak depression at physical D; OpenLB reproduces the direction with a larger magnitude, the excess being its numerical dispersion at the stability-forced parameter point (cell Peclet 33, tau - 1/2 = 4.8e-3).",
+    "peak_over_reference_by_solver": {
+      "langevin": [
+        0.9399999999999997,
+        0.9325333333333333,
+        0.9343999999999998
+      ],
+      "openfoam_particles": [
+        0.9141999999999998,
+        0.9408,
+        0.9487999999999998
+      ],
+      "openlb_vs_slug_averaged": [
+        1.1544968872433246,
+        1.1672553178302474,
+        1.039857323532789
+      ]
+    },
+    "termination_cross_confirmed": "both particle legs measure CIR = 0 at 12 t2 (middle receiver) where the flow-dominated model predicts 1.04e-2"
+  },
+  "git_sha": "d234845db88c-dirty",
+  "timestamp": "2026-08-11T14:43:38+00:00"
+}
