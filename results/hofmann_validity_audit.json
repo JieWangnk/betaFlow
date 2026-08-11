@@ -1,0 +1,81 @@
+{
+  "paper": "Hofmann et al. 2024, doi:10.1109/ACCESS.2024.3438243",
+  "peclet_paper": 200.0,
+  "dimensional_split_ours": {
+    "v_mean": 0.0015,
+    "diffusivity": 1.5e-09
+  },
+  "tau_r_s_split_dependent": 26.666666666666668,
+  "eigentime_s_split_dependent": 1.8162866087105618,
+  "eigentime_over_tau_r": 0.06811074782664606,
+  "crossover_hypothesis": "measured CIR leaves the flow-dominated model at ~0.95 tau_r/beta_1^2 (one seed, one parameter point; results/mc_channel_departure.json)",
+  "receivers": [
+    {
+      "dbar_um": 150.0,
+      "flow_dominated_ratio_paper": 66.66666666666667,
+      "t1_s_split_dependent": 0.03333333333333333,
+      "t2_s_split_dependent": 0.06666666666666667,
+      "model_valid_tail_extent_t2_units": 27.244299130658426,
+      "peak_value": 0.5000000000000001
+    },
+    {
+      "dbar_um": 750.0,
+      "flow_dominated_ratio_paper": 13.333333333333334,
+      "t1_s_split_dependent": 0.23333333333333334,
+      "t2_s_split_dependent": 0.26666666666666666,
+      "model_valid_tail_extent_t2_units": 6.811074782664606,
+      "peak_value": 0.125
+    },
+    {
+      "dbar_um": 1550.0,
+      "flow_dominated_ratio_paper": 6.451612903225807,
+      "t1_s_split_dependent": 0.5,
+      "t2_s_split_dependent": 0.5333333333333333,
+      "model_valid_tail_extent_t2_units": 3.4055373913323033,
+      "peak_value": 0.06250000000000001
+    }
+  ],
+  "eulerian_counterfactual": {
+    "scheme": "first-order upwind, explicit, Co = 0.5",
+    "statement": "what an Eulerian FV discretisation would suffer at these parameters; their published method is Lagrangian and this quantifies that choice",
+    "mesh_sweep": [
+      {
+        "cells_per_radius": 5,
+        "dx_um": 40.0,
+        "cell_peclet": 40.00000000000001,
+        "d_num_over_d": 10.000000000000002,
+        "artefact_fraction": 0.9090909090909091
+      },
+      {
+        "cells_per_radius": 10,
+        "dx_um": 20.0,
+        "cell_peclet": 20.000000000000004,
+        "d_num_over_d": 5.000000000000001,
+        "artefact_fraction": 0.8333333333333334
+      },
+      {
+        "cells_per_radius": 25,
+        "dx_um": 8.0,
+        "cell_peclet": 8.0,
+        "d_num_over_d": 2.0,
+        "artefact_fraction": 0.6666666666666667
+      },
+      {
+        "cells_per_radius": 50,
+        "dx_um": 4.0,
+        "cell_peclet": 4.0,
+        "d_num_over_d": 1.0,
+        "artefact_fraction": 0.5
+      },
+      {
+        "cells_per_radius": 100,
+        "dx_um": 2.0,
+        "cell_peclet": 2.0,
+        "d_num_over_d": 0.5,
+        "artefact_fraction": 0.33333333333333337
+      }
+    ]
+  },
+  "git_sha": "1333c202b854-dirty",
+  "timestamp": "2026-08-11T14:15:30+00:00"
+}
