@@ -42,15 +42,12 @@ jobs:
       - name: Default tier
         run: python -m pytest -m "not slow" -v
       - name: Results must match what is committed
-        # The suite rewrites results/; a diff means the NUMBERS moved and the
-        # committed record is stale. Provenance is the point of this repo.
-        # timestamp and git_sha lines change on every run BY DESIGN, so the
-        # gate ignores exactly those two keys and nothing else — as first
-        # written it compared them too and would have failed on every run
-        # that ever succeeded.
-        run: |
-          git diff --stat -I'"timestamp"' -I'"git_sha"' -- results/ report/
-          git diff --quiet -I'"timestamp"' -I'"git_sha"' -- results/ report/
+        # NUMERIC comparison against the committed record, with a stated
+        # tolerance. Three text-diff versions of this gate each failed for a
+        # documented reason (see tools/compare_results.py): provenance keys,
+        # markdown provenance lines, and cross-machine scipy trailing-digit
+        # jitter that no text diff can distinguish from a real regression.
+        run: python tools/compare_results.py
       - uses: actions/upload-artifact@v4
         if: always()
         with:
