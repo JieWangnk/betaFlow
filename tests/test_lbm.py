@@ -1,9 +1,9 @@
-"""The lattice-Boltzmann runner against the lattice-Boltzmann oracle.
+"""The lattice-Boltzmann runner against the lattice-Boltzmann analytic reference.
 
-The oracle's claims were established by algebra — symbolic dispersion
+The analytic reference's claims were established by algebra — symbolic dispersion
 relations, 50-digit eigenvalue expansions. This test confronts them with an
 actual collide-and-stream lattice, and it is the reference contact: when an
-external LBM code (OpenLB) is measured against the oracle later, any
+external LBM code (OpenLB) is measured against the analytic reference later, any
 disagreement is localised against a lattice that is KNOWN to agree.
 
 Three measurements, in increasing order of novelty:
@@ -15,7 +15,7 @@ Three measurements, in increasing order of novelty:
      exactly u^2 (tau - 1/2); the second-order equilibrium cancels it at
      standard weights and OVERCORRECTS by +5 u^2 at OpenLB's thermal D2Q5
      weights (omega = 2/5).
-  3. THE SLIP EXPERIMENT — the measurement the oracle did not have. The
+  3. THE SLIP EXPERIMENT — the measurement the analytic reference did not have. The
      anti-bounce-back Dirichlet slip vanishes at Lambda = (tau-1/2)^2 = 3/16
      and matches the published formula at every tau under the matched
      convention (the paper's N is the half-width in lattice spacings; the
@@ -50,7 +50,7 @@ def test_lbm_scalar():
         "case": case["name"],
         "runner": "lbm",
         "note": "pure-numpy collide-and-stream; the reference contact for the "
-                "lattice_boltzmann oracle before any external LBM code",
+                "lattice_boltzmann analytic reference before any external LBM code",
     }
 
     # --- 1. The relaxation relation, sharpest at tau = 0.51 ----------------

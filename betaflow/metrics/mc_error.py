@@ -2,7 +2,7 @@
 
 There is no "the Monte Carlo error law". There is the law for THIS estimator
 on THIS fit, and the four below differ by up to a factor of two. Using one
-where another belongs is the statistical analogue of reusing a channel oracle
+where another belongs is the statistical analogue of reusing a channel analytic reference
 on a pipe: the number looks reasonable and is wrong by an O(1) factor.
 
 Every law here is a relative standard deviation, to be divided by sqrt(N).

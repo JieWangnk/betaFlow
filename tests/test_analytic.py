@@ -1,6 +1,6 @@
-"""Oracle self-verification — pure analytic checks, NO solver required.
+"""Analytic reference self-verification — pure analytic checks, NO solver required.
 
-Every oracle in the repo is ground truth for a case, so each one is itself
+Every analytic reference in the repo is ground truth for a case, so each one is itself
 verified here against independent analytic facts: exact limits, closed-form
 identities, and differentiated forms. This is the "verify the verifier" tier.
 
@@ -25,7 +25,7 @@ from betaflow.analytic import (
     womersley,
 )
 
-pytestmark = pytest.mark.oracle
+pytestmark = pytest.mark.analytic
 
 
 def test_poiseuille_relations():
@@ -110,7 +110,7 @@ def test_carreau_stress_balance():
 
 
 def test_carreau_reduces_to_poiseuille():
-    """With no thinning (k -> 0) the Carreau oracle IS the Poiseuille oracle."""
+    """With no thinning (k -> 0) the Carreau analytic reference IS the Poiseuille analytic reference."""
     g, nu0, h = 0.4, 0.02, 1.0
     y = np.linspace(0.0, h, 9)
     np.testing.assert_allclose(
@@ -159,7 +159,7 @@ def test_brownian_fluctuation_dissipation():
 
 
 def test_advection_diffusion_self_verification():
-    """The Eulerian scalar oracle, and its cross-check against taylor_aris.
+    """The Eulerian scalar analytic reference, and its cross-check against taylor_aris.
 
     `verify_limits` raises on any failure, so calling it IS the test. The
     assertions below restate the results a reader would want named.
@@ -218,7 +218,7 @@ def test_advection_diffusion_rejects_unknown_geometry():
 def test_advection_diffusion_release_symmetry_changes_the_fit_window():
     """The onset depends on the RELEASE, not on the geometry alone.
 
-    A CORRECTION to the first version of this oracle, which claimed the pipe
+    A CORRECTION to the first version of this analytic reference, which claimed the pipe
     had no odd/even selection rule. It has the same rule and a larger gap: the
     Neumann Laplacian on a disc carries non-axisymmetric modes J_p(beta r/a)
     with J_p'(beta) = 0, and j'_{1,1}^2 = 3.390 is 4.331x slower than the
@@ -293,7 +293,7 @@ def test_advection_diffusion_independent_anchors():
 
 
 def test_numerical_diffusion_self_verification():
-    """The scheme's own error, as an oracle.
+    """The scheme's own error, as an analytic reference.
 
     Verified against a real 1-D solver before being committed: with the
     physical diffusivity set to exactly zero, the measured variance growth
@@ -426,7 +426,7 @@ def test_lattice_boltzmann_weight_families():
     omega = 3/4 gives 1/4 (the textbook set, and OpenLB's ADE lattice by
     inversion of guide Eq. 4.58), omega = 1 gives 1/3. OpenLB's own "D2Q5"
     thermal model declares c_s^2 = 0.2, the omega = 2/5 member — so a
-    name-keyed oracle is wrong against a real solver by construction.
+    name-keyed analytic reference is wrong against a real solver by construction.
     """
     lb = lattice_boltzmann
     velocities = lb.VELOCITY_SETS["D3Q7"][0]
@@ -503,7 +503,7 @@ def test_lattice_boltzmann_declares_what_it_has_not_established():
 
 def _run_ade_lattice(n, tau, u, order2, cs2, weights, velocities, steps, sigma0):
     """Minimal BGK ADE lattice on a periodic ring — the measurement leg of the
-    Ma^2 test. Kept in the test so the oracle tier carries an actual lattice
+    Ma^2 test. Kept in the test so the analytic tier carries an actual lattice
     run, not only algebra. Step bookkeeping: `elapsed` counts COMPLETED
     updates; the first version divided by steps//2 while 751 had completed,
     and the constant 749/750 deficit was mis-attributed to a plausible k^4
@@ -587,7 +587,7 @@ def test_lattice_boltzmann_ma2_advection_error():
 
 
 def test_channel_impulse():
-    """The molecular-communications CIR oracle — the first comms-facing one.
+    """The molecular-communications CIR analytic reference — the first comms-facing one.
 
     `verify_limits` re-derives the closed form (Hofmann et al. 2024, Eq. 13)
     by an independent route before it may serve as truth: the uniform-speed

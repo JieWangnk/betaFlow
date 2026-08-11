@@ -4,7 +4,7 @@ Layering (dependencies point downward only):
 
     tests/            pytest, one test per case
     betaflow/metrics  error norms — consume plain dicts of arrays
-    betaflow/analytic oracles — pure functions, no solver knowledge
+    betaflow/analytic references — pure functions, no solver knowledge
     betaflow/cases    YAML case definitions
     betaflow/runners  solver adapters — the ONLY layer that knows a solver exists
 

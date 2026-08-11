@@ -1,5 +1,5 @@
 {
-  "purpose": "first contact: OpenLB's shipped ADE benchmark measured against the betaflow lattice_boltzmann oracle",
+  "purpose": "first contact: OpenLB's shipped ADE benchmark measured against the betaflow lattice_boltzmann analytic reference",
   "example": "/home/mchi4jw4/GitHub/openlb/examples/advectionDiffusionReaction/advectionDiffusion1d",
   "shipped_parameters": {
     "resolution": 50,

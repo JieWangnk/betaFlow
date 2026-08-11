@@ -1,11 +1,11 @@
 {
   "case": "carreau_steady",
   "runner": "openfoam",
-  "oracle_self_verification": {
+  "reference_self_verification": {
     "newtonian_limit": 1.7763568394002506e-16,
     "power_law_limit": 7.152557373046878e-16
   },
-  "oracle_limit_rtol": 1e-12,
+  "reference_limit_rtol": 1e-12,
   "mesh_refinement": {
     "Cu_target": 10.0,
     "levels": [

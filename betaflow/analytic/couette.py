@@ -1,4 +1,4 @@
-"""Analytic oracle for steady, laminar, plane Couette flow.
+"""Analytic reference for steady, laminar, plane Couette flow.
 
 Geometry: gap of height H between parallel plates; the wall at y = 0 is
 fixed, the wall at y = H moves at speed U in +x. No pressure gradient and no
@@ -15,7 +15,7 @@ REYNOLDS NUMBER DEFINITION:
     * length scale:   the FULL gap height H
 
 (The plane-Poiseuille case uses bulk velocity and full channel height 2h —
-different flow, different convention; each oracle states its own. Never carry
+different flow, different convention; each analytic reference states its own. Never carry
 one case's Re definition into another.)
 
 Null-test role: the exact profile is linear. The second-order interior

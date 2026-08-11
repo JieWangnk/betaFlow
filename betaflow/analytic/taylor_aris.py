@@ -1,6 +1,6 @@
 """Taylor-Aris dispersion of a tracer in laminar pipe flow.
 
-THE LAST EXACT ORACLE in this programme. Margination, capture efficiency and
+THE LAST EXACT ANALYTIC REFERENCE in this programme. Margination, capture efficiency and
 deposition have no closed forms, so this is the final rung where a result can
 be checked against truth rather than estimated.
 
@@ -167,7 +167,7 @@ def msd_axial_long(t, d_eff_value):
 
 
 def verify_limits(rtol=1e-12):
-    """Check the oracle's internal consistency before it is used as truth."""
+    """Check the analytic reference's internal consistency before it is used as truth."""
     t_k, mu, a, u = 310.0, 1.0e-3, 10.0e-6, 3.1462e-6
     r_p = 150.0e-9
     errors = {}
@@ -211,5 +211,5 @@ def verify_limits(rtol=1e-12):
     for name, err in errors.items():
         limit = rtol if "velocity" not in name else 1e-9
         if not err < limit:
-            raise AssertionError(f"taylor_aris oracle {name} error {err:.3e} > {limit:.0e}")
+            raise AssertionError(f"taylor_aris analytic reference {name} error {err:.3e} > {limit:.0e}")
     return {k: float(v) for k, v in errors.items()}

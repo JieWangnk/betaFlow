@@ -8,7 +8,7 @@ second study axis, and (predicted) no error floor under mesh refinement.
 It also has an EXACT solution, contrary to the once-common claim that
 shear-thinning channel flow needs GCI-style solution verification. Steady 1-D
 force balance gives tau(y) = G y for ANY rheology, so the profile follows from
-a pointwise rootfind plus a quadrature, both to machine precision. The oracle
+a pointwise rootfind plus a quadrature, both to machine precision. The analytic reference
 verifies ITSELF against two analytic limits before being used as ground truth.
 """
 
@@ -30,7 +30,7 @@ CASE_FILE = REPO / "betaflow" / "cases" / "carreau_steady.yaml"
 NEWTONIAN_CASE_FILE = REPO / "betaflow" / "cases" / "poiseuille_steady.yaml"
 RESULTS_FILE = REPO / "results" / "carreau_steady.json"
 
-ORACLE_LIMIT_RTOL = 1e-12
+REFERENCE_LIMIT_RTOL = 1e-12
 P_BAND = (1.8, 2.2)
 
 # Casson needed ~350x the Newtonian iteration count and grew without bound in
@@ -85,7 +85,7 @@ def test_carreau_steady():
     tols = {m["name"]: float(m["tol"]) for m in case["metrics"]}
 
     # 0. Verify the verifier BEFORE using it as ground truth.
-    oracle_limits = carreau.verify_limits(rtol=ORACLE_LIMIT_RTOL)
+    reference_limits = carreau.verify_limits(rtol=REFERENCE_LIMIT_RTOL)
 
     def _run(**kwargs):
         return run_case(case, runner="openfoam", sampling="cell", workdir=REPO / "_runs", **kwargs)
@@ -123,7 +123,7 @@ def test_carreau_steady():
     ]
 
     # Mechanism reference: with nu_inf = 0 the same sweep IS monotone in Cu,
-    # tending to the power-law flatness (2n+1)/(n+1). Oracle-only, so free.
+    # tending to the power-law flatness (2n+1)/(n+1). Analytic reference-only, so free.
     n_index = float(case["nondim"]["n"])
     power_law_flatness = []
     for cu in cu_sweep:
@@ -170,8 +170,8 @@ def test_carreau_steady():
     record = {
         "case": case["name"],
         "runner": "openfoam",
-        "oracle_self_verification": oracle_limits,
-        "oracle_limit_rtol": ORACLE_LIMIT_RTOL,
+        "reference_self_verification": reference_limits,
+        "reference_limit_rtol": REFERENCE_LIMIT_RTOL,
         "mesh_refinement": {
             "Cu_target": case["nondim"]["Cu"],
             "levels": levels,
@@ -260,11 +260,11 @@ def test_carreau_steady():
 
     # 4. Shear-thinning signature. The committed prediction was that
     #    centreline flatness falls MONOTONICALLY with Cu. It does not, and the
-    #    exact oracle shows the same turn, so this is physics rather than a
+    #    exact analytic reference shows the same turn, so this is physics rather than a
     #    solver artefact: with a finite viscosity ratio the near-wall fluid
     #    enters the SECOND Newtonian plateau at high Cu and the profile
     #    de-flattens back toward a parabola. Monotonicity holds only in the
-    #    nu_inf = 0 (pure power-law) limit, checked on the oracle below.
+    #    nu_inf = 0 (pure power-law) limit, checked on the analytic reference below.
     #    What the solver must do is REPRODUCE the exact curve, monotone or not.
     for run in sweep:
         assert abs(run["centreline_flatness"] / run["centreline_flatness_exact"] - 1.0) < 0.01, (

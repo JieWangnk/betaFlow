@@ -1,4 +1,4 @@
-"""Numerical diffusion of an axial advection scheme — the error as the oracle.
+"""Numerical diffusion of an axial advection scheme — the error as the analytic reference.
 
 THE AXIAL COUNTERPART to `advection_diffusion.py`. That module gives the exact
 PHYSICS of scalar transport; `runners/moments.py` measures it with no axial
@@ -252,6 +252,6 @@ def verify_limits(rtol=1e-12):
     for name, err in errors.items():
         if not err < rtol:
             raise AssertionError(
-                f"numerical_diffusion oracle {name} error {err:.3e} > {rtol:.0e}"
+                f"numerical_diffusion analytic reference {name} error {err:.3e} > {rtol:.0e}"
             )
     return {k: float(v) for k, v in errors.items()}

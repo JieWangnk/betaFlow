@@ -13,9 +13,9 @@ geometry:
   half_height: 1.0   # h [m]; walls at y = +/- h
   length: 0.5        # streamwise extent [m]; periodic, so entrance length is moot
 
-# Dotted path to the oracle. It returns u/u_max vs y/h, so the runner's u_ref
+# Dotted path to the analytic reference. It returns u/u_max vs y/h, so the runner's u_ref
 # must be the analytic peak velocity u_max.
-oracle: betaflow.analytic.poiseuille.velocity_profile
+reference: betaflow.analytic.poiseuille.velocity_profile
 
 normalisation:
   u_max_over_u_mean: 1.5   # exact for plane Poiseuille: u_mean = (2/3) u_max

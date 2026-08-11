@@ -5,7 +5,7 @@
 # interference, achievable rate) is computed from.
 #
 # Reuses runners/langevin.py (receiver block selects the CIR mode) against
-# the exact flow-dominated oracle in analytic/channel_impulse.py. Two legs:
+# the exact flow-dominated analytic reference in analytic/channel_impulse.py. Two legs:
 #   D = 0   exact kinematics — the only error is the finite-N release draw,
 #           so every tolerance is a binomial law (metrics/mc_error.py);
 #   D > 0   the departure measurement — softened onset, depressed peak, and
@@ -19,7 +19,7 @@
 #   Hofmann et al. (2024), IEEE Access, doi:10.1109/ACCESS.2024.3438243.
 #     READ (pp. 1-6): geometry, receiver placement, and Pe = 200 are their
 #     Table 1; the analytic model is their Eq. 13, re-derived independently
-#     in the oracle before use.
+#     in the analytic reference before use.
 #   DIMENSIONAL SPLIT IS OURS: Table 1 fixes the ratio Pe = V a / D = 200;
 #     the split V = 1.5 mm/s, D = 1.5e-9 m^2/s realises it with a
 #     small-molecule diffusivity. The flow-dominated CIR depends on V, dbar,

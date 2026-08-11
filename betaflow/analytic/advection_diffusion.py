@@ -506,7 +506,7 @@ def balance_peclet(geometry):
 
 
 def verify_limits(rtol=1e-9):
-    """Check the oracle's internal consistency before it is used as truth.
+    """Check the analytic reference's internal consistency before it is used as truth.
 
     Everything here is a relation between two things this module computes by
     DIFFERENT routes, or between this module and `taylor_aris`. Nothing is a
@@ -559,7 +559,7 @@ def verify_limits(rtol=1e-9):
         )
 
     # 7. CROSS-MODULE. The pipe value must equal the one the Lagrangian
-    #    particle oracle uses. The two modules implement it independently, so
+    #    particle analytic reference uses. The two modules implement it independently, so
     #    this catches a drift in either.
     from betaflow.analytic import taylor_aris
 
@@ -715,6 +715,6 @@ def verify_limits(rtol=1e-9):
             limit = 1e-12
         if not err < limit:
             raise AssertionError(
-                f"advection_diffusion oracle {name} error {err:.3e} > {limit:.0e}"
+                f"advection_diffusion analytic reference {name} error {err:.3e} > {limit:.0e}"
             )
     return {k: float(v) for k, v in errors.items()}

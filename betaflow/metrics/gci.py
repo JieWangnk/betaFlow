@@ -1,6 +1,6 @@
-"""Grid Convergence Index (ASME V&V 20) — for quantities with NO exact oracle.
+"""Grid Convergence Index (ASME V&V 20) — for quantities with NO exact analytic reference.
 
-Everywhere an oracle exists, betaflow measures the TRUE discretisation error
+Everywhere an analytic reference exists, betaflow measures the TRUE discretisation error
 and runs an order-of-accuracy test, which is strictly stronger. GCI is used
 only where no exact solution is available, and it ESTIMATES rather than
 measures. Results that rest on it must say so.

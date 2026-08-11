@@ -6,10 +6,10 @@ the inlet as the wall; that was caught only because 33% is implausible. The
 same bug producing 1e-4 would have read as mild under-convergence and been
 accepted. So the checker is run against a case whose answer is known exactly
 before it is pointed at anything else — the same argument as building the
-analytic oracle before the solver, applied one level up.
+analytic reference before the solver, applied one level up.
 
 The fixture is a committed 40-cell channel: no solver needed, pure file
-parsing, milliseconds. That is why this sits in the oracle CI tier.
+parsing, milliseconds. That is why this sits in the analytic reference CI tier.
 """
 
 import sys
@@ -30,7 +30,7 @@ from tools.identity_check import (  # noqa: E402
     read_mean_velocity_force,
 )
 
-pytestmark = pytest.mark.oracle
+pytestmark = pytest.mark.analytic
 
 FIXTURE = REPO / "tests" / "fixtures" / "poiseuille_n40"
 

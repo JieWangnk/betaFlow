@@ -16,7 +16,7 @@ geometry:
 
 # Complex profile uhat/u_ref vs y/h; u_ref = G/omega (core oscillation
 # amplitude); wall shear normalised by tau_ref = G*half_height.
-oracle: betaflow.analytic.womersley.complex_profile
+reference: betaflow.analytic.womersley.complex_profile
 
 normalisation:
   u_ref: G_over_omega

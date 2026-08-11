@@ -13,5 +13,5 @@ testpaths = ["tests"]
 addopts = "-m 'not slow'"
 markers = [
     "slow: multi-minute parameter studies (casson grid, womersley_carreau). Excluded by default.",
-    "oracle: pure-analytic oracle self-verification. Needs NO solver install.",
+    "analytic: exact-solution self-verification. Needs NO solver install.",
 ]

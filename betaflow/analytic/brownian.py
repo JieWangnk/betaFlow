@@ -1,4 +1,4 @@
-"""Analytic oracle for free Brownian motion of a sphere in a quiescent fluid.
+"""Analytic reference for free Brownian motion of a sphere in a quiescent fluid.
 
 No flow, no walls, no geometry. This is the base rung of the particle ladder
 and the first case in betaflow with no CFD solver behind it at all.
@@ -36,7 +36,7 @@ numbers; they are recorded verbatim so the particle work can trace to them,
 but the specific page and equation numbers have NOT been independently
 verified here. The physics does not rest on them: D = k_B T / (6 pi mu a) and
 MSD = 6 D t are checked against each other and against dimensional analysis
-in tests/test_oracles.py.
+in tests/test_analytic.py.
 
 THE CLASSIC IMPLEMENTATION BUG this module is written to prevent: taking the
 friction coefficient in the noise amplitude from a different expression than

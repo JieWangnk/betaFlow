@@ -26,7 +26,7 @@ physical:
   # 1 s. That is the expected order for a 50 nm particle in plasma: water at
   # 37 C would give ~5x more, plasma being ~5x more viscous.
 
-oracle: betaflow.analytic.brownian.msd
+reference: betaflow.analytic.brownian.msd
 
 study:
   # The convergence axis is PARTICLE COUNT, not resolution: the error is

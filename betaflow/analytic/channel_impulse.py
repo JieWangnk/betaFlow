@@ -1,6 +1,6 @@
 """The molecular-communications channel impulse response (CIR), exact.
 
-THE FIRST COMMS-FACING ORACLE. The molecular-communications field describes a
+THE FIRST COMMS-FACING ANALYTIC REFERENCE. The molecular-communications field describes a
 fluid channel the way radio engineers describe a wireless one: release a
 pulse of particles at a transmitter, count the fraction inside a receiver
 volume over time, and call that curve the channel impulse response. Every
@@ -219,6 +219,6 @@ def verify_limits(rtol=1e-9):
             limit = 1e-6
         if not err < limit:
             raise AssertionError(
-                f"channel_impulse oracle {name} error {err:.3e} > {limit:.0e}"
+                f"channel_impulse analytic reference {name} error {err:.3e} > {limit:.0e}"
             )
     return {k: float(v) for k, v in errors.items()}

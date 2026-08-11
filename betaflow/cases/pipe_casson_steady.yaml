@@ -11,7 +11,7 @@
 #     the user as Gentile et al. (2008); NOT independently verified here. The
 #     QUANTITY needs no citation — r_p = 2 tau_y / G follows from
 #     tau(r_p) = tau_y with tau(r) = G r / 2, and is verified by
-#     differentiation in tests/test_oracles.py.
+#     differentiation in tests/test_analytic.py.
 #   Regularisation cap nuMax is an OpenFOAM implementation parameter with NO
 #     published anchor — it is a numerical device, not physics. See the
 #     casson_steady notes in README.md for what it does to the plug.
@@ -29,7 +29,7 @@ geometry:
   radius: 1.0
   length: 0.5
 
-oracle: betaflow.analytic.pipe.casson_profile
+reference: betaflow.analytic.pipe.casson_profile
 
 normalisation:
   u_ref: u_max_from_xi_c

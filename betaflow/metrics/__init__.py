@@ -40,14 +40,14 @@ METRICS = {
     "short_time_exponent": short_time_exponent,
     "radial_ks": radial_ks,
     # Eulerian scalar transport. d_eff_relative is REUSED unchanged from the
-    # Lagrangian case -- same oracle, same metric, different runner -- which
+    # Lagrangian case -- same analytic reference, same metric, different runner -- which
     # is the cross-check made concrete at the metric level.
     "variance_intercept_relative": variance_intercept_relative,
     "cumulant_slope_relative": cumulant_slope_relative,
     "centroid_relative": centroid_relative,
     # Molecular-communications channel impulse response. Both REUSE existing
     # functions: the CIR is a dimensionless fraction curve, so its RMSE
-    # against the oracle IS the discrete L2 norm, and the peak/tail-mass
+    # against the analytic reference IS the discrete L2 norm, and the peak/tail-mass
     # comparisons are scalar relative errors. The error laws are binomial —
     # see betaflow/metrics/mc_error.py (binomial_sigma, binomial_rmse_floor,
     # binomial_integral_sigma_bound).

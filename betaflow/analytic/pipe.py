@@ -1,4 +1,4 @@
-"""Analytic oracles for steady and pulsatile flow in a CIRCULAR PIPE.
+"""Analytic references for steady and pulsatile flow in a CIRCULAR PIPE.
 
 Geometry: circular pipe of radius a, no-slip at r = a, axis at r = 0, driven
 by a streamwise pressure gradient G = -dp/dx > 0.
@@ -108,7 +108,7 @@ def poiseuille_velocity(r, pressure_gradient, a, mu):
 
 
 def poiseuille_profile(r_over_a):
-    """Non-dimensional u/u_max = 1 - (r/a)^2 — the harness oracle signature."""
+    """Non-dimensional u/u_max = 1 - (r/a)^2 — the harness analytic reference signature."""
     r = np.asarray(r_over_a, dtype=float)
     return 1.0 - r**2
 
@@ -242,7 +242,7 @@ def casson_velocity(r, pressure_gradient, tau_y, mu_c, a):
 
 
 def casson_profile(r_over_a, xi_c):
-    """Non-dimensional u/u_max at r/a for plug ratio xi_c — oracle signature."""
+    """Non-dimensional u/u_max at r/a for plug ratio xi_c — analytic reference signature."""
     r = np.asarray(r_over_a, dtype=float)
     # Work in units where a = 1, G = 1, mu_c = 1; then tau_y = xi_c/2.
     tau_y = xi_c / 2.0

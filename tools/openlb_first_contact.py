@@ -1,4 +1,4 @@
-"""First contact with OpenLB: measure its ADE example against the oracle.
+"""First contact with OpenLB: measure its ADE example against the analytic reference.
 
 READ-ONLY on an OpenLB checkout's example output. Runs no solver; the example
 must have been built and run first:
@@ -90,7 +90,7 @@ def main(argv=None):
     u_vals = [iv["u_eff"] for iv in intervals]
     out = {
         "purpose": "first contact: OpenLB's shipped ADE benchmark measured "
-                   "against the betaflow lattice_boltzmann oracle",
+                   "against the betaflow lattice_boltzmann analytic reference",
         "example": str(example),
         "shipped_parameters": {
             "resolution": 50, "latticeU": 0.4, "tau": 5.0,

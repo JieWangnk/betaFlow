@@ -24,7 +24,7 @@ geometry:
   radius: 1.0
   length: 0.5
 
-oracle: betaflow.analytic.pipe.womersley_profile
+reference: betaflow.analytic.pipe.womersley_profile
 
 resolution:
   cells_per_stokes_layer: 8

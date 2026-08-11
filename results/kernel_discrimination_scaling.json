@@ -27,7 +27,7 @@
     "20_to_60": 1.6,
     "alpha_squared_would_give": 2.0
   },
-  "note": "These are EXACT oracle values, not measurements, so the departure from -2 is signal rather than noise. The two-point estimate at alpha 10 and 20 gives 3.53 where alpha^2 predicts 4.00.",
+  "note": "These are EXACT analytic reference values, not measurements, so the departure from -2 is signal rather than noise. The two-point estimate at alpha 10 and 20 gives 3.53 where alpha^2 predicts 4.00.",
   "what_survives": "The mechanism claim is unaffected and is the strong part: profile misfit DECAYS while WSS misfit SATURATES at exactly 0.5, so they scale in opposite directions. A uniformly more sensitive quantity cannot do that. Quote the exponent as ~alpha^1.8 over the physiological window, or avoid a power law and quote the ratio at the operating point (53x at alpha=10, 190x at alpha=20).",
   "numerical_limit": "the J0 kernel overflows for alpha >~ 1000 (complex Bessel argument); not a physics limit",
   "asymptotic_law_DERIVED": {

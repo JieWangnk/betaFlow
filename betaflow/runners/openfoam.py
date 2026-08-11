@@ -299,7 +299,7 @@ def _setup_carreau(case, u_drive, cu=None, fluid=None, nu_inf_over_nu0=None):
     """Carreau-Yasuda channel: same drive and geometry as 'channel'.
 
     Two parameterisations. With `cu`, the Carreau number is TARGETED: since
-    Cu = k G h / nu0 couples k and G (each depends on the other), the oracle
+    Cu = k G h / nu0 couples k and G (each depends on the other), the analytic reference
     solves both jointly for the requested bulk velocity. With `fluid`, a named
     real fluid from the case file fixes k in seconds and Cu is an OUTPUT.
     """
@@ -432,7 +432,7 @@ def _setup_couette(case, u_drive):
         "y_min": 0.0,
         "y_max": height,
         "nu": nu,
-        "u_ref": u_drive,  # the oracle normalises by the moving-wall speed
+        "u_ref": u_drive,  # the analytic reference normalises by the moving-wall speed
         "params": {"u_wall": u_drive, "u_init": 0.5 * u_drive},
         "meta": {"u_wall": u_drive},
     }
@@ -511,7 +511,7 @@ def _run_steady(
     dict
         {"y": ndarray [m], "u": ndarray [m/s], "u_ref": float [m/s],
          "tau_w": float [m^2/s^2], "meta": provenance dict}. u_ref is the
-        velocity the case's oracle normalises by; tau_w is the kinematic
+        velocity the case's analytic reference normalises by; tau_w is the kinematic
         wall-shear-stress magnitude from the wallShearStress functionObject.
         meta.pressure_gradient exists only for force-driven case types.
     """

@@ -1,13 +1,13 @@
 # Taylor-Aris dispersion of a nanoparticle in laminar pipe flow.
 # Reuses runners/langevin.py with an ANALYTIC Poiseuille field: no OpenFOAM,
-# no new solver. THE LAST EXACT ORACLE in this programme.
+# no new solver. THE LAST EXACT ANALYTIC REFERENCE in this programme.
 #
 # CITATIONS
 #   Taylor, G.I. (1953), Proc. R. Soc. A 219:186-203.
 #   Aris, R. (1956), Proc. R. Soc. A 235:67-77.
 #   Decuzzi, Causa, Ferrari & Netti (2006), Ann. Biomed. Eng. 34:633-641,
 #     Eq. 15 (D_eff) and Eq. 18 (R_cr). Equation numbers supplied by the
-#     user; the ALGEBRA is verified in the oracle rather than taken on trust.
+#     user; the ALGEBRA is verified in the analytic reference rather than taken on trust.
 #   Einstein, A. (1905), Ann. Phys. 322(8):549-560 (Stokes-Einstein).
 #   One-way coupling (dilute suspension, St << 1, particles do not perturb
 #     the flow): the single-particle model assumptions reviewed in
@@ -34,7 +34,7 @@ physical:
 flow:
   type: poiseuille_pipe        # presence of this key selects the cylinder mode
 
-oracle: betaflow.analytic.taylor_aris.d_eff
+reference: betaflow.analytic.taylor_aris.d_eff
 
 numerics:
   # sqrt(2 D dt)/a. Calibrated by the KS gate rather than assumed: the sweep

@@ -18,8 +18,8 @@ geometry:
   height: 1.0   # H [m]; fixed wall at y=0, moving wall at y=H
   length: 0.5   # streamwise extent [m]; periodic
 
-# The oracle returns u/u_wall vs y/H; u_ref is the moving-wall speed itself.
-oracle: betaflow.analytic.couette.velocity_profile
+# The analytic reference returns u/u_wall vs y/H; u_ref is the moving-wall speed itself.
+reference: betaflow.analytic.couette.velocity_profile
 
 normalisation:
   u_ref: u_wall

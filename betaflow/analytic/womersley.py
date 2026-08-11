@@ -1,4 +1,4 @@
-"""Analytic oracle for pulsatile (Womersley-type) flow in a plane channel.
+"""Analytic reference for pulsatile (Womersley-type) flow in a plane channel.
 
 Geometry: plane channel, half-height h, no-slip walls at y = +/- h, driven by
 a spatially uniform oscillatory KINEMATIC pressure gradient

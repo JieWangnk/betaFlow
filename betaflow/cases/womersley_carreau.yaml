@@ -1,8 +1,8 @@
 # Pulsatile Carreau flow in a plane channel: oscillatory pressure gradient
 # G cos(omega t) driving a shear-thinning fluid.
 #
-# THE FIRST CASE WITH NO EXACT ORACLE, and that is the point. The unsteady
-# term breaks the force balance every previous oracle rested on:
+# THE FIRST CASE WITH NO EXACT ANALYTIC REFERENCE, and that is the point. The unsteady
+# term breaks the force balance every previous analytic reference rested on:
 #     tau(y,t) = integral_0^y (du/dt + G(t)) dy'
 # The integral depends on the solution, so there is no pointwise rootfind; and
 # superposition is gone, so Womersley's Bessel/cosh construction does not
@@ -14,8 +14,8 @@
 #   2. Half-wave symmetry u(y, t+T/2) = -u(y, t): G is odd under t -> t+T/2
 #      and nu(|gammadot|) is even, so the periodic state must be odd. Any
 #      violation is a bug or incomplete periodicity, never physics.
-#   3. Two limits, each against an oracle already in the repo.
-# The profile itself has no oracle and is bounded by GCI (ASME V&V 20).
+#   3. Two limits, each against an analytic reference already in the repo.
+# The profile itself has no analytic reference and is bounded by GCI (ASME V&V 20).
 name: womersley_carreau
 
 nondim:
@@ -48,10 +48,10 @@ convergence:
   max_cycles: 10
 
 limits:
-  # Cu -> 0 recovers linear Womersley (exact cosh oracle).
+  # Cu -> 0 recovers linear Womersley (exact cosh analytic reference).
   cu_zero: 0.01
   # alpha -> 0 is quasi-steady: at each instant the profile must equal the
-  # STEADY Carreau profile for the instantaneous G(t) (exact rootfind oracle).
+  # STEADY Carreau profile for the instantaneous G(t) (exact rootfind analytic reference).
   alpha_small: 0.3
   # nu0 = omega/alpha^2 is LARGE at small alpha, so the viscous Fourier limit
   # (see gci below) bites hard: nt >= 7.9*N^2 here. N=32 with nt=8192 sits at
@@ -62,7 +62,7 @@ limits:
   alpha_small_cycles: 3
 
 gci:
-  # ASME V&V 20 on the profile, which has no oracle. Combined space-time
+  # ASME V&V 20 on the profile, which has no analytic reference. Combined space-time
   # refinement: refining time alone at fixed mesh hits the spatial phase
   # floor and reports a meaningless order.
   #

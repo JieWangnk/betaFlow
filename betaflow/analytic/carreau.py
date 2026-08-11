@@ -1,4 +1,4 @@
-"""Analytic oracle for steady Carreau(-Yasuda) flow in a plane channel.
+"""Analytic reference for steady Carreau(-Yasuda) flow in a plane channel.
 
 Geometry: plane channel, half-height h, no-slip walls at y = +/- h, constant
 streamwise pressure gradient G = -dp/dx > 0.
@@ -49,7 +49,7 @@ applied when computed from a run. Alternatives seen elsewhere: k times a
 bulk rate u_mean/h, or k times the true (thinned) wall rate — both differ
 from this by an O(1) factor that grows with Cu.
 
-Limits the oracle must reproduce (asserted in `verify_limits`):
+Limits the analytic reference must reproduce (asserted in `verify_limits`):
     Cu -> 0            : parabola with viscosity nu0
     Cu -> inf, nuInf=0 : power law, u ~ h^((n+1)/n) - |y|^((n+1)/n)
 
@@ -145,7 +145,7 @@ def u_mean(pressure_gradient, h, nu0, nu_inf, k, n, a=2.0):
 
 
 def velocity_profile(y_over_h, pressure_gradient, h, nu0, nu_inf, k, n, a=2.0):
-    """Non-dimensional u/u_max at Y = y/h — the harness oracle signature."""
+    """Non-dimensional u/u_max at Y = y/h — the harness analytic reference signature."""
     y = np.asarray(y_over_h, dtype=float) * h
     return velocity(y, pressure_gradient, h, nu0, nu_inf, k, n, a) / u_max(
         pressure_gradient, h, nu0, nu_inf, k, n, a
@@ -196,11 +196,11 @@ def drive_for_carreau_number(u_mean_target, h, nu0, nu_inf, n, cu, a=2.0):
     return g, cu * nu0 / (g * h)
 
 
-# --- oracle self-verification ------------------------------------------------
+# --- analytic reference self-verification ------------------------------------------------
 
 
 def verify_limits(rtol=1e-12):
-    """Check the oracle against its two analytic limits. Verify the verifier.
+    """Check the analytic reference against its two analytic limits. Verify the verifier.
 
     Returns a dict of relative errors; raises if either exceeds rtol.
     """
@@ -226,5 +226,5 @@ def verify_limits(rtol=1e-12):
     errors = {"newtonian_limit": err_newtonian, "power_law_limit": err_power_law}
     for name, err in errors.items():
         if not err < rtol:
-            raise AssertionError(f"oracle {name} error {err:.3e} exceeds {rtol:.0e}")
+            raise AssertionError(f"analytic reference {name} error {err:.3e} exceeds {rtol:.0e}")
     return errors

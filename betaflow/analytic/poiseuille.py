@@ -1,4 +1,4 @@
-"""Analytic oracle for steady, laminar, plane Poiseuille flow.
+"""Analytic reference for steady, laminar, plane Poiseuille flow.
 
 Geometry: infinite plane channel of half-height h, stationary no-slip walls at
 y = +/- h, constant streamwise pressure gradient G = -dp/dx > 0 (equivalently a

@@ -120,7 +120,7 @@ def _psi(z):
     """z - 1 + exp(-z), evaluated without cancellation.
 
     psi(z) ~ z^2/2 for small z; the direct expression loses every significant
-    digit there, which is exactly the short-time regime the oracle is for.
+    digit there, which is exactly the short-time regime the analytic reference is for.
     """
     z = np.asarray(z, dtype=float)
     out = np.empty_like(z)
@@ -398,7 +398,7 @@ def pulse_concentration_moment_matched(x, t, u_mean, length, diffusivity,
     where the Taylor form is not valid at all. APPROXIMATE from m3 up: the true
     profile is genuinely skewed at t ~ tau_r (the pulse has a long tail of
     slow near-wall solute), so this is a moment-matched model and not a
-    solution. Use it as a channel model, never as an oracle for the shape.
+    solution. Use it as a channel model, never as an analytic reference for the shape.
     """
     var = axial_variance(t, u_mean, length, diffusivity, geometry)
     xx = np.asarray(x, dtype=float)
@@ -430,8 +430,8 @@ def arrival_time_cdf(t, distance, u_mean, dispersivity):
     Evaluated in log space. The literal expression OVERFLOWS whenever
     U L / K > ~709, which for a Taylor-dispersion channel is an ordinary
     operating point, not an edge case: it returns NaN at U L/K = 2000 where the
-    log-space form agrees with quadrature to 12 digits. An oracle that returns
-    NaN in its own working range is worse than no oracle.
+    log-space form agrees with quadrature to 12 digits. An analytic reference that returns
+    NaN in its own working range is worse than no analytic reference.
     """
     tt = np.asarray(t, dtype=float)
     s = np.sqrt(2.0 * dispersivity * tt)
@@ -606,7 +606,7 @@ def verify_limits(rtol=1e-9):
             limit = 1e-7
         if not err < limit:
             raise AssertionError(
-                f"moment_hierarchy oracle {name} error {err:.3e} > {limit:.0e}")
+                f"moment_hierarchy analytic reference {name} error {err:.3e} > {limit:.0e}")
     return {k: float(v) for k, v in errors.items()}
 
 

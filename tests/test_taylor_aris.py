@@ -1,4 +1,4 @@
-"""Taylor-Aris dispersion — the LAST exact oracle in this programme.
+"""Taylor-Aris dispersion — the LAST exact analytic reference in this programme.
 
 Four independent exact anchors, three new in kind:
   1. D_eff = D + a^2 U^2/(48 D) from the long-time variance slope.
@@ -47,7 +47,7 @@ def test_taylor_aris():
     eps = float(num["epsilon"])
     cycles = float(num["cycles"])
 
-    oracle_checks = ta.verify_limits()
+    reference_checks = ta.verify_limits()
 
     def go(n, seed=0, **kw):
         return run_case(case, runner="langevin", n_particles=n, seed=seed,
@@ -134,8 +134,8 @@ def test_taylor_aris():
     record = {
         "case": case["name"],
         "runner": "langevin",
-        "note": "LAST exact oracle; analytic Poiseuille field, no CFD solver",
-        "oracle_self_verification": oracle_checks,
+        "note": "LAST exact analytic reference; analytic Poiseuille field, no CFD solver",
+        "reference_self_verification": reference_checks,
         "asymptotic_onset_tau_r": ta.asymptotic_onset(),
         "bessel_j1_first_root": ta.BESSEL_J1_FIRST_ROOT,
         "reference": {

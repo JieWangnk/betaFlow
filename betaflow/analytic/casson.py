@@ -1,4 +1,4 @@
-"""Analytic oracle for steady Casson flow in a plane channel.
+"""Analytic reference for steady Casson flow in a plane channel.
 
 Geometry: plane channel, half-height h, no-slip walls at y = +/- h, driven by
 a constant streamwise pressure gradient G = -dp/dx > 0. Force balance alone
@@ -81,7 +81,7 @@ def velocity(y, pressure_gradient, tau_y, mu_c, h):
 
 
 def velocity_profile(y_over_h, xi):
-    """Non-dimensional u/u_max at Y = y/h — the harness oracle signature."""
+    """Non-dimensional u/u_max at Y = y/h — the harness analytic reference signature."""
     return _f(y_over_h, xi) / _f(0.0, xi)
 
 

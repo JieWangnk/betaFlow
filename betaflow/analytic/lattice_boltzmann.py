@@ -54,7 +54,7 @@ velocity set alone and is cited; its CONSEQUENCES are then checked here.
      a rest-free D3Q7 (omega = 1) gives 1/3, and BOTH published values are
      correct for different weights — which is where the literature's 1/4-vs-
      1/3 confusion comes from. The trap is therefore sharper than a wrong
-     constant: an oracle keyed by LATTICE NAME is wrong by construction.
+     constant: an analytic reference keyed by LATTICE NAME is wrong by construction.
      OpenLB's own user guide carries the proof: its general D2Q9 descriptor
      has cs2 = 1/3 while its D2Q5 thermal MRT model declares c_s^2 = 0.2
      (w_0 = 3/5, omega = 2/5 -> omega/2 = 1/5). Same name, different constant.
@@ -129,7 +129,7 @@ velocity set alone and is cited; its CONSEQUENCES are then checked here.
      velocity set — so no single magic value kills both, and the leading
      advection-diffusion error CANNOT be removed by relaxation tuning alone;
      the scheme carries an intrinsic fourth-order numerical diffusion. An
-     oracle assuming "choose Lambda and numerical diffusion vanishes" is
+     analytic reference assuming "choose Lambda and numerical diffusion vanishes" is
      wrong by construction. The same paper supplies an exact three-time-level
      recurrence form of the TRT update — an independent self-verification
      route requiring no Chapman-Enskog expansion.
@@ -447,7 +447,7 @@ def d2q5_weights(omega):
 def sound_speed_squared_from_weights(velocities, weights):
     """c_s^2 = sum_i w_i |c_i|^2 / d — from the weights ACTUALLY IN USE.
 
-    This, not the name-keyed table, is the interface an oracle should use
+    This, not the name-keyed table, is the interface an analytic reference should use
     against a real solver: the same lattice name carries different constants
     under different rest weights, and OpenLB itself ships two.
     """
@@ -797,6 +797,6 @@ def verify_limits(rtol=1e-13):
     for name, err in errors.items():
         if not err < rtol:
             raise AssertionError(
-                f"lattice_boltzmann oracle {name} error {err:.3e} > {rtol:.0e}"
+                f"lattice_boltzmann analytic reference {name} error {err:.3e} > {rtol:.0e}"
             )
     return {k: float(v) for k, v in errors.items()}

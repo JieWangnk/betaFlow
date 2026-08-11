@@ -173,24 +173,24 @@ def _run_cir(case, n_particles, seed, epsilon, diffusivity=None,
 
     D == 0 — EXACT KINEMATICS. Each particle keeps its release radius, so
     x(t) = u(r0) t in closed form: no time-stepping, no scheme error, and the
-    ONLY departure from the oracle is the finite-N draw of the release
+    ONLY departure from the analytic reference is the finite-N draw of the release
     positions, whose law is binomial (metrics/mc_error.py). Counting uses a
     sort of the release speeds: x in [lo, hi] iff u0 in [lo/t, hi/t].
 
     D > 0 — the departure measurement. Euler-Maruyama with axial noise,
     radial noise, and the same specular wall reflection as the dispersion
-    case. Measured departures from the flow-dominated oracle (recorded in
+    case. Measured departures from the flow-dominated analytic reference (recorded in
     results/mc_channel_departure.json): axial diffusion softens the onset
     (arrivals before t1) and depresses the peak, and the tail departs in TWO
     regimes, in the OPPOSITE order to the naive expectation. The prediction
     written here before measuring was "radial diffusion walks slow near-wall
-    particles onto fast streamlines, so the tail falls BELOW the oracle" —
+    particles onto fast streamlines, so the tail falls BELOW the analytic reference" —
     wrong at intermediate times, because the same mechanism pumps the
     upstream reservoir of still-slower particles INTO the window, and that
     reservoir outweighs the window population (mass ratio ~ dbar/c_x). So
     the measured tail is first ENHANCED (up to 1.6x at 5 t2), then crosses
     below and TERMINATES: exactly zero by 12 t2 at the middle receiver,
-    where the oracle's log-divergent tail still predicts 1e-2. The measured
+    where the analytic reference's log-divergent tail still predicts 1e-2. The measured
     crossover, 0.065 tau_r at one seed and one parameter point, sits at
     0.95 tau_r/beta_1^2 — consistent with the radial relaxation EIGENTIME
     tau_r/beta_1^2 (beta_1 = 3.8317), recorded as a hypothesis, not a law.
@@ -247,7 +247,7 @@ def _run_cir(case, n_particles, seed, epsilon, diffusivity=None,
                 "dbar": d,
                 "t": tt,
                 "cir_measured": counts / n,
-                "cir_oracle": ci.cir(tt, u_mean, d, c_x),
+                "cir_reference": ci.cir(tt, u_mean, d, c_x),
                 "t1": t1[d],
                 "t2": t2[d],
                 "peak_value": ci.peak_value(d, c_x),
@@ -281,7 +281,7 @@ def _run_cir(case, n_particles, seed, epsilon, diffusivity=None,
                 "dbar": d,
                 "t": tt,
                 "cir_measured": fractions[d],
-                "cir_oracle": ci.cir(tt, u_mean, d, c_x),
+                "cir_reference": ci.cir(tt, u_mean, d, c_x),
                 "t1": t1[d],
                 "t2": t2[d],
                 "peak_value": ci.peak_value(d, c_x),

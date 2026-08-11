@@ -65,14 +65,14 @@ def test_scalar_dispersion():
     num, study = case["numerics"], case["study"]
     tols = {m["name"]: float(m["tol"]) for m in case["metrics"]}
 
-    oracle_checks = ad.verify_limits()
+    reference_checks = ad.verify_limits()
     record = {
         "case": case["name"],
         "runner": "moments",
         "note": "NO axial discretisation exists in this runner; it isolates "
                 "the transverse operator and says nothing about axial advection",
-        "oracle_self_verification_checks": len(oracle_checks),
-        "oracle_worst_check": max(oracle_checks.values()),
+        "reference_self_verification_checks": len(reference_checks),
+        "reference_worst_check": max(reference_checks.values()),
         "geometries": {},
     }
 

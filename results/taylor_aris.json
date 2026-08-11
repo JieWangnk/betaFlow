@@ -1,8 +1,8 @@
 {
   "case": "taylor_aris",
   "runner": "langevin",
-  "note": "LAST exact oracle; analytic Poiseuille field, no CFD solver",
-  "oracle_self_verification": {
+  "note": "LAST exact analytic reference; analytic Poiseuille field, no CFD solver",
+  "reference_self_verification": {
     "eq15_vs_taylor_aris": 2.220446049250313e-16,
     "eq18_vs_differentiation": 2.220446049250313e-16,
     "peclet_at_r_cr": 4.440892098500626e-16,

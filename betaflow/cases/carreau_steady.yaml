@@ -25,10 +25,10 @@ geometry:
   half_height: 1.0
   length: 0.5
 
-oracle: betaflow.analytic.carreau.velocity_profile
+reference: betaflow.analytic.carreau.velocity_profile
 
 normalisation:
-  u_ref: u_max_from_oracle
+  u_ref: u_max_from_reference
 
 study:
   mesh_levels: [40, 80, 160]

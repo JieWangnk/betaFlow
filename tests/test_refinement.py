@@ -4,7 +4,7 @@ With an exact solution in hand this is an order-of-accuracy test, not GCI:
 the true discretisation error is measured at three mesh levels and the
 observed order p = log2(e_coarse / e_fine) is compared against the formal
 order of the scheme (2). GCI-style solution verification is reserved for
-cases without an oracle.
+cases without an analytic reference.
 
 Runs both sampling modes — cellPoint-interpolated profile extraction and raw
 cell values — so interpolation error is separated from solver error. Logs
@@ -60,7 +60,7 @@ def _tau_error_model(n):
 
 def test_order_of_accuracy():
     case = yaml.safe_load(CASE_FILE.read_text())
-    oracle = resolve(case["oracle"])
+    reference = resolve(case["reference"])
     h = float(case["geometry"]["half_height"])
     metric_name = case["metrics"][0]["name"]
     metric = METRICS[metric_name]
@@ -77,7 +77,7 @@ def test_order_of_accuracy():
             )
             y_over_h = np.asarray(result["y"]) / h
             u_nondim = np.asarray(result["u"]) / result["u_ref"]
-            errors.append(metric(u_nondim, oracle(y_over_h)))
+            errors.append(metric(u_nondim, reference(y_over_h)))
             n_cells.append(result["meta"]["n_cells_total"])
             openfoam_version = result["meta"]["openfoam_version"]
             # Conservation identity: the discrete momentum balance pins the

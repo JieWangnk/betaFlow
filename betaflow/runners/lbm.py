@@ -1,15 +1,15 @@
 """A minimal lattice-Boltzmann advection-diffusion solver. Pure numpy.
 
-THE FIFTH RUNNER, and the measurement leg of the `lattice_boltzmann` oracle.
+THE FIFTH RUNNER, and the measurement leg of the `lattice_boltzmann` analytic reference.
 That module states what an LBM ADE code must satisfy — D = c_s^2 (tau - 1/2),
 the Ma^2 depletion law, the anti-bounce-back Dirichlet slip and its magic
 parameter — and until this runner existed those statements were checked only
 by algebra (symbolic dispersion relations, 50-digit eigenvalue expansions).
-This module is an ACTUAL collide-and-stream lattice, so the oracle's claims
+This module is an ACTUAL collide-and-stream lattice, so the analytic reference's claims
 are now confronted with the thing they describe, in-repo, with no external
 dependency. When OpenLB enters, its output is compared against the same
-oracle through the same metrics; this runner is the reference implementation
-that establishes the oracle and the harness agree before a third party is
+analytic reference through the same metrics; this runner is the reference implementation
+that establishes the analytic reference and the harness agree before a third party is
 measured against them.
 
 TWO EXPERIMENTS, selected by the case's `experiment` key.
@@ -19,7 +19,7 @@ TWO EXPERIMENTS, selected by the case's `experiment` key.
                    scheme's effective diffusivity. This is the configuration
                    in which D = c_s^2 (tau - 1/2) and the Ma^2 law
                    D_eff = (c_s^2 - u^2)(tau - 1/2) were lattice-verified to
-                   3.7e-9 during oracle construction.
+                   3.7e-9 during analytic reference construction.
 
   "dirichlet_slip" Steady pure diffusion with a uniform source between two
                    anti-bounce-back Dirichlet walls. The analytic solution is
@@ -27,7 +27,7 @@ TWO EXPERIMENTS, selected by the case's `experiment` key.
                    spurious UNIFORM offset phi_s that vanishes only at
                    Ginzburg's magic parameter Lambda = (tau - 1/2)^2 = 3/16
                    (arXiv:1603.09577 Eqs. 71-73, re-verified symbolically in
-                   the oracle). This experiment MEASURES that offset: its
+                   the analytic reference). This experiment MEASURES that offset: its
                    sign flip across tau = 1/2 + sqrt(3)/4, its 1/N^2 decay
                    at fixed Delta_phi, and its uniformity across the domain.
 
@@ -78,8 +78,8 @@ _AXIS_VELOCITIES = {
 
 
 def _weights(lattice, omega):
-    """Weights for the named lattice; reduced sets come from the oracle's
-    omega-families so runner and oracle cannot disagree on the convention."""
+    """Weights for the named lattice; reduced sets come from the analytic reference's
+    omega-families so runner and analytic reference cannot disagree on the convention."""
     if lattice == "D1Q3":
         if omega is not None:
             raise ValueError("D1Q3 has no free rest weight; omit omega")
@@ -90,7 +90,7 @@ def _weights(lattice, omega):
 
 
 def _cs2(lattice, weights):
-    """c_s^2 from the weights ACTUALLY IN USE — the oracle's own rule that a
+    """c_s^2 from the weights ACTUALLY IN USE — the analytic reference's own rule that a
     name-keyed constant is the trap (OpenLB's D2Q5 ships with 1/5)."""
     e = _AXIS_VELOCITIES[lattice]
     if lattice == "D1Q3":

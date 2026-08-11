@@ -27,7 +27,7 @@ geometry:
   radius: 1.0
   length: 4.0
 
-oracle: betaflow.analytic.pipe.poiseuille_profile
+reference: betaflow.analytic.pipe.poiseuille_profile
 
 normalisation:
   u_max_over_u_mean: 2.0

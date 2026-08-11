@@ -1,4 +1,4 @@
-# Lattice-Boltzmann advection-diffusion, measured against its own oracle.
+# Lattice-Boltzmann advection-diffusion, measured against its own analytic reference.
 #
 # WHY THIS CASE EXISTS. betaflow/analytic/lattice_boltzmann.py states what an
 # LBM ADE code must satisfy - D = c_s^2(tau - 1/2), the Ma^2 depletion law
@@ -7,7 +7,7 @@
 # (symbolic dispersion relations, 50-digit eigenvalue expansions). This case
 # runs an ACTUAL collide-and-stream lattice (runners/lbm.py, pure numpy)
 # against the same statements, closing the loop before any external LBM code
-# (OpenLB) is measured against the oracle.
+# (OpenLB) is measured against the analytic reference.
 #
 # TWO EXPERIMENTS in one case, mirroring the runner:
 #   dispersion    - the relaxation relation and the Ma^2 law, from the

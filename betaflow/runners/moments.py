@@ -1,8 +1,8 @@
 """Aris moment hierarchy on the cross-section. No solver, no axial mesh.
 
 THE THIRD NON-OPENFOAM RUNNER, and the reference leg for Eulerian scalar
-transport. `langevin.py` answers the particle oracles without a CFD solver;
-this module answers the CONCENTRATION oracles the same way.
+transport. `langevin.py` answers the particle analytic references without a CFD solver;
+this module answers the CONCENTRATION analytic references the same way.
 
 WHAT IT SOLVES, and why that is the interesting part. Multiplying the
 advection-diffusion equation by x^p and integrating over the whole axial line
@@ -133,7 +133,7 @@ def run(
     """Advance the moment hierarchy and report the axial moments.
 
     Returns t, the raw moments, the central variance and third cumulant, and
-    every exact answer the oracle supplies for this configuration, so a metric
+    every exact answer the analytic reference supplies for this configuration, so a metric
     never has to re-derive one.
     """
     phys = case["physical"]
@@ -196,7 +196,7 @@ def run(
         "centroid": mu[1],
         "var_x": variance,
         "third_cumulant": third_cumulant,
-        # Exact answers, from the oracle, for whatever this case configured.
+        # Exact answers, from the analytic reference, for whatever this case configured.
         "d_eff_expected": ad.d_eff(diffusivity, length, u_mean, geometry),
         "intercept_expected": ad.variance_intercept(
             length, u_mean, diffusivity, geometry

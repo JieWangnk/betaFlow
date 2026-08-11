@@ -1,6 +1,6 @@
-"""OpenFOAM 14 particle runner vs the exact Brownian/Taylor-Aris oracles.
+"""OpenFOAM 14 particle runner vs the exact Brownian/Taylor-Aris analytic references.
 
-The three-way check this closes: the oracles are exact, runners/langevin.py is
+The three-way check this closes: the analytic references are exact, runners/langevin.py is
 the independently validated reference (D_eff/D = 9.9997 vs 10.0 exact), and
 this file runs the SAME cases through OpenFOAM 14 via the brownianTracer cloud
 (runners/openfoam_particles.py) — the displacement-level walk written after

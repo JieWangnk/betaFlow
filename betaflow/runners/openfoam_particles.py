@@ -30,7 +30,7 @@ Conventions shared with runners/langevin.py (load-bearing):
   n_steps = int(round(2 * cycles / epsilon**2))
   D_expected     = brownian.stokes_einstein(T, mu, a_p)
   D_eff_expected = taylor_aris.d_eff(D, a, U)
-The tests read the exact values from this dict, never from case["oracle"].
+The tests read the exact values from this dict, never from case["reference"].
 
 Mesh notes (both bit the development runs): the O-grid pipe rim is faceted,
 so seeds are capped at r <= a*cos(pi/n_facets) (48 facets -> 0.43% CDF

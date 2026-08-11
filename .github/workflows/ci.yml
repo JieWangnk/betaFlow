@@ -9,10 +9,10 @@ on:
   workflow_dispatch:
 
 jobs:
-  # Tier 1: oracle self-verification. No solver install, seconds to run, so it
-  # gates every push regardless of environment. If an oracle is wrong, every
+  # Tier 1: analytic reference self-verification. No solver install, seconds to run, so it
+  # gates every push regardless of environment. If an analytic reference is wrong, every
   # case that uses it as ground truth is wrong, so this runs first.
-  oracles:
+  analytic:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -20,12 +20,12 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install numpy scipy sympy pyyaml pytest
-      - run: python -m pytest -m oracle -v
+      - run: python -m pytest -m analytic -v
 
   # Tier 2: the solver cases that are not marked slow. Runs on push.
   solver:
     runs-on: ubuntu-latest
-    needs: oracles
+    needs: analytic
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
@@ -59,7 +59,7 @@ jobs:
   # Tier 3: everything, including the multi-minute studies. Nightly only.
   full:
     runs-on: ubuntu-latest
-    needs: oracles
+    needs: analytic
     if: github.event_name == 'schedule' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 180
     steps:

@@ -1,7 +1,7 @@
 {
   "case": "mc_channel",
   "leg": "exact kinematics (D = 0)",
-  "oracle_checks": {
+  "reference_checks": {
     "lemma_w0.1": 9.11695001437618e-08,
     "lemma_w0.37": 2.275125000061884e-07,
     "lemma_w0.5": 4.410450005210009e-08,
@@ -28,11 +28,11 @@
       "dbar_um": 150.0,
       "t1_s": 0.03333333333333333,
       "t2_s": 0.06666666666666667,
-      "peak_oracle": 0.5000000000000001,
+      "peak_reference": 0.5000000000000001,
       "peak_z_sigma": 0.670820393249863,
       "rmse_over_binomial_floor": 1.060404662479428,
       "tail_mass_measured": 0.07648004828218813,
-      "tail_mass_oracle": 0.07675283643313487,
+      "tail_mass_reference": 0.07675283643313487,
       "tail_mass_sigma_bound": 0.0004169167622485717,
       "pre_onset_max": 0.0
     },
@@ -40,11 +40,11 @@
       "dbar_um": 750.0,
       "t1_s": 0.23333333333333334,
       "t2_s": 0.26666666666666666,
-      "peak_oracle": 0.125,
+      "peak_reference": 0.125,
       "peak_z_sigma": 0.5003313187992943,
       "rmse_over_binomial_floor": 1.2675280920852996,
       "tail_mass_measured": 0.07656940627084724,
-      "tail_mass_oracle": 0.07675283643313487,
+      "tail_mass_reference": 0.07675283643313487,
       "tail_mass_sigma_bound": 0.0008923660636191129,
       "pre_onset_max": 0.0
     },
@@ -52,11 +52,11 @@
       "dbar_um": 1550.0,
       "t1_s": 0.5,
       "t2_s": 0.5333333333333333,
-      "peak_oracle": 0.06250000000000001,
+      "peak_reference": 0.06250000000000001,
       "peak_z_sigma": -0.4618802153517266,
       "rmse_over_binomial_floor": 1.1974146940549533,
       "tail_mass_measured": 0.07667079928285522,
-      "tail_mass_oracle": 0.07675283643313487,
+      "tail_mass_reference": 0.07675283643313487,
       "tail_mass_sigma_bound": 0.001275672605283938,
       "pre_onset_max": 0.0
     }
@@ -73,6 +73,6 @@
     "receiver_length": 0.0001,
     "scheme": "closed-form x = u(r0) t; only the release draw is sampled"
   },
-  "git_sha": "9353f31cf3ab-dirty",
-  "timestamp": "2026-08-11T13:43:14+00:00"
+  "git_sha": "76cfc40e6443-dirty",
+  "timestamp": "2026-08-11T14:09:34+00:00"
 }

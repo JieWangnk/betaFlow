@@ -1,4 +1,4 @@
-"""mc_channel — the molecular-communications CIR against its exact oracle.
+"""mc_channel — the molecular-communications CIR against its exact analytic reference.
 
 Two legs, one release each:
 
@@ -7,7 +7,7 @@ Two legs, one release each:
   (metrics/mc_error.py). Pre-onset counts must be EXACTLY zero — not small,
   zero — because no particle moves faster than the centreline.
 
-  DEPARTURE (D > 0, Pe = 200). The flow-dominated oracle fails in a
+  DEPARTURE (D > 0, Pe = 200). The flow-dominated analytic reference fails in a
   MEASURED structure: softened onset, depressed peak, and a two-regime
   tail — enhanced while the upstream reservoir of slower particles feeds
   the window, then terminated near the radial relaxation eigentime
@@ -55,7 +55,7 @@ def test_mc_channel_exact_kinematics():
     v_mean = float(case["physical"]["mean_velocity"])
     c_x = float(case["receiver"]["axial_length"])
 
-    oracle_checks = ci.verify_limits()
+    reference_checks = ci.verify_limits()
     res = run_case(case, runner="langevin", n_particles=n, seed=0,
                    diffusivity=0.0)
 
@@ -68,14 +68,14 @@ def test_mc_channel_exact_kinematics():
 
     receivers = []
     for rec in res["receivers"]:
-        t, cm, co = rec["t"], rec["cir_measured"], rec["cir_oracle"]
+        t, cm, co = rec["t"], rec["cir_measured"], rec["cir_reference"]
 
-        # RMSE against the oracle sits in a BAND around the binomial floor:
+        # RMSE against the analytic reference sits in a BAND around the binomial floor:
         # the floor is exact in expectation, but one particle contributes at
         # every time, so the errors are correlated across times and the
         # measured RMSE scatters with O(1) relative spread. Too high is a
         # runner error; well below the floor would mean the comparison is
-        # not independent of the oracle.
+        # not independent of the analytic reference.
         rmse = METRICS["cir_rmse"](cm, co)
         floor = mc_error.binomial_rmse_floor(co, n)
         lo_band, hi_band = metr["cir_rmse"]["band_of_floor"]
@@ -115,11 +115,11 @@ def test_mc_channel_exact_kinematics():
             "dbar_um": rec["dbar"] * 1e6,
             "t1_s": rec["t1"],
             "t2_s": rec["t2"],
-            "peak_oracle": rec["peak_value"],
+            "peak_reference": rec["peak_value"],
             "peak_z_sigma": z_peak,
             "rmse_over_binomial_floor": rmse / floor,
             "tail_mass_measured": mass_m,
-            "tail_mass_oracle": mass_o,
+            "tail_mass_reference": mass_o,
             "tail_mass_sigma_bound": bound,
             "pre_onset_max": float(np.max(pre)),
         })
@@ -127,7 +127,7 @@ def test_mc_channel_exact_kinematics():
     record = {
         "case": case["name"],
         "leg": "exact kinematics (D = 0)",
-        "oracle_checks": oracle_checks,
+        "reference_checks": reference_checks,
         "ks_statistic": res["ks_statistic"],
         "ks_floor": ks_floor,
         "receivers": receivers,
@@ -156,7 +156,7 @@ def test_mc_channel_departure():
 
     receivers = []
     for rec in res["receivers"]:
-        t, cm, co = rec["t"], rec["cir_measured"], rec["cir_oracle"]
+        t, cm, co = rec["t"], rec["cir_measured"], rec["cir_reference"]
 
         # Onset softening: axial diffusion delivers arrivals before t1.
         near_onset = cm[(t >= 0.90 * rec["t1"]) & (t < rec["t1"])]
@@ -168,20 +168,20 @@ def test_mc_channel_departure():
         peak_ratio = float(np.max(cm)) / rec["peak_value"]
         assert peak_ratio < 1.0, (
             f"dbar={rec['dbar']*1e6:.0f}um: measured peak {peak_ratio:.3f} of "
-            f"oracle — smoothing should depress it"
+            f"analytic reference — smoothing should depress it"
         )
 
         receivers.append({
             "dbar_um": rec["dbar"] * 1e6,
             "flow_dominated_ratio": rec["flow_dominated_ratio"],
-            "peak_measured_over_oracle": peak_ratio,
+            "peak_measured_over_reference": peak_ratio,
             "pre_onset_max": float(np.max(near_onset)),
         })
 
     # The two-regime tail, asserted on the MIDDLE receiver (dbar = 750 um),
     # whose crossover the standard horizon straddles.
     mid = next(r for r in res["receivers"] if abs(r["dbar"] - 750e-6) < 1e-9)
-    t, cm, co, t2 = mid["t"], mid["cir_measured"], mid["cir_oracle"], mid["t2"]
+    t, cm, co, t2 = mid["t"], mid["cir_measured"], mid["cir_reference"], mid["t2"]
 
     # Regime 1 — ENHANCEMENT over [3, 5] t2: the upstream reservoir
     # (mass ~ dbar/c_x times the window population) feeds the window faster
@@ -196,11 +196,11 @@ def test_mc_channel_departure():
     )
 
     # Regime 2 — TERMINATION: by 12 t2 (~0.12 tau_r) every particle has
-    # cleared the window, while the log-divergent oracle still predicts
+    # cleared the window, while the log-divergent analytic reference still predicts
     # ~1e-2. Measured zero at seed 1; the assertion allows a straggler.
     k12 = int(np.argmin(np.abs(t - 12.0 * t2)))
     assert cm[k12] < 0.2 * co[k12], (
-        f"measured CIR at 12 t2 is {cm[k12]:.2e} against oracle {co[k12]:.2e} "
+        f"measured CIR at 12 t2 is {cm[k12]:.2e} against analytic reference {co[k12]:.2e} "
         f"— the tail should have terminated"
     )
 
@@ -219,7 +219,7 @@ def test_mc_channel_departure():
             "enhancement_excess_3_to_5_t2": excess,
             "enhancement_sigma_bound": bound,
             "cir_at_12_t2_measured": float(cm[k12]),
-            "cir_at_12_t2_oracle": float(co[k12]),
+            "cir_at_12_t2_reference": float(co[k12]),
             "crossover_t_over_tau_r": t_cross / tau_r,
             "crossover_t_beta1sq_over_tau_r": t_cross * BETA_1**2 / tau_r,
             "eigentime_hypothesis": (

@@ -2,9 +2,9 @@
 
 Purpose is twofold: test whether the harness abstractions are geometry-
 agnostic or quietly channel-specific, and open the route to particle
-transport, whose published oracles are cylindrical.
+transport, whose published analytic references are cylindrical.
 
-Every oracle used here is cited in betaflow/analytic/pipe.py and in the case
+Every analytic reference used here is cited in betaflow/analytic/pipe.py and in the case
 YAML. The force balance tau(r) = G r / 2 — a factor of two from the channel's
 tau(y) = G y — propagates into every profile, and the conservation identity is
 written against G a / 2 precisely because that factor is the most likely
@@ -117,8 +117,8 @@ def test_pipe_geometry():
         ),
     }
 
-    # How well can each metric even TELL the two kernels apart? Oracle-to-
-    # oracle, so no solver runs are needed. The answer is uncomfortable: at
+    # How well can each metric even TELL the two kernels apart? Analytic reference-to-
+    # analytic reference, so no solver runs are needed. The answer is uncomfortable: at
     # the case's alpha the profile metrics cannot, but wall shear can.
     r_fine = np.linspace(0.0, 1.0, 201)
     discrimination = []
@@ -155,7 +155,7 @@ def test_pipe_geometry():
         )
         np.testing.assert_allclose(
             x["Re_from_meta"], case["nondim"]["Re"], rtol=1e-12,
-            err_msg="runner and oracle disagree on the pipe Re definition (2a, not 2h)",
+            err_msg="runner and analytic reference disagree on the pipe Re definition (2a, not 2h)",
         )
     assert record["casson"]["identity"] < IDENTITY_TOL
     assert record["womersley"]["identity_max_rel"] < 1e-6

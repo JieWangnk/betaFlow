@@ -1,6 +1,6 @@
-"""Pulsatile Carreau (Lap 0d): the first case with NO EXACT ORACLE.
+"""Pulsatile Carreau (Lap 0d): the first case with NO EXACT ANALYTIC REFERENCE.
 
-The unsteady term breaks the force balance every previous oracle rested on,
+The unsteady term breaks the force balance every previous analytic reference rested on,
 and the nonlinear viscosity kills superposition, so there is no closed form
 for the profile. What remains exact is used in full, and what remains is
 ESTIMATED is labelled as such. The deliverable is that distinction.
@@ -11,11 +11,11 @@ VERIFIED EXACTLY
     unsteadiness-independent, and the runner's convergence gate.
   * half-wave symmetry u(y, t+T/2) = -u(y, t), which G's oddness and nu's
     evenness in gammadot force on the periodic state.
-  * two limits against oracles already in the repo: Cu -> 0 against the exact
+  * two limits against analytic references already in the repo: Cu -> 0 against the exact
     Womersley cosh solution, alpha -> 0 against the exact steady Carreau
     rootfind solution at the instantaneous G(t).
 
-ESTIMATED (no oracle)
+ESTIMATED (no analytic reference)
   * the profile itself, bounded by GCI (ASME V&V 20) over three levels of
     combined space-time refinement, with the safety factor reported and
     raised to 3 if the sequence is not in the asymptotic range.
@@ -144,7 +144,7 @@ def test_womersley_carreau():
     main = ladder[-1]
 
     # GCI on two functionals: the peak first-harmonic velocity amplitude
-    # (the profile quantity with no oracle) and the wall-shear amplitude.
+    # (the profile quantity with no analytic reference) and the wall-shear amplitude.
     gci = {
         name: grid_convergence_index(
             ladder[0][name],
@@ -226,7 +226,7 @@ def test_womersley_carreau():
         f"{main['alpha_eff']:.2f} vs nominal {main['alpha_nominal']:.2f}"
     )
 
-    # 5. Both limits recover their exact oracles to the tolerance those cases
+    # 5. Both limits recover their exact analytic references to the tolerance those cases
     #    already meet (1e-2 on amplitude, 2e-2 on phase).
     assert limit_womersley["L2_amplitude"] < 1e-2, limit_womersley
     assert limit_womersley["L2_phase"] < 2e-2, limit_womersley

@@ -83,7 +83,7 @@ def _symbol_phase_error(n_steps, alpha, scheme, h=1.0, period=1.0):
 
 
 def _evaluate(result, alpha, h):
-    """Amplitude/phase/WSS errors of one run against the oracle."""
+    """Amplitude/phase/WSS errors of one run against the analytic reference."""
     exact = womersley.complex_profile(np.asarray(result["y"]) / h, alpha)
     tau_exact = womersley.complex_wall_shear(alpha)
     amp_err = METRICS["L2_amplitude"](result["u_amp"] / result["u_ref"], np.abs(exact))

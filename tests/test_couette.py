@@ -31,7 +31,7 @@ SAMPLINGS = ("cellPoint", "cell")
 
 def test_couette_steady_null():
     case = yaml.safe_load(CASE_FILE.read_text())
-    oracle = resolve(case["oracle"])
+    reference = resolve(case["reference"])
     height = float(case["geometry"]["height"])
     tols = {m["name"]: float(m["tol"]) for m in case["metrics"]}
 
@@ -51,7 +51,7 @@ def test_couette_steady_null():
                 couette.reynolds(meta["u_wall"], height, meta["nu"]),
                 case["nondim"]["Re"],
                 rtol=1e-12,
-                err_msg="runner and oracle disagree on the Reynolds-number definition",
+                err_msg="runner and analytic reference disagree on the Reynolds-number definition",
             )
             # Opt-out check: no force -> no pressure-gradient provenance.
             assert "pressure_gradient" not in meta, (
@@ -61,7 +61,7 @@ def test_couette_steady_null():
             y_over_height = np.asarray(result["y"]) / height
             u_nondim = np.asarray(result["u"]) / result["u_ref"]
             velocity_errors[sampling].append(
-                METRICS["L2_velocity"](u_nondim, oracle(y_over_height))
+                METRICS["L2_velocity"](u_nondim, reference(y_over_height))
             )
             # tau_w comes from the solve, not the sampling; log it once.
             if sampling == "cell":

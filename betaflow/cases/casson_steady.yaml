@@ -25,10 +25,10 @@ geometry:
   half_height: 1.0
   length: 0.5
 
-oracle: betaflow.analytic.casson.velocity_profile
+reference: betaflow.analytic.casson.velocity_profile
 
 normalisation:
-  # u_ref = u_max = plug velocity, computed from xi by the oracle (not a
+  # u_ref = u_max = plug velocity, computed from xi by the analytic reference (not a
   # constant as in poiseuille, where u_max/u_mean = 3/2 exactly).
   u_ref: u_max_from_xi
 
