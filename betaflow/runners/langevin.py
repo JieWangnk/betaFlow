@@ -159,8 +159,159 @@ def _run_pipe(case, n_particles, seed, epsilon, cycles, particle_radius):
     }
 
 
+def _run_cir(case, n_particles, seed, epsilon, diffusivity=None,
+             time_horizon_over_t2=None):
+    """Channel impulse response: uniform release, transparent receivers.
+
+    The molecular-communications measurement (Hofmann et al. 2024 setup, see
+    betaflow/analytic/channel_impulse.py): particles released at t = 0
+    uniformly over the cross-section at x = 0, advected by Poiseuille flow,
+    counted inside axial windows [dbar - c_x/2, dbar + c_x/2]. ONE release
+    serves every receiver, because the receivers are transparent.
+
+    Two regimes, selected by the diffusivity:
+
+    D == 0 — EXACT KINEMATICS. Each particle keeps its release radius, so
+    x(t) = u(r0) t in closed form: no time-stepping, no scheme error, and the
+    ONLY departure from the oracle is the finite-N draw of the release
+    positions, whose law is binomial (metrics/mc_error.py). Counting uses a
+    sort of the release speeds: x in [lo, hi] iff u0 in [lo/t, hi/t].
+
+    D > 0 — the departure measurement. Euler-Maruyama with axial noise,
+    radial noise, and the same specular wall reflection as the dispersion
+    case. Measured departures from the flow-dominated oracle (recorded in
+    results/mc_channel_departure.json): axial diffusion softens the onset
+    (arrivals before t1) and depresses the peak, and the tail departs in TWO
+    regimes, in the OPPOSITE order to the naive expectation. The prediction
+    written here before measuring was "radial diffusion walks slow near-wall
+    particles onto fast streamlines, so the tail falls BELOW the oracle" —
+    wrong at intermediate times, because the same mechanism pumps the
+    upstream reservoir of still-slower particles INTO the window, and that
+    reservoir outweighs the window population (mass ratio ~ dbar/c_x). So
+    the measured tail is first ENHANCED (up to 1.6x at 5 t2), then crosses
+    below and TERMINATES: exactly zero by 12 t2 at the middle receiver,
+    where the oracle's log-divergent tail still predicts 1e-2. The measured
+    crossover, 0.065 tau_r at one seed and one parameter point, sits at
+    0.95 tau_r/beta_1^2 — consistent with the radial relaxation EIGENTIME
+    tau_r/beta_1^2 (beta_1 = 3.8317), recorded as a hypothesis, not a law.
+    The radial invariant P(r) = 2r/a^2 stays exact and is this mode's gate.
+    """
+    from betaflow.analytic import channel_impulse as ci
+    from betaflow.analytic import taylor_aris as ta
+
+    phys = case["physical"]
+    recv = case["receiver"]
+    num = case.get("numerics", {})
+    a = float(phys["vessel_radius"])
+    u_mean = float(phys["mean_velocity"])
+    c_x = float(recv["axial_length"])
+    distances = [float(d) for d in recv["distances"]]
+    d_diff = float(phys.get("diffusivity", 0.0) if diffusivity is None
+                   else diffusivity)
+    horizon = float(num.get("time_horizon_over_t2", 10.0)
+                    if time_horizon_over_t2 is None else time_horizon_over_t2)
+    n_samples = int(num.get("n_samples", 1500))
+    resolution_steps = int(num.get("cir_resolution_steps", 50))
+
+    rng = np.random.default_rng(seed)
+    n = int(n_particles)
+    radius0 = a * np.sqrt(rng.random(n))
+    theta0 = 2.0 * np.pi * rng.random(n)
+    p = np.column_stack((radius0 * np.cos(theta0), radius0 * np.sin(theta0)))
+
+    t1 = {d: ci.onset_time(u_mean, d, c_x) for d in distances}
+    t2 = {d: ci.peak_time(u_mean, d, c_x) for d in distances}
+    receivers = []
+    meta = {
+        "solver": "langevin",
+        "mode": "cir: uniform release, analytic Poiseuille, transparent receivers",
+        "n_particles": n,
+        "seed": int(seed),
+        "diffusivity": d_diff,
+        "time_horizon_over_t2": horizon,
+        "vessel_radius": a,
+        "mean_velocity": u_mean,
+        "receiver_length": c_x,
+    }
+
+    if d_diff == 0.0:
+        # Exact kinematics: per-receiver grid in t/t2 units so each rise is
+        # equally resolved, counts by binary search on the sorted speeds.
+        u_sorted = np.sort(ta.velocity_profile(radius0 / a, u_mean))
+        for d in distances:
+            lo, hi = d - c_x / 2.0, d + c_x / 2.0
+            tt = np.linspace(0.5 * t1[d], horizon * t2[d], n_samples)
+            counts = (np.searchsorted(u_sorted, hi / tt, side="right")
+                      - np.searchsorted(u_sorted, lo / tt, side="left"))
+            receivers.append({
+                "dbar": d,
+                "t": tt,
+                "cir_measured": counts / n,
+                "cir_oracle": ci.cir(tt, u_mean, d, c_x),
+                "t1": t1[d],
+                "t2": t2[d],
+                "peak_value": ci.peak_value(d, c_x),
+            })
+        meta["scheme"] = "closed-form x = u(r0) t; only the release draw is sampled"
+    else:
+        # Time-stepped departure run. dt resolves BOTH the radial walk
+        # (epsilon = sqrt(2 D dt)/a, the dispersion case's constraint) and
+        # the fastest receiver's rise (t2_min / resolution_steps) — at high
+        # Peclet the second one binds.
+        tau_r = ta.radial_relaxation_time(a, d_diff)
+        dt = min(epsilon**2 * tau_r / 2.0, min(t2.values()) / resolution_steps)
+        t_max = horizon * max(t2.values())
+        n_steps = int(np.ceil(t_max / dt))
+        sigma_step = np.sqrt(2.0 * d_diff * dt)
+
+        x = np.zeros(n)
+        tt = np.arange(1, n_steps + 1) * dt
+        fractions = {d: np.zeros(n_steps) for d in distances}
+        windows = {d: (d - c_x / 2.0, d + c_x / 2.0) for d in distances}
+        for k in range(n_steps):
+            r_now = np.hypot(p[:, 0], p[:, 1])
+            x += (ta.velocity_profile(r_now / a, u_mean) * dt
+                  + sigma_step * rng.standard_normal(n))
+            p_new = p + sigma_step * rng.standard_normal((n, 2))
+            p = _specular_reflect(p, p_new, a)
+            for d, (lo, hi) in windows.items():
+                fractions[d][k] = np.count_nonzero((x >= lo) & (x <= hi)) / n
+        for d in distances:
+            receivers.append({
+                "dbar": d,
+                "t": tt,
+                "cir_measured": fractions[d],
+                "cir_oracle": ci.cir(tt, u_mean, d, c_x),
+                "t1": t1[d],
+                "t2": t2[d],
+                "peak_value": ci.peak_value(d, c_x),
+                "flow_dominated_ratio": ci.flow_dominated(
+                    u_mean * a / d_diff, d, a),
+            })
+        meta.update({
+            "scheme": "Euler-Maruyama, axial + radial noise, specular wall",
+            "dt": float(dt),
+            "n_steps": n_steps,
+            "epsilon_radial_step": float(np.sqrt(2.0 * d_diff * dt) / a),
+            "tau_r": float(tau_r),
+            "t_max_over_tau_r": float(t_max / tau_r),
+            "peclet": float(u_mean * a / d_diff),
+        })
+
+    r_final = np.hypot(p[:, 0], p[:, 1]) / a
+    from scipy.stats import kstest
+
+    return {
+        "receivers": receivers,
+        "r_over_a": r_final,
+        "ks_statistic": float(kstest(r_final, ta.radial_cdf).statistic),
+        "meta": meta,
+    }
+
+
 def run(case, n_particles=10000, n_steps=100, total_time=None, seed=0, dt=None,
-        epsilon=0.05, cycles=10.0, particle_radius=None):
+        epsilon=0.05, cycles=10.0, particle_radius=None, diffusivity=None,
+        time_horizon_over_t2=None):
     """Simulate free Brownian motion and return the standard result dict.
 
     Parameters
@@ -175,6 +326,9 @@ def run(case, n_particles=10000, n_steps=100, total_time=None, seed=0, dt=None,
     seed : int
         RNG seed, so the regression suite is reproducible.
     """
+    if "receiver" in case:
+        return _run_cir(case, n_particles, seed, epsilon, diffusivity,
+                        time_horizon_over_t2)
     if "flow" in case:
         return _run_pipe(case, n_particles, seed, epsilon, cycles, particle_radius)
 

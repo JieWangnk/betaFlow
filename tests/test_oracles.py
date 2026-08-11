@@ -584,3 +584,23 @@ def test_lattice_boltzmann_ma2_advection_error():
         1.0 + lb.d2q5_second_order_residual(0.2, 0.4)
     )
     assert measured == pytest.approx(expected, rel=1e-5)
+
+
+def test_channel_impulse():
+    """The molecular-communications CIR oracle — the first comms-facing one.
+
+    `verify_limits` re-derives the closed form (Hofmann et al. 2024, Eq. 13)
+    by an independent route before it may serve as truth: the uniform-speed
+    lemma CDF by quadrature, every branch against direct quadrature over the
+    release distribution, continuity at both kinks, the peak value and its
+    maximality (t2 included as an exact sample point — a uniform grid misses
+    the kink), the log-divergent tail integral, and the paper's own regime
+    numbers under the shared Peclet convention. Indicator-function
+    quadratures carry a stated 1e-6 limit (trapezoid is first-order at a
+    jump); everything else holds at 1e-9.
+    """
+    from betaflow.analytic import channel_impulse as chi
+
+    out = chi.verify_limits()
+    assert out, "verify_limits returned no checks"
+    assert len(out) >= 18, f"expected >= 18 checks, got {len(out)}"

@@ -80,3 +80,56 @@ def ks_critical(n_samples, alpha=0.05):
     if alpha not in coefficients:
         raise ValueError(f"alpha must be one of {sorted(coefficients)}")
     return coefficients[alpha] / math.sqrt(n_samples)
+
+
+def binomial_sigma(p, n_particles):
+    """ABSOLUTE standard deviation of a measured fraction, sqrt(p(1-p)/N).
+
+    The channel-impulse-response value at one time is a binomial proportion:
+    each of N released particles is inside the receiver window or not. Unlike
+    the four relative laws above, this one depends on the value p itself and
+    is returned in absolute units of the fraction, because relative error
+    diverges as p -> 0 in the tail where the CIR is smallest.
+    """
+    p = float(p)
+    if not 0.0 <= p <= 1.0:
+        raise ValueError(f"p = {p} is not a probability")
+    return math.sqrt(p * (1.0 - p) / n_particles)
+
+
+def binomial_rmse_floor(p_curve, n_particles):
+    """Expected RMSE of a measured fraction curve against its exact curve.
+
+    E[(phat(t) - p(t))^2] = p(t)(1-p(t))/N exactly at every t, whatever the
+    correlation between times, so the expected SQUARED RMSE is the time-mean
+    of that and the floor is sqrt(mean(p(1-p))/N).
+
+    CAVEAT the assertion must respect: one particle contributes to phat at
+    EVERY time, so the errors at nearby times are strongly correlated and the
+    measured RMSE scatters around this floor with O(1) relative spread — the
+    effective number of independent time samples is the number of
+    non-overlapping receiver windows in speed space, not the grid size. A
+    fixed-seed check therefore asserts a BAND around the floor, not a
+    one-sided multiple of a concentration bound that does not apply.
+    """
+    import numpy as np
+
+    p = np.asarray(p_curve, dtype=float)
+    return float(np.sqrt(np.mean(p * (1.0 - p)) / n_particles))
+
+
+def binomial_integral_sigma_bound(times, p_curve, n_particles):
+    """UPPER bound on the sd of the time-integral of a measured fraction.
+
+    sd(integral phat dt) <= integral sd(phat) dt = integral sqrt(p(1-p)/N) dt,
+    with equality when the errors are perfectly correlated across times
+    (Minkowski's integral inequality). The tail-mass check uses this bound
+    because the true covariance across times depends on the window overlap
+    structure; the bound costs at most the correlation factor, still falls as
+    1/sqrt(N), and can only make the assertion conservative.
+    """
+    import numpy as np
+
+    t = np.asarray(times, dtype=float)
+    p = np.asarray(p_curve, dtype=float)
+    return float(np.trapezoid(np.sqrt(p * (1.0 - p) / n_particles), t))

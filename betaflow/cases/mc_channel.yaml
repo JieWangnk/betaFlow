@@ -1,0 +1,74 @@
+# Molecular-communications channel impulse response in a straight pipe.
+# THE FIRST COMMS-FACING CASE: the quantity under test is the fraction of
+# released particles inside a transparent receiver window over time — the
+# curve every molecular-communications metric (symbol timing, inter-symbol
+# interference, achievable rate) is computed from.
+#
+# Reuses runners/langevin.py (receiver block selects the CIR mode) against
+# the exact flow-dominated oracle in analytic/channel_impulse.py. Two legs:
+#   D = 0   exact kinematics — the only error is the finite-N release draw,
+#           so every tolerance is a binomial law (metrics/mc_error.py);
+#   D > 0   the departure measurement — softened onset, depressed peak, and
+#           a two-regime tail (enhanced while the upstream reservoir feeds
+#           the window, then terminated near tau_r/beta_1^2). Asserted at
+#           sign level, recorded at magnitude level, never tuned to pass.
+#           The pre-measurement prediction (depleted tail) was wrong in
+#           direction at intermediate times; see runners/langevin.py.
+#
+# CITATIONS
+#   Hofmann et al. (2024), IEEE Access, doi:10.1109/ACCESS.2024.3438243.
+#     READ (pp. 1-6): geometry, receiver placement, and Pe = 200 are their
+#     Table 1; the analytic model is their Eq. 13, re-derived independently
+#     in the oracle before use.
+#   DIMENSIONAL SPLIT IS OURS: Table 1 fixes the ratio Pe = V a / D = 200;
+#     the split V = 1.5 mm/s, D = 1.5e-9 m^2/s realises it with a
+#     small-molecule diffusivity. The flow-dominated CIR depends on V, dbar,
+#     c_x only, so the split moves nothing in the D = 0 leg; it sets the
+#     timescale of the D > 0 departure.
+name: mc_channel
+
+physical:
+  vessel_radius: 200.0e-6      # m — Hofmann Table 1
+  mean_velocity: 1.5e-3        # m/s — our split of Pe = 200
+  diffusivity: 1.5e-9          # m^2/s — our split of Pe = 200
+
+receiver:                      # presence of this key selects the CIR mode
+  axial_length: 100.0e-6       # m — Hofmann Table 1 (c_x)
+  distances: [150.0e-6, 750.0e-6, 1550.0e-6]   # m — Hofmann Table 1 (dbar)
+  # Flow-dominated ratios Pe/(4 dbar/a) at these distances: 66.7, 13.3, 6.5.
+
+numerics:
+  # D = 0 leg: per-receiver grid from 0.5 t1 to horizon * t2, closed-form
+  # positions, so n_samples is a plotting resolution, not a scheme parameter.
+  n_samples: 1500
+  time_horizon_over_t2: 10.0
+  # D > 0 leg: dt = min(epsilon^2 tau_r / 2, t2_min / cir_resolution_steps).
+  # At Pe = 200 the SECOND constraint binds — the receiver rise is much
+  # faster than the radial walk, so resolving the CIR sets the step.
+  epsilon: 0.05
+  cir_resolution_steps: 50
+
+study:
+  exact_particles: 200000      # D = 0 leg
+  departure_particles: 30000   # D > 0 leg
+  departure_horizon_over_t2: 8.0
+
+metrics:
+  # D = 0 leg, all binomial (mc_error.py). The RMSE floor is exact in
+  # expectation but the errors are correlated across times, so the check is
+  # a BAND around the floor, not a one-sided concentration bound.
+  - name: cir_rmse
+    error_law: binomial_rmse_floor
+    band_of_floor: [0.3, 2.0]
+  - name: cir_peak_relative
+    error_law: binomial
+    tol_sigma: 4.0
+  - name: cir_tail_mass_relative
+    error_law: binomial_integral_sigma_bound   # Minkowski upper bound on sd
+    tol_sigma: 3.0
+  # THE GATE, both legs: axial flow cannot alter P(r) = 2r/a^2. At D = 0 it
+  # checks the release sampler; at D > 0 it checks the wall scheme, whose
+  # bias would enter the CIR invisibly through the velocity sampling.
+  - name: radial_ks
+    alpha: 0.05
+    tol_multiple_of_floor: 1.5

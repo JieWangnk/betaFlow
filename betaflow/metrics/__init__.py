@@ -45,4 +45,13 @@ METRICS = {
     "variance_intercept_relative": variance_intercept_relative,
     "cumulant_slope_relative": cumulant_slope_relative,
     "centroid_relative": centroid_relative,
+    # Molecular-communications channel impulse response. Both REUSE existing
+    # functions: the CIR is a dimensionless fraction curve, so its RMSE
+    # against the oracle IS the discrete L2 norm, and the peak/tail-mass
+    # comparisons are scalar relative errors. The error laws are binomial —
+    # see betaflow/metrics/mc_error.py (binomial_sigma, binomial_rmse_floor,
+    # binomial_integral_sigma_bound).
+    "cir_rmse": l2_velocity,
+    "cir_peak_relative": relative_error_scalar,
+    "cir_tail_mass_relative": relative_error_scalar,
 }
