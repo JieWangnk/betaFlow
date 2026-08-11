@@ -419,17 +419,77 @@ def test_lattice_boltzmann_relaxation_relation():
     assert lb.naive_error_factor(0.5001) > 1000.0
 
 
-def test_lattice_boltzmann_declares_what_it_has_not_established():
-    """The unverified items must stay declared rather than silently absent.
+def test_lattice_boltzmann_weight_families():
+    """c_s^2 is a property of the WEIGHTS in use, not of the lattice name.
 
-    The tau-dependent bounce-back wall position is the analogue of the wedge
-    faceting bias this repo documents — refinement-independent and invisible
-    in a velocity profile. No coefficient is given because none has been
-    verified here, and deleting the entry is not the same as closing it.
+    Both published D3Q7 values are correct, for different rest weights:
+    omega = 3/4 gives 1/4 (the textbook set, and OpenLB's ADE lattice by
+    inversion of guide Eq. 4.58), omega = 1 gives 1/3. OpenLB's own "D2Q5"
+    thermal model declares c_s^2 = 0.2, the omega = 2/5 member — so a
+    name-keyed oracle is wrong against a real solver by construction.
+    """
+    lb = lattice_boltzmann
+    velocities = lb.VELOCITY_SETS["D3Q7"][0]
+    assert lb.sound_speed_squared_from_weights(
+        velocities, lb.d3q7_weights(0.75)
+    ) == pytest.approx(0.25, rel=1e-14)
+    assert lb.sound_speed_squared_from_weights(
+        velocities, lb.d3q7_weights(1.0)
+    ) == pytest.approx(1 / 3, rel=1e-14)
+    v5 = lb.VELOCITY_SETS["D2Q5"][0]
+    assert lb.sound_speed_squared_from_weights(
+        v5, lb.d2q5_weights(0.4)
+    ) == pytest.approx(0.2, rel=1e-14)
+    # The tabulated table entries are members of the same families, so the
+    # two interfaces agree on this module's own weights.
+    for name in ("D3Q7", "D2Q5"):
+        assert lb.sound_speed_squared_from_weights(
+            *lb.VELOCITY_SETS[name]
+        ) == pytest.approx(lb.sound_speed_squared(name), rel=1e-14)
+    with pytest.raises(ValueError):
+        lb.d3q7_weights(0.0)
+
+
+def test_lattice_boltzmann_ade_dirichlet_slip():
+    """The anti-bounce-back Dirichlet slip, and the magic parameter.
+
+    phi_s = (dphi/12N^2) * 16 * [(tau - 1/2)^2 - 3/16]: zero exactly at
+    Lambda = 3/16 (tau = 1/2 + sqrt(3)/4), and scaling as 1/N^2 — so unlike
+    the wedge faceting bias it converges away; it inflates the second-order
+    constant rather than destroying the order.
+    """
+    lb = lattice_boltzmann
+    tau0 = lb.zero_slip_tau()
+    assert tau0 == pytest.approx(0.5 + np.sqrt(3) / 4, rel=1e-15)
+    assert lb.magic_lambda(tau0) == pytest.approx(3 / 16, rel=1e-14)
+    assert lb.ade_dirichlet_slip(tau0, 32) == pytest.approx(0.0, abs=1e-18)
+    # Nonzero away from the magic value, with the sign flipping across it.
+    assert lb.ade_dirichlet_slip(1.5, 32) > 0.0 > lb.ade_dirichlet_slip(0.6, 32)
+    # 1/N^2: doubling N quarters the slip.
+    assert lb.ade_dirichlet_slip(1.0, 32) / lb.ade_dirichlet_slip(1.0, 64) == (
+        pytest.approx(4.0, rel=1e-12)
+    )
+    # The corrected MRT relation is the magic condition; the PUBLISHED
+    # Eq. (73) yields a negative rate. Both facts, or the record is stale.
+    for s3 in (0.8, 1.0, 1.5):
+        s1 = lb.mrt_zero_slip_s1(s3)
+        assert s1 > 0.0
+        assert (1 / s3 - 0.5) * (1 / s1 - 0.5) == pytest.approx(3 / 16, rel=1e-12)
+        assert 8 * (s3 - 2) / (8 - s3) < 0.0, "published sign error no longer reproduces"
+
+
+def test_lattice_boltzmann_declares_what_it_has_not_established():
+    """The still-open items must stay declared rather than silently absent.
+
+    The MOMENTUM-lattice wall position stays open: the one research claim
+    tying it to a readable source failed adversarial verification 0-3, and
+    the primary papers remain unread. The SCALAR analogue is resolved and is
+    different in kind (1/N^2), so the entry warns against carrying the
+    refinement-independent framing across.
     """
     lb = lattice_boltzmann
     for key in ("ma_squared_advection_error", "bounce_back_wall_position",
-                "ade_wall_condition"):
+                "openlb_d3q7_descriptor"):
         assert key in lb.UNRESOLVED and lb.UNRESOLVED[key].strip()
     with pytest.raises(ValueError):
         lb.diffusivity(1.0, "D3Q13")

@@ -40,16 +40,36 @@ velocity set alone and is cited; its CONSEQUENCES are then checked here.
      lattice statement of the same instability that central differencing
      expresses as a negative numerical diffusivity in `numerical_diffusion`.
 
-  2. THE VELOCITY SETS, AND THE D3Q7 TRAP.
+  2. THE VELOCITY SETS, AND THE REAL SHAPE OF THE D3Q7 TRAP.
 
-     c_s^2 = 1/3 for D1Q3, D2Q5, D2Q9, D3Q19 and D3Q27 — but c_s^2 = 1/4 for
-     D3Q7, which is the smallest three-dimensional set and therefore the one a
-     scalar lattice is most likely to use for speed. Substituting 1/3 there
-     gives a diffusivity 4/3 too large at every tau, and nothing about the
-     resulting field looks wrong.
+     The first version of this module stated "c_s^2 = 1/4 for D3Q7" as a
+     lattice constant. That is true for the weights tabulated below and WRONG
+     as a statement about the name: for the reduced scalar lattices c_s^2 is
+     a WEIGHT FAMILY, not a constant. With rest weight w_0 = 1 - omega,
 
-     COMPUTED, not quoted: `verify_limits` forms sum_i w_i c_ia c_ib directly
-     from each set's discrete velocities and reads c_s^2 off the diagonal.
+         D3Q7:  w_{1..6} = omega/6,  c_s^2 = omega/3,   0 < omega < 1
+         D2Q5:  w_{1..4} = omega/4,  c_s^2 = omega/2
+
+     so the common textbook D3Q7 (w_0 = 1/4, omega = 3/4) gives exactly 1/4,
+     a rest-free D3Q7 (omega = 1) gives 1/3, and BOTH published values are
+     correct for different weights — which is where the literature's 1/4-vs-
+     1/3 confusion comes from. The trap is therefore sharper than a wrong
+     constant: an oracle keyed by LATTICE NAME is wrong by construction.
+     OpenLB's own user guide carries the proof: its general D2Q9 descriptor
+     has cs2 = 1/3 while its D2Q5 thermal MRT model declares c_s^2 = 0.2
+     (w_0 = 3/5, omega = 2/5 -> omega/2 = 1/5). Same name, different constant.
+     Read c_s^2 off the weights the solver actually uses — which is what
+     `sound_speed_squared_from_weights` does and `verify_limits` checks.
+
+     The full sets D2Q9, D3Q19, D3Q27 (and D1Q3) have no such freedom at
+     second order: their tabulated weights give c_s^2 = 1/3.
+
+     For the TARGET CODE: OpenLB's D3Q7 particle-ADE lattice sets
+     omega_ADE = [4 D_lattice + 1/2]^{-1} (user guide 1.7r0, Eq. 4.58), i.e.
+     tau = 4 D + 1/2, which inverts to D = (1/4)(tau - 1/2) — documentary
+     evidence that OpenLB's D3Q7 uses c_s^2 = 1/4. The guide never prints the
+     D3Q7 weights, so confirm against src/dynamics/latticeDescriptors.h
+     (cs2<3,7>) when a checkout is available.
 
   3. WHICH SETS CAN CARRY WHICH EQUATION.
 
@@ -70,31 +90,94 @@ velocity set alone and is cited; its CONSEQUENCES are then checked here.
      carrying momentum, and a coupled simulation must use a full set for the
      fluid lattice whatever it uses for the scalar.
 
-WHAT THIS MODULE DELIBERATELY DOES NOT CLAIM. The O(Ma^2) advection error and
-the tau-dependent effective wall position of bounce-back are both real and
-both matter — the second is the exact analogue of the wedge faceting bias this
-repo documents, being refinement-independent and invisible in a velocity
-profile. Neither has a coefficient stated here, because neither has been
-verified in this session. They are named in `UNRESOLVED` so the gap is
-explicit rather than absent.
+  4. THE ADE DIRICHLET WALL SLIP, AND THE MAGIC PARAMETER — RESOLVED.
+
+     The first version of this module listed the scalar-lattice wall
+     condition as an open gap. It now has a closed form, from the MRT
+     convection-diffusion analysis at arXiv:1603.09577 (read in full by the
+     research pipeline; Eqs. 71-73), with every identity re-verified here in
+     sympy. For steady 1-D advection-diffusion with anti-bounce-back
+     Dirichlet walls, the BGK solution is the exact one plus a UNIFORM
+     spurious offset
+
+         phi_s = (dphi / (12 N^2)) * [4 (2/s - 1)^2 - 3],      s = 1/tau,
+
+     and the bracket is IDENTICALLY 16 [ (tau - 1/2)^2 - 3/16 ]. So the slip
+     vanishes exactly when Lambda = (tau - 1/2)^2 = 3/16 — Ginzburg's magic
+     parameter, emerging from a paper that never names it — at the single
+     value tau = 1/2 + sqrt(3)/4 = 0.93301 (s = 4(2 - sqrt(3)) = 1.07180).
+
+     THE NUANCE THAT MATTERS FOR THIS REPO: the slip scales as 1/N^2. It is
+     NOT the analogue of the wedge faceting bias — it converges away at
+     second order, inflating the error constant rather than destroying the
+     order. A refinement study DOES see it; what a refinement study cannot
+     see is that a single tuning choice removes it entirely.
+
+     For MRT, zero slip requires s1 = 8(s3 - 2)/(s3 - 8), which satisfies
+     (1/s3 - 1/2)(1/s1 - 1/2) = 3/16 identically. THE PUBLISHED EQ. (73) HAS
+     A SIGN ERROR — it prints 8(s3 - 2)/(8 - s3), which yields a NEGATIVE
+     (unphysical) s1 for every admissible s3 < 8. Verified two ways: the
+     corrected form reproduces Lambda = 3/16, and setting s1 = s3 in the
+     paper's own Eq. (72b) recovers its BGK formula while the printed (73)
+     does not. Recorded alongside Beard (2001) in `advection_diffusion`: a
+     published wrong value for exactly the constant under test.
+
+  5. TRT STRUCTURE, from Ginzburg (2012), Commun. Comput. Phys. (abstract
+     read; title verified): two DIFFERENT relations between the two
+     relaxation rates annihilate the third-order (advection) and fourth-order
+     (pure diffusion) truncation errors, for any linear equilibrium and any
+     velocity set — so no single magic value kills both, and the leading
+     advection-diffusion error CANNOT be removed by relaxation tuning alone;
+     the scheme carries an intrinsic fourth-order numerical diffusion. An
+     oracle assuming "choose Lambda and numerical diffusion vanishes" is
+     wrong by construction. The same paper supplies an exact three-time-level
+     recurrence form of the TRT update — an independent self-verification
+     route requiring no Chapman-Enskog expansion.
+
+WHAT THIS MODULE STILL DOES NOT CLAIM. The O(Ma^2) advection error has no
+published leading coefficient located even by a 24-source search — but it now
+has a documentary handle on the target code: OpenLB's ADE equilibrium is
+truncated at FIRST order in velocity (g_i^eq = w_i rho (1 + c_i.v/c_s^2),
+user guide Eq. 4.21) while its fluid lattices use SECOND-order equilibria, so
+the two lattices of a coupled run are truncated at different orders in u. The
+velocity-sweep design stands: the error vanishes as u -> 0 and grows
+quadratically, so it is isolated by a sweep whether or not its coefficient is
+ever published. The tau-dependent wall position of MOMENTUM bounce-back also
+remains open here: the one claim tying it to a readable source failed
+adversarial verification (0-3), so this module still cites the anchors as
+NOT READ and states no coefficient.
 
 CITATIONS
-  Kruger, T., Kusumaatmaja, H., Kuzmin, A., Shardt, O., Silva, G. & Viggen,
-    E.M. (2017), "The Lattice Boltzmann Method: Principles and Practice",
-    Springer. The standard reference for the Chapman-Enskog expansion, the
-    velocity sets and the relaxation-transport relations.
-    NOT READ IN THIS SESSION — cited from general knowledge and flagged as
-    such. The relation D = c_s^2(tau - 1/2) dt is standard and appears in
-    every LBM text; the ALGEBRAIC CONSEQUENCES asserted here are verified
-    independently in `verify_limits`, so nothing downstream rests on the
-    citation being located to a page.
-  He, X., Zou, Q., Luo, L.-S. & Dembo, M. (1997), J. Stat. Phys. 87:115-136 —
-    the analysis of bounce-back showing the effective wall location depends on
-    the relaxation time. NOT READ. Recorded as the anchor to check before any
-    wall-position claim is made here.
-  Ginzburg, I. & d'Humieres, D. — two-relaxation-time schemes and the "magic
-    parameter" Lambda = 3/16 that makes the bounce-back wall location
-    tau-independent. NOT READ. Same status.
+  arXiv:1603.09577 (MRT for nonlinear convection-diffusion; Eqs. 26, 30b,
+    71-73). READ IN FULL by the research pipeline; the slip formula, the
+    magic-parameter identity and the Eq. (73) sign error were re-verified
+    symbolically in this repo. Also the source for the generalised relation
+    kappa = d c_s^2 (1/s - 1/2) dt, whose extra free parameter d (default 1)
+    means tau <-> D is not unique unless d = 1 is asserted.
+  Liu, Q. & He, Y.-L. (arXiv:1801.00504, review, Table 1). READ by the
+    research pipeline, table extracted verbatim and re-verified here: the
+    omega-families for D2Q5/D3Q7 and the -1/2 relation for the scalar lattice
+    in diffusivity and conductivity forms, surviving into MRT as
+    alpha = c_sT^2 (1/sigma - 1/2) dt.
+  OpenLB user guide 1.7r0 (openlb.net, June 2024). READ by the research
+    pipeline: Eq. 4.58 (omega_ADE = [4D + 1/2]^{-1}, implying c_s^2 = 1/4 for
+    its D3Q7 by inversion — an inference, not a printed constant), Eq. 4.21
+    (first-order ADE equilibrium), and c_s^2 = 0.2 for its D2Q5 thermal MRT.
+  Ginzburg, I. (2012), "Truncation Errors, Exact and Heuristic Stability
+    Analysis of Two-Relaxation-Times Lattice Boltzmann Schemes for
+    Anisotropic Advection-Diffusion Equation", Commun. Comput. Phys.
+    ABSTRACT ONLY.
+  doi:10.1103/PhysRevE.95.013304. ABSTRACT ONLY: bounce-back no-flux on a
+    staircase wall introduces spurious boundary-layer diffusion AND
+    dispersion — invisible in a concentration profile, visible in moments;
+    and the ADE equilibrium weights form TWO adjustable families setting the
+    convective and diffusive stencils independently.
+  Kruger, T. et al. (2017), "The Lattice Boltzmann Method", Springer.
+    NOT READ — general-knowledge citation for the Chapman-Enskog framework;
+    nothing downstream rests on it.
+  He, X., Zou, Q., Luo, L.-S. & Dembo, M. (1997), J. Stat. Phys. 87:115-136.
+    NOT READ. Still the anchor to check before any momentum wall-position
+    claim is made here.
 """
 
 import itertools
@@ -148,7 +231,9 @@ VELOCITY_SETS = {
     "D3Q27": _d3q27(),
 }
 
-# c_s^2 by set. THE D3Q7 ENTRY IS THE TRAP: every other set is 1/3.
+# c_s^2 FOR THE WEIGHTS TABULATED ABOVE — not for the lattice name. D3Q7 and
+# D2Q5 are omega-families (see the docstring and the *_weights functions);
+# these entries are their omega = 3/4 and omega = 2/3 members respectively.
 SOUND_SPEED_SQUARED = {
     "D1Q3": 1.0 / 3.0,
     "D2Q5": 1.0 / 3.0,
@@ -164,27 +249,31 @@ NAVIER_STOKES_CAPABLE = ("D2Q9", "D3Q19", "D3Q27")
 
 UNRESOLVED = {
     "ma_squared_advection_error": (
-        "LBM advection carries an O(Ma^2) error, Ma = u/c_s. NO coefficient is "
-        "stated here because none has been verified in this session. The "
-        "structure is usable without it: the error vanishes as u -> 0 and "
-        "grows quadratically, so a velocity sweep at fixed tau, mesh and "
-        "diffusivity isolates it — the same 'sweep, not comparison' logic that "
-        "separates numerical from physical diffusion."
+        "LBM advection carries an O(Ma^2) error, Ma = u/c_s. NO published "
+        "leading coefficient was located even by a 24-source search, so none "
+        "is stated. What IS established (OpenLB guide, Eq. 4.21, verified "
+        "2-1): the target code's ADE equilibrium is FIRST order in velocity "
+        "while its fluid equilibria are second order, so a coupled run's two "
+        "lattices are truncated at different orders in u. The sweep design "
+        "stands regardless: the error vanishes as u -> 0 and grows "
+        "quadratically, so a velocity sweep at fixed tau, mesh and "
+        "diffusivity isolates it without knowing its coefficient."
     ),
     "bounce_back_wall_position": (
-        "For halfway bounce-back the effective wall sits at the link midpoint "
-        "only for particular tau; otherwise its location is TAU-DEPENDENT. "
-        "This is the exact analogue of the wedge faceting bias documented in "
-        "this repo: refinement-independent, and invisible in a velocity "
-        "profile. The published anchors are He, Zou, Luo & Dembo (1997) and "
-        "Ginzburg's TRT 'magic parameter' Lambda = 3/16; NEITHER HAS BEEN READ "
-        "HERE, so no coefficient is given. Establishing it is the highest-value "
-        "open item for a lattice-Boltzmann vascular model."
+        "MOMENTUM lattice: for halfway bounce-back the effective wall "
+        "location is reputedly tau-dependent, with anchors He, Zou, Luo & "
+        "Dembo (1997) and Ginzburg's Lambda = 3/16. STILL OPEN: the one "
+        "research claim tying this to a readable source failed adversarial "
+        "verification 0-3, and the primary papers remain unread, so no "
+        "coefficient is given. NOTE the SCALAR-lattice analogue is now "
+        "RESOLVED and is different in kind: its slip converges as 1/N^2 "
+        "(see ade_dirichlet_slip), so do not carry the 'refinement-"
+        "independent' framing across to it."
     ),
-    "ade_wall_condition": (
-        "Anti-bounce-back for a Dirichlet concentration and bounce-back for "
-        "zero flux. Whether the SCALAR lattice carries a tau-dependent "
-        "placement error analogous to the momentum one is not established here."
+    "openlb_d3q7_descriptor": (
+        "OpenLB's c_s^2 = 1/4 for D3Q7 is INFERRED by inverting guide "
+        "Eq. 4.58; the guide never prints the weights. Confirm cs2<3,7> in "
+        "src/dynamics/latticeDescriptors.h of a checkout before relying on it."
     ),
 }
 
@@ -276,6 +365,99 @@ def moment_tensors(velocity_set):
     return m0, m2, m4_xxxx, m4_xxyy
 
 
+def d3q7_weights(omega):
+    """The D3Q7 omega-family: w_0 = 1 - omega, w_1..6 = omega/6.
+
+    c_s^2 = omega/3, so the 'lattice constant' is a free choice: omega = 3/4
+    is the textbook set (c_s^2 = 1/4) and omega = 1 the rest-free one
+    (c_s^2 = 1/3). Source: arXiv:1801.00504 Table 1, re-verified here.
+    """
+    if not 0.0 < omega <= 1.0:
+        raise ValueError(f"omega must be in (0, 1], got {omega}")
+    return [1.0 - omega] + [omega / 6.0] * 6
+
+
+def d2q5_weights(omega):
+    """The D2Q5 omega-family: w_0 = 1 - omega, w_1..4 = omega/4; c_s^2 = omega/2.
+
+    omega = 2/3 gives the tabulated set (c_s^2 = 1/3); omega = 2/5 gives
+    OpenLB's thermal MRT set (w_0 = 3/5, c_s^2 = 1/5 — the guide's declared
+    0.2). Same lattice name, different constant, which is the trap.
+    """
+    if not 0.0 < omega <= 1.0:
+        raise ValueError(f"omega must be in (0, 1], got {omega}")
+    return [1.0 - omega] + [omega / 4.0] * 4
+
+
+def sound_speed_squared_from_weights(velocities, weights):
+    """c_s^2 = sum_i w_i |c_i|^2 / d — from the weights ACTUALLY IN USE.
+
+    This, not the name-keyed table, is the interface an oracle should use
+    against a real solver: the same lattice name carries different constants
+    under different rest weights, and OpenLB itself ships two.
+    """
+    c = np.asarray(velocities, dtype=float)
+    w = np.asarray(weights, dtype=float)
+    if len(c) != len(w):
+        raise ValueError("velocities and weights differ in length")
+    return float(np.einsum("i,i->", w, np.einsum("ia,ia->i", c, c)) / c.shape[1])
+
+
+# --------------------------------------------------------------------------
+# The ADE Dirichlet wall slip (anti-bounce-back), and the magic parameter.
+# arXiv:1603.09577 Eqs. 71-73; every identity re-verified in verify_limits.
+# --------------------------------------------------------------------------
+
+
+def magic_lambda(tau):
+    """Ginzburg's magic parameter for BGK: Lambda = (tau - 1/2)^2."""
+    return (float(tau) - 0.5) ** 2
+
+
+def ade_dirichlet_slip(tau, n_cells, delta_phi=1.0):
+    """Spurious uniform offset of anti-bounce-back Dirichlet walls, BGK.
+
+        phi_s = (dphi / (12 N^2)) * 16 * [ (tau - 1/2)^2 - 3/16 ]
+
+    (the published bracket 4(2/s - 1)^2 - 3 with s = 1/tau, identically).
+    Zero exactly at Lambda = 3/16. SCALES AS 1/N^2: this inflates the
+    second-order error constant rather than destroying the order, so it is
+    NOT the wedge-bias analogue — a refinement study sees it shrink, and what
+    refinement cannot reveal is that one tuning choice removes it entirely.
+    """
+    return (
+        float(delta_phi)
+        / (12.0 * float(n_cells) ** 2)
+        * 16.0
+        * (magic_lambda(tau) - 3.0 / 16.0)
+    )
+
+
+def zero_slip_tau():
+    """tau at which the BGK anti-bounce-back slip vanishes: 1/2 + sqrt(3)/4.
+
+    = 0.93301, i.e. s = 1/tau = 4(2 - sqrt(3)) = 1.07180. The unique BGK
+    member of Lambda = 3/16.
+    """
+    return 0.5 + np.sqrt(3.0) / 4.0
+
+
+def mrt_zero_slip_s1(s3):
+    """The CORRECTED zero-slip relation for MRT: s1 = 8(s3 - 2)/(s3 - 8).
+
+    Satisfies (1/s3 - 1/2)(1/s1 - 1/2) = 3/16 identically — the TRT magic
+    condition. THE PUBLISHED EQ. (73) of arXiv:1603.09577 PRINTS THE
+    DENOMINATOR WITH THE OPPOSITE SIGN, 8(s3 - 2)/(8 - s3), which returns a
+    NEGATIVE relaxation rate for every admissible s3 < 8 (s3 = 1 gives
+    -8/7). A harness implementing the printed form would demand an
+    unphysical parameter; `verify_limits` demonstrates both facts.
+    """
+    s3 = float(s3)
+    if not 0.0 < s3 < 2.0:
+        raise ValueError(f"s3 must be in (0, 2) for stability, got {s3}")
+    return 8.0 * (s3 - 2.0) / (s3 - 8.0)
+
+
 def verify_limits(rtol=1e-13):
     """Derive the lattice constants from the velocity sets and check them.
 
@@ -361,7 +543,69 @@ def verify_limits(rtol=1e-13):
         mach_number(0.1, "D3Q7") / mach_number(0.1, "D3Q19") - np.sqrt(4.0 / 3.0)
     )
 
-    # 9. The unresolved items are DECLARED, not silently absent.
+    # 9. The omega-families reproduce both published constants from the SAME
+    #    formula, which is what dissolves the 1/4-vs-1/3 confusion.
+    for omega, expect in ((0.75, 0.25), (1.0, 1.0 / 3.0)):
+        w = d3q7_weights(omega)
+        cs2 = sound_speed_squared_from_weights(VELOCITY_SETS["D3Q7"][0], w)
+        errors[f"d3q7_family_omega{omega}"] = abs(cs2 / expect - 1.0)
+    for omega, expect in ((2.0 / 3.0, 1.0 / 3.0), (0.4, 0.2)):
+        w = d2q5_weights(omega)
+        cs2 = sound_speed_squared_from_weights(VELOCITY_SETS["D2Q5"][0], w)
+        errors[f"d2q5_family_omega{round(omega, 3)}"] = abs(cs2 / expect - 1.0)
+    # ... and the tabulated sets are the omega = 3/4 and omega = 2/3 members.
+    errors["d3q7_table_is_family_member"] = abs(
+        sound_speed_squared_from_weights(*VELOCITY_SETS["D3Q7"])
+        / SOUND_SPEED_SQUARED["D3Q7"]
+        - 1.0
+    )
+
+    # 10. The ADE Dirichlet slip: the bracket identity, the zero, and its
+    #     1/N^2 scaling — checked against the PUBLISHED form 4(2/s-1)^2 - 3
+    #     rather than against this module's own rewriting of it.
+    for tau in (0.6, 0.93301270189, 1.0, 2.0):
+        s_rate = 1.0 / tau
+        published = 4.0 * (2.0 / s_rate - 1.0) ** 2 - 3.0
+        mine = 16.0 * (magic_lambda(tau) - 3.0 / 16.0)
+        errors[f"slip_bracket_tau{tau}"] = abs(mine - published) / max(
+            abs(published), 1e-30
+        ) if abs(published) > 1e-9 else abs(mine - published)
+    errors["slip_zero_at_magic"] = abs(
+        ade_dirichlet_slip(zero_slip_tau(), 64)
+    )
+    errors["zero_slip_s_value"] = abs(
+        1.0 / zero_slip_tau() / (4.0 * (2.0 - np.sqrt(3.0))) - 1.0
+    )
+    errors["magic_lambda_at_zero_slip"] = abs(
+        magic_lambda(zero_slip_tau()) / (3.0 / 16.0) - 1.0
+    )
+    errors["slip_scales_inverse_n2"] = abs(
+        ade_dirichlet_slip(1.0, 32) / ade_dirichlet_slip(1.0, 64) / 4.0 - 1.0
+    )
+
+    # 11. The MRT relation: corrected form gives Lambda = 3/16 identically
+    #     and a POSITIVE rate; the published form gives a negative one.
+    for s3 in (0.8, 1.0, 1.5):
+        s1 = mrt_zero_slip_s1(s3)
+        if s1 <= 0.0:
+            raise AssertionError("corrected MRT relation returned s1 <= 0")
+        errors[f"mrt_magic_s3_{s3}"] = abs(
+            (1.0 / s3 - 0.5) * (1.0 / s1 - 0.5) / (3.0 / 16.0) - 1.0
+        )
+        published_s1 = 8.0 * (s3 - 2.0) / (8.0 - s3)
+        if published_s1 >= 0.0:
+            raise AssertionError(
+                "the PUBLISHED Eq. (73) should give a negative s1; if it no "
+                "longer does, the sign-error record is stale"
+            )
+    # BGK is the s1 = s3 diagonal of the MRT family: the magic product at
+    # s1 = s3 = 1/zero_slip_tau() must again be 3/16.
+    s_bgk = 1.0 / zero_slip_tau()
+    errors["bgk_is_mrt_diagonal"] = abs(
+        (1.0 / s_bgk - 0.5) ** 2 / (3.0 / 16.0) - 1.0
+    )
+
+    # 12. The unresolved items are DECLARED, not silently absent.
     if not UNRESOLVED.get("bounce_back_wall_position"):
         raise AssertionError(
             "the tau-dependent wall-position gap must stay declared until it "
