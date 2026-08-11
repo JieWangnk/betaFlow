@@ -429,39 +429,16 @@ boundaryField
     }
 
 
-# * * * * * * * * * * * * * * taylor_aris branch * * * * * * * * * * * * * * #
+# * * * * * * * * * * * * shared pipe construction * * * * * * * * * * * * #
 
-def _run_pipe(case, n_particles, seed, epsilon, cycles, particle_radius,
-              workdir, writes):
-    phys = case["physical"]
-    a = float(phys["vessel_radius"])
-    u_mean = float(phys["mean_velocity"])
-    T = float(phys["temperature"])
-    mu = float(phys["dynamic_viscosity"])
-    rho_p = float(phys["particle_density"])
-    r_p = particle_radius if particle_radius is not None \
-        else float(phys["particle_radius"])
+def _write_pipe_case(casedir, a, length, end_time, dt, write_every, u_mean):
+    """O-grid pipe, cyclic axial BCs, frozen analytic Poiseuille velocity.
 
-    D = brownian.stokes_einstein(T, mu, r_p)
-    tau_r = ta.radial_relaxation_time(a, D)
-    # load-bearing: identical to runners/langevin.py
-    dt = epsilon**2 * tau_r / 2.0
-    n_steps = int(round(2.0 * cycles / epsilon**2))
-    end_time = n_steps * dt
-    write_every = max(1, n_steps // writes)
-
-    # domain long enough that no particle reaches either axial end (4 sigma)
-    drift = 2.0 * u_mean * end_time            # centreline speed bound
-    spread = 4.0 * np.sqrt(2.0 * ta.d_eff(D, a, u_mean) * end_time)
-    x0 = 0.1 * (drift + spread)
-    length = x0 + drift + spread
-
-    casedir = _casedir(
-        f"{case['name']}_openfoam_particles_n{n_particles}_s{seed}"
-        f"_eps{epsilon:g}_c{cycles:g}", workdir)
-
-    # O-grid pipe mesh from the shared tool (module-level script code needs
-    # argv patched around the import)
+    Extracted verbatim from the taylor_aris branch so the CIR branch shares
+    one code path. The velocity written at the cell centres is the exact
+    parabola; what a PARTICLE then samples is the cellPoint interpolant,
+    whose bias is directional (see _run_cir).
+    """
     tools = Path(__file__).resolve().parents[2] / "tools"
     argv = sys.argv
     try:
@@ -504,7 +481,6 @@ def _run_pipe(case, n_particles, seed, epsilon, cycles, particle_radius,
     _foam(casedir, "blockMesh")
     _foam(casedir, "foamPostProcess -func writeCellCentres -time 0")
 
-    # frozen analytic Poiseuille written at the real cell centres
     txt = (casedir / "0" / "C").read_text()
     m = re.search(r"internalField\s+nonuniform\s+List<vector>\s*\n?\s*(\d+)\s*\n\(",
                   txt)
@@ -525,16 +501,52 @@ def _run_pipe(case, n_particles, seed, epsilon, cycles, particle_radius,
         f.write(")\n;\n\n" + cyc
                 + "    wall    { type fixedValue; value uniform (0 0 0); }\n}\n")
 
-    _write_cloud_dicts(casedir, D, seed)
 
-    # area-uniform seeding (equilibrium P(r) = 2r/a^2), truncated inside the
-    # faceted rim; delta pulse in x at x0
+def _seed_area_uniform(n_particles, a, x0, seed):
+    """Equilibrium P(r) = 2r/a^2 inside the faceted rim, delta pulse at x0."""
     rng = np.random.default_rng(seed)
     cap = np.cos(np.pi / _N_FACETS)**2
     r = a * np.sqrt(rng.random(n_particles) * cap)
     th = rng.random(n_particles) * 2 * np.pi
     pos = np.column_stack([np.full(n_particles, x0),
                            r * np.cos(th), r * np.sin(th)])
+    return pos, cap
+
+
+# * * * * * * * * * * * * * * taylor_aris branch * * * * * * * * * * * * * * #
+
+def _run_pipe(case, n_particles, seed, epsilon, cycles, particle_radius,
+              workdir, writes):
+    phys = case["physical"]
+    a = float(phys["vessel_radius"])
+    u_mean = float(phys["mean_velocity"])
+    T = float(phys["temperature"])
+    mu = float(phys["dynamic_viscosity"])
+    rho_p = float(phys["particle_density"])
+    r_p = particle_radius if particle_radius is not None \
+        else float(phys["particle_radius"])
+
+    D = brownian.stokes_einstein(T, mu, r_p)
+    tau_r = ta.radial_relaxation_time(a, D)
+    # load-bearing: identical to runners/langevin.py
+    dt = epsilon**2 * tau_r / 2.0
+    n_steps = int(round(2.0 * cycles / epsilon**2))
+    end_time = n_steps * dt
+    write_every = max(1, n_steps // writes)
+
+    # domain long enough that no particle reaches either axial end (4 sigma)
+    drift = 2.0 * u_mean * end_time            # centreline speed bound
+    spread = 4.0 * np.sqrt(2.0 * ta.d_eff(D, a, u_mean) * end_time)
+    x0 = 0.1 * (drift + spread)
+    length = x0 + drift + spread
+
+    casedir = _casedir(
+        f"{case['name']}_openfoam_particles_n{n_particles}_s{seed}"
+        f"_eps{epsilon:g}_c{cycles:g}", workdir)
+
+    _write_pipe_case(casedir, a, length, end_time, dt, write_every, u_mean)
+    _write_cloud_dicts(casedir, D, seed)
+    pos, cap = _seed_area_uniform(n_particles, a, x0, seed)
     _write_positions(casedir, pos)
 
     _foam(casedir, "foamRun")
@@ -587,13 +599,150 @@ def _run_pipe(case, n_particles, seed, epsilon, cycles, particle_radius,
     }
 
 
+# * * * * * * * * * * * * * * mc_channel branch * * * * * * * * * * * * * * #
+
+def _run_cir(case, n_particles, seed, workdir, writes, epsilon,
+             diffusivity=None, time_horizon_over_t2=None):
+    """Channel impulse response through the OpenFOAM Lagrangian tracker.
+
+    The method-class replication of Hofmann et al. 2024: one-way-coupled
+    Lagrangian particles in frozen Poiseuille flow, uniform-area release,
+    transparent axial receiver windows. Their published model has no
+    diffusion, so the D = 0 leg IS the replication of their model class;
+    D > 0 exceeds it with the validated Brownian walk. (Their exact MPPIC
+    setup is not reproducible: stock OF14 registers the Brownian force only
+    for thermo-family clouds MPPIC cannot construct, and their DMPPIC source
+    is deleted from GitHub with no archived copy.)
+
+    PREDICTION, WRITTEN BEFORE THE FIRST RUN. The particles sample the
+    cellPoint INTERPOLANT of the frozen parabola, and linear interpolation
+    of a concave profile underestimates it everywhere. So the OF leg's
+    speeds are biased LOW with one sign: arrivals lag the exact solution
+    (onset at or after t1, never before), and the whole measured CIR shifts
+    late by O((h/a)^2) in time. Unlike the two-flux tail question that was
+    called wrong in runners/langevin.py, this mechanism has one flux and
+    one sign. The measured shift is recorded either way.
+
+    Axial ends are CYCLIC (the validated configuration); the domain is
+    sized so no particle can wrap within end_time, which keeps re-entry
+    impossible rather than improbable.
+    """
+    from betaflow.analytic import channel_impulse as ci_ref
+
+    phys = case["physical"]
+    recv = case["receiver"]
+    num = case.get("numerics", {})
+    a = float(phys["vessel_radius"])
+    u_mean = float(phys["mean_velocity"])
+    c_x = float(recv["axial_length"])
+    distances = [float(d) for d in recv["distances"]]
+    D = float(phys.get("diffusivity", 0.0) if diffusivity is None
+              else diffusivity)
+    horizon = float(num.get("time_horizon_over_t2", 10.0)
+                    if time_horizon_over_t2 is None else time_horizon_over_t2)
+    resolution = int(num.get("cir_resolution_steps", 50))
+
+    t1 = {d: ci_ref.onset_time(u_mean, d, c_x) for d in distances}
+    t2 = {d: ci_ref.peak_time(u_mean, d, c_x) for d in distances}
+
+    # dt resolves the fastest receiver's rise; at D > 0 also the radial walk.
+    dt = min(t2.values()) / resolution
+    if D > 0.0:
+        tau_r = a**2 / D
+        dt = min(dt, epsilon**2 * tau_r / 2.0)
+    end_time = horizon * max(t2.values())
+    n_steps = int(np.ceil(end_time / dt))
+    end_time = n_steps * dt
+    write_every = max(1, n_steps // writes)
+
+    # No particle may wrap through the cyclic ends within end_time.
+    drift = 2.0 * u_mean * end_time
+    spread = 4.0 * np.sqrt(2.0 * D * end_time) if D > 0.0 else 0.0
+    x0 = 1e-4 + spread
+    length = x0 + drift + spread + 2e-4
+
+    casedir = _casedir(
+        f"{case['name']}_openfoam_particles_n{n_particles}_s{seed}"
+        f"_D{D:g}", workdir)
+    _write_pipe_case(casedir, a, length, end_time, dt, write_every, u_mean)
+    _write_cloud_dicts(casedir, D, seed)
+    pos, cap = _seed_area_uniform(n_particles, a, x0, seed)
+    _write_positions(casedir, pos)
+
+    _foam(casedir, "foamRun")
+
+    windows = {d: (x0 + d - c_x / 2.0, x0 + d + c_x / 2.0) for d in distances}
+    ts, fractions = [], {d: [] for d in distances}
+    r_final = None
+    for t, tdir in _time_dirs(casedir):
+        if t <= 0:
+            continue
+        pts = _read_positions(casedir, tdir)
+        if pts is None or len(pts) == 0:
+            continue
+        ts.append(t)
+        for d, (lo, hi) in windows.items():
+            fractions[d].append(
+                float(np.count_nonzero((pts[:, 0] >= lo) & (pts[:, 0] <= hi))
+                      / n_particles))
+        r_final = np.hypot(pts[:, 1], pts[:, 2]) / a
+    tt = np.array(ts)
+
+    receivers = []
+    for d in distances:
+        rec = {
+            "dbar": d,
+            "t": tt,
+            "cir_measured": np.array(fractions[d]),
+            "cir_reference": ci_ref.cir(tt, u_mean, d, c_x),
+            "t1": t1[d],
+            "t2": t2[d],
+            "peak_value": ci_ref.peak_value(d, c_x),
+        }
+        if D > 0.0:
+            rec["flow_dominated_ratio"] = ci_ref.flow_dominated(
+                u_mean * a / D, d, a)
+        receivers.append(rec)
+
+    meta = _meta_common(casedir, seed, dt, n_steps, n_particles, D)
+    meta.update({
+        "mode": "cir: uniform release, frozen Poiseuille, transparent receivers",
+        "vessel_radius": a,
+        "mean_velocity": u_mean,
+        "receiver_length": c_x,
+        "time_horizon_over_t2": horizon,
+        "pipe_length": float(length),
+        "seed_x0": float(x0),
+        "rim_cap_r_over_a": float(np.sqrt(cap)),
+        "interpolation_bias_prediction": (
+            "cellPoint interpolation of the concave parabola biases speeds "
+            "low; arrivals lag the exact solution, one sign"
+        ),
+    })
+    if D > 0.0:
+        meta.update({
+            "tau_r": float(a**2 / D),
+            "peclet": float(u_mean * a / D),
+            "wall_scheme": "specular rebound (brownianReboundVelocity)",
+        })
+    return {
+        "receivers": receivers,
+        "r_over_a": r_final,
+        "ks_statistic": _ks_statistic(r_final),
+        "meta": meta,
+    }
+
+
 # * * * * * * * * * * * * * * * * entry point * * * * * * * * * * * * * * * #
 
 def run(case, n_particles=10000, seed=0, n_steps=100, total_time=None,
         epsilon=0.05, cycles=10.0, particle_radius=None, workdir=None,
-        writes=100):
+        writes=100, diffusivity=None, time_horizon_over_t2=None):
     """Dispatch on the case shape, exactly as runners/langevin.py does."""
     _require_library()
+    if "receiver" in case:
+        return _run_cir(case, n_particles, seed, workdir, writes, epsilon,
+                        diffusivity, time_horizon_over_t2)
     if "flow" in case:
         return _run_pipe(case, n_particles, seed, epsilon, cycles,
                          particle_radius, workdir, writes)

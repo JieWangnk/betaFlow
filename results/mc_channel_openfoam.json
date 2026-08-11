@@ -1,0 +1,114 @@
+{
+  "case": "mc_channel",
+  "solver_leg": "openfoam_particles (brownianTracer cloud)",
+  "replication_claim": "D = 0 replicates Hofmann et al. 2024's published model class (Lagrangian particles in flow, no diffusion). Method-class, not MPPIC-faithful: stock OF14 registers the Brownian force only for thermo-family clouds MPPIC cannot construct, and the authors' DMPPIC solver source is deleted from GitHub with no archived copy (both verified 2026-08).",
+  "interpolation_bias_prediction": "written before the run: cellPoint interpolation of the concave parabola biases speeds low, one sign \u2014 arrivals late, never early",
+  "replication_rung_D0": {
+    "n_particles": 20000,
+    "ks_statistic": 0.007547457740466834,
+    "ks_floor": 0.009616652224137047,
+    "receivers": [
+      {
+        "dbar_um": 150.0,
+        "rmse_over_binomial_floor": 1.3868372914766525,
+        "peak_gap_sigma": 0.8862404990871519,
+        "tail_mass_gap_over_bound": -0.36323227586999557,
+        "centroid_shift_t2_units": -0.39574887952683097,
+        "pre_onset_max": 0.0
+      },
+      {
+        "dbar_um": 750.0,
+        "rmse_over_binomial_floor": 1.2178013945385706,
+        "peak_gap_sigma": -1.304234853851122,
+        "tail_mass_gap_over_bound": 0.11663867764524787,
+        "centroid_shift_t2_units": -0.023726760653240347,
+        "pre_onset_max": 0.0
+      },
+      {
+        "dbar_um": 1550.0,
+        "rmse_over_binomial_floor": 1.2209218238924264,
+        "peak_gap_sigma": -0.6426610999067182,
+        "tail_mass_gap_over_bound": 0.3740146688855291,
+        "centroid_shift_t2_units": 0.0755178577992165,
+        "pre_onset_max": 0.0
+      }
+    ]
+  },
+  "departure_rung": {
+    "n_particles": 10000,
+    "ks_statistic": 0.01099966157255361,
+    "ks_floor": 0.013600000000000001,
+    "receivers": [
+      {
+        "dbar_um": 150.0,
+        "peak_measured_over_reference": 0.9141999999999998,
+        "pre_onset_max": 0.0218
+      },
+      {
+        "dbar_um": 750.0,
+        "peak_measured_over_reference": 0.9408,
+        "pre_onset_max": 0.0101
+      },
+      {
+        "dbar_um": 1550.0,
+        "peak_measured_over_reference": 0.9487999999999998,
+        "pre_onset_max": 0.0029
+      }
+    ],
+    "middle_receiver_tail": {
+      "enhancement_excess_3_to_5_t2": 0.008537902950511383,
+      "enhancement_sigma_bound": 0.0009265870236740538,
+      "cir_at_12_t2_measured": 0.0,
+      "cir_at_12_t2_reference": 0.010416666666666671
+    }
+  },
+  "meta_D0": {
+    "solver": "openfoam_particles",
+    "openfoam_version": "14",
+    "cloud": "brownianTracer",
+    "cloud_library": "/home/mchi4jw4/OpenFOAM/mchi4jw4-14/platforms/linux64GccDPInt32Opt/lib/libbrownianTracerCloud.so",
+    "cloud_library_mtime": 1786349947,
+    "seed": 0,
+    "dt": 0.0013333333333333333,
+    "n_steps": 2400,
+    "n_particles": 20000,
+    "diffusivity": 0.0,
+    "case_dir": "/home/mchi4jw4/GitHub/betaFlow/_runs/mc_channel_openfoam_particles_n20000_s0_D0",
+    "mode": "cir: uniform release, frozen Poiseuille, transparent receivers",
+    "vessel_radius": 0.0002,
+    "mean_velocity": 0.0015,
+    "receiver_length": 0.0001,
+    "time_horizon_over_t2": 6.0,
+    "pipe_length": 0.009899999999999999,
+    "seed_x0": 0.0001,
+    "rim_cap_r_over_a": 0.9978589232386035,
+    "interpolation_bias_prediction": "cellPoint interpolation of the concave parabola biases speeds low; arrivals lag the exact solution, one sign"
+  },
+  "meta_departure": {
+    "solver": "openfoam_particles",
+    "openfoam_version": "14",
+    "cloud": "brownianTracer",
+    "cloud_library": "/home/mchi4jw4/OpenFOAM/mchi4jw4-14/platforms/linux64GccDPInt32Opt/lib/libbrownianTracerCloud.so",
+    "cloud_library_mtime": 1786349947,
+    "seed": 1,
+    "dt": 0.0013333333333333333,
+    "n_steps": 2600,
+    "n_particles": 10000,
+    "diffusivity": 1.5e-09,
+    "case_dir": "/home/mchi4jw4/GitHub/betaFlow/_runs/mc_channel_openfoam_particles_n10000_s1_D1.5e-09",
+    "mode": "cir: uniform release, frozen Poiseuille, transparent receivers",
+    "vessel_radius": 0.0002,
+    "mean_velocity": 0.0015,
+    "receiver_length": 0.0001,
+    "time_horizon_over_t2": 6.5,
+    "pipe_length": 0.011515843122174846,
+    "seed_x0": 0.0005079215610874228,
+    "rim_cap_r_over_a": 0.9978589232386035,
+    "interpolation_bias_prediction": "cellPoint interpolation of the concave parabola biases speeds low; arrivals lag the exact solution, one sign",
+    "tau_r": 26.666666666666668,
+    "peclet": 200.00000000000003,
+    "wall_scheme": "specular rebound (brownianReboundVelocity)"
+  },
+  "git_sha": "1dce14036172-dirty",
+  "timestamp": "2026-08-11T14:30:32+00:00"
+}
