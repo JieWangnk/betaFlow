@@ -485,6 +485,7 @@ def _run_steady(
     sampling="cellPoint",
     require_converged=True,
     iterations=None,
+    n_streamwise=None,
     **setup_kwargs,
 ):
     """Run the case in OpenFOAM and return the standard profile dict.
@@ -535,6 +536,12 @@ def _run_steady(
         for k, v in sorted(setup_kwargs.items())
         if v is not None
     )
+    if n_streamwise is not None:
+        # Stage A's recorded runs used nx = n_cells / 5 (8x40, 16x80, 32x160)
+        # from an ad-hoc script; this parameter is what makes them
+        # reproducible from the repo. Named in the dir so provenance differs
+        # from the default nx = 4 cyclic cases.
+        suffix += f"_nx{int(n_streamwise)}"
     casedir = workdir / f"{case['name']}_openfoam_n{int(n_cells)}{suffix}_{sampling}"
     if casedir.exists():
         shutil.rmtree(casedir)
@@ -545,7 +552,7 @@ def _run_steady(
         "y_min": setup["y_min"],
         "y_max": setup["y_max"],
         "thickness": 0.05 * gap,
-        "nx": _N_STREAMWISE,
+        "nx": int(n_streamwise) if n_streamwise is not None else _N_STREAMWISE,
         "ny": int(n_cells),
         "nu": setup["nu"],
         "end_time": (
