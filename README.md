@@ -1,7 +1,7 @@
 # betaflow
 
-A solver-agnostic validation harness for haemodynamic CFD. Each case pairs an
-analytic oracle with a solver run and asserts an explicit error norm against an
+A solver-independent validation harness for haemodynamic CFD. Each case pairs an
+analytic reference with a solver run and asserts an explicit error norm against an
 explicit tolerance, logging a provenance-stamped record. It is a regression
 suite, not a one-off check: rerun it after any solver upgrade, scheme change,
 or new boundary-condition library, and diff the committed results.
@@ -10,13 +10,13 @@ or new boundary-condition library, and diff the committed results.
 
 A case is validated when, for a stated Reynolds number and mesh level,
 
-    metric(numerical profile, analytic oracle) < tol
+    metric(numerical profile, analytic reference) < tol
 
 with the metric, tolerance, and non-dimensionalisation all declared in the
 case YAML — never inside a runner. The committed `results/*.json` records the
 error, mesh level, cell count, solver version, git SHA, and timestamp, so any
 future regression is attributable to a specific change. A failing case is
-diagnosed (oracle vs mesh vs boundary conditions), never "fixed" by loosening
+diagnosed (analytic reference vs mesh vs boundary conditions), never "fixed" by loosening
 the tolerance.
 
 Two kinds of verification, deliberately distinguished (reviewers notice):
@@ -29,7 +29,7 @@ Two kinds of verification, deliberately distinguished (reviewers notice):
   see `report/order_of_accuracy.md`.
 - **Solution verification** — no exact solution (patient geometry, anything
   genuinely multi-dimensional). There the discretisation error can only be
-  *estimated*, and GCI enters. GCI is never used where an oracle exists.
+  *estimated*, and GCI enters. GCI is never used where an analytic reference exists.
 
 **Correction (superseded claim).** An earlier version of this file listed
 Carreau rheology as solution-verification-only, "no exact solution". That was
@@ -39,25 +39,47 @@ integrates once to
     tau(y) = G y        EXACTLY, for ANY rheology
 
 — the same force balance that makes tau_w rheology-independent. So a
-machine-precision oracle exists for *every* generalised Newtonian model: solve
+machine-precision analytic reference exists for *every* generalised Newtonian model: solve
 the scalar monotone equation nu(gammadot)·gammadot = G y pointwise, then
 integrate gammadot to get u. No ODE solve, no shooting, no GCI. `carreau_steady`
-is therefore code verification with an order-of-accuracy test, and its oracle
+is therefore code verification with an order-of-accuracy test, and its analytic reference
 self-verifies against the Newtonian and power-law limits to 1.8e-16 and
 7.2e-16 before being used as ground truth. The same construction would cover
 Herschel-Bulkley, Cross, and power-law without new machinery.
 
 Non-dimensionalisation is where validation harnesses silently rot. The
 Reynolds-number definition (bulk velocity, full channel height:
-`Re = u_mean * 2h / nu`) is stated once in the oracle docstring
+`Re = u_mean * 2h / nu`) is stated once in the analytic reference docstring
 (`betaflow/analytic/poiseuille.py`), echoed in the case YAML, and
 cross-checked by the test against the viscosity the runner actually used.
+
+## The hierarchy
+
+The project's shape is a three-tier ladder, stated in full in
+`docs/DESIGN.md` (architecture, case taxonomy, correction policy, declared
+scope). Nothing on a higher tier is trusted until the tiers below are green.
+
+    Tier 0  RE-EXAMINE   analytic references re-derive published claims,
+                         solver-free (self-checks; published-error findings)
+    Tier 1  REPLICATE    one solver at a time against the exact solution
+                         (null rung first, physics rung second)
+    Tier 2  BENCHMARK    solver vs solver, exact solution as referee, each
+                         solver's error predicted by its own reference
+                         before it runs
+
+How the sections below map onto the tiers: every per-case section is Tier 1
+for its runner; the self-check counts quoted inside them are Tier 0; the
+sections where one case runs under several runners (`langevin_free` and
+`taylor_aris` under both `langevin` and `openfoam_particles`, and the
+`mc_channel` comms case) are Tier 2. "Conservation check on production code"
+applies the Tier-1 instruments to uncontrolled production output, which is
+why it needed its own null test first.
 
 ## Layout
 
     betaflow/
-      analytic/   oracles — pure functions, no solver knowledge
-      cases/      YAML case definitions (geometry, Re, oracle path, metric+tol)
+      analytic/   analytic references — pure functions, no solver knowledge
+      cases/      YAML case definitions (geometry, Re, analytic reference path, metric+tol)
       runners/    solver adapters — the ONLY layer that knows a solver exists
                   (openfoam, openfoam_particles, langevin, moments, lbm)
       metrics/    error norms over plain arrays
@@ -73,7 +95,7 @@ The design constraint: nothing above `runners/` may know OpenFOAM exists.
 Metrics and tests consume only that dict. What is REQUIRED of a runner is a
 `meta` sub-dict and arrays the case's declared metrics can consume — nothing
 more. Fluid cases conventionally return `{"y", "u", "u_ref"}`, where `u_ref`
-is the velocity the oracle normalises by, but that is a convention of those
+is the velocity the analytic reference normalises by, but that is a convention of those
 cases and not of the harness: `runners/langevin.py` returns
 `{"t", "msd", "msd_components", "D_expected"}` and plugged in with no change
 above this layer. `meta` carries provenance (solver version, cell counts,
@@ -87,14 +109,14 @@ and that duplication is the price of the isolation.
 
 ## Running
 
-    python3 -m pytest -m oracle -v   # oracles only, NO solver needed (~2 s)
-    python3 -m pytest tests/ -v      # default: skips @slow studies (~9 min)
-    python3 -m pytest -m "" -v       # everything (42 tests; > 32 min, not re-timed)
-    python3 -m pytest -m slow -v     # the 6 slow studies alone
+    python3 -m pytest -m analytic -v   # analytic tier, NO solver needed (27 tests, ~2 s)
+    python3 -m pytest tests/ -v      # default: skips @slow studies (39 tests)
+    python3 -m pytest -m "" -v       # everything (46 tests; > 32 min, not re-timed)
+    python3 -m pytest -m slow -v     # the 7 slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and
-wired into `.github/workflows/ci.yml`: the oracle tier gates every push with no
-solver install, the default tier runs on push, the full tier runs nightly. Six
+wired into `.github/workflows/ci.yml`: the analytic tier gates every push with no
+solver install, the default tier runs on push, the full tier runs nightly. Seven
 tests are marked slow — the casson two-axis grid, womersley_carreau,
 taylor_aris, the langevin error distribution, and both `openfoam_particles`
 tests. `langevin_free` needs no solver and runs in ~5 s under the `langevin`
@@ -109,7 +131,7 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 
 ## Current cases
 
-| case | metric | oracle | mesh level | error | tol |
+| case | metric | analytic reference | mesh level | error | tol |
 |---|---|---|---|---|---|
 | poiseuille_steady | L2_velocity | plane Poiseuille parabola | 80 cells across 2h | 3.25e-4 | 1e-3 |
 | poiseuille_steady | wss_relative | tau_w = G h (kinematic) | 80 cells across 2h | 3.12e-4 | 2e-2 |
@@ -120,7 +142,7 @@ Generated OpenFOAM cases land in `_runs/` (gitignored) for inspection.
 | womersley_pulsatile | wss_amp_relative | tau_hat = G h tanh(K)/K | alpha=20, 8 cells/delta | 4.2e-4 | 2e-2 |
 | casson_steady | L2_velocity | Casson channel profile | N=160, nuMax/nu_c=1e2 | 7.3e-4 | 1e-2 |
 | casson_steady | wss_relative | tau_w = G h (rheology-independent) | N=160, nuMax/nu_c=1e2 | 3.8e-11 | 1e-6 |
-| womersley_carreau | identity_max_rel | tau_w(t) = h(G - d<u>/dt) — NO profile oracle | N=336, nt=1024 | 2.7e-7 | 1e-6 |
+| womersley_carreau | identity_max_rel | tau_w(t) = h(G - d<u>/dt) — NO profile analytic reference | N=336, nt=1024 | 2.7e-7 | 1e-6 |
 | carreau_steady | L2_velocity | Carreau-Yasuda channel (rootfind + quadrature) | N=160, Cu=10 | 6.1e-5 | 1e-2 |
 | carreau_steady | wss_relative | tau_w = G h (rheology-independent) | N=160, Cu=10 | 0.0 | 1e-6 |
 
@@ -130,7 +152,7 @@ amplification from under-resolution. Its convergence notion is
 cycle-to-cycle periodicity (tol 1e-6, cap 10 cycles, logged per cycle), not
 residual-to-steady; runs start from the analytic t=0 profile, without which
 the O(1) startup transient decays on the (2/pi^3) alpha^2 T homogeneous-mode
-timescale and no cap is meaningful. The plane-channel oracle kernel is the
+timescale and no cap is meaningful. The plane-channel analytic reference kernel is the
 complex cosh — NOT the J0 Bessel function, which is the circular-pipe
 Womersley solution; see betaflow/analytic/womersley.py.
 
@@ -364,9 +386,9 @@ Committed predictions and outcomes (`results/carreau_steady.json`):
 |---|---|
 | tau_w = G_disc·h to round-off | **confirmed** — identity exactly **0.0** on most runs, ≤2e-12 on all |
 | p ≈ 2 and NO floor | **confirmed** — p = 1.979, 1.990; error 9.50e-4 → 2.41e-4 → 6.07e-5, still falling |
-| limits recovered | **confirmed** — oracle self-verifies to 1.8e-16 (Newtonian) and 7.2e-16 (power law) |
+| limits recovered | **confirmed** — analytic reference self-verifies to 1.8e-16 (Newtonian) and 7.2e-16 (power law) |
 | no stiffening | **partly wrong** — geometric, but cost grows as ~Cu^0.6 (below) |
-| flatness monotone in Cu | **wrong, and the oracle agrees** (below) |
+| flatness monotone in Cu | **wrong, and the analytic reference agrees** (below) |
 | error coefficient grows with Cu | **wrong, same cause** (below) |
 
 **Cost is not Cu-independent.** Iterations to a 1e-10 residual at N=80:
@@ -380,10 +402,10 @@ contracts **algebraically**, costs ~350× Newtonian, and diverges without bound
 in nuMax. The unifying quantity is the viscosity contrast across the channel:
 Carreau bounds it at nu0/nuInf by physics, casson lets nuMax push it anywhere.
 
-**Two predictions failed for one shared reason, and the exact oracle confirms
+**Two predictions failed for one shared reason, and the exact analytic reference confirms
 it is physics, not a solver artefact.** Centreline flatness u_centre/u_mean
 over the sweep is 1.4978 → 1.4635 → 1.3450 → **1.3875**: non-monotone, turning
-back up at Cu = 100. The oracle gives 1.4996 / 1.4655 / 1.3470 / 1.3898 —
+back up at Cu = 100. The analytic reference gives 1.4996 / 1.4655 / 1.3470 / 1.3898 —
 the same turn, to within the N=40 discretisation error. With a **finite**
 viscosity ratio the near-wall fluid enters the *second* Newtonian plateau at
 high Cu, so the profile de-flattens toward a parabola again. Set
@@ -401,12 +423,12 @@ than the n = 0.5 sweep point at Cu = 10 despite the lower power-law index,
 because its viscosity ratio (0.0616) is six times larger — the same finite-plateau
 effect, at physiological parameters.
 
-## womersley_carreau: verification without an oracle
+## womersley_carreau: verification without an analytic reference
 
 The first case with NO exact solution — the point of it. The unsteady term
-breaks the force balance every previous oracle rested on, and nu(gammadot)
+breaks the force balance every previous analytic reference rested on, and nu(gammadot)
 kills superposition, so the profile has no closed form. Patient geometry has
-no oracle either; this is the rehearsal for that.
+no analytic reference either; this is the rehearsal for that.
 
 **Verified EXACTLY** (measured, not estimated):
 
@@ -414,8 +436,8 @@ no oracle either; this is the rehearsal for that.
 |---|---|
 | momentum identity tau_w(t) = h(G(t) - d<u>/dt), per timestep | 2.72e-07 |
 | half-wave symmetry u(y,t+T/2) = -u(y,t) | 12.1x the periodicity residual (see below) |
-| Cu -> 0 vs the exact Womersley cosh oracle | L2 amp 1.02e-03, phase 4.17e-04 rad |
-| alpha -> 0 vs the exact steady Carreau oracle | L2 1.99e-03 |
+| Cu -> 0 vs the exact Womersley cosh analytic reference | L2 amp 1.02e-03, phase 4.17e-04 rad |
+| alpha -> 0 vs the exact steady Carreau analytic reference | L2 1.99e-03 |
 
 **ESTIMATED by GCI** (ASME V&V 20, the first in this repo):
 
@@ -467,14 +489,14 @@ In the alpha -> 0 limit the first-harmonic amplitude is 0.81 of the steady
 peak. That is not an error: a shear-thinning fluid driven by G cos(wt)
 responds non-sinusoidally, so the fundamental carries less than the full
 amplitude. It is the A3/A1 nonlinearity seen from the other side, and the
-profile SHAPE still matches the steady oracle to 2e-3.
+profile SHAPE still matches the steady analytic reference to 2e-3.
 
 ## Pipe geometry: what the harness assumed
 
 Three cases were ported to a circular pipe on an axisymmetric wedge —
 `pipe_poiseuille_steady`, `pipe_casson_steady`, `pipe_womersley_pulsatile` —
-to answer one question: are the abstractions geometry-agnostic, or quietly
-channel-specific? **Quietly channel-specific, in seven places.** All seven are
+to answer one question: do the abstractions hold for any geometry, or are they
+quietly channel-specific? **Quietly channel-specific, in seven places.** All seven are
 now per-case-type rather than constants.
 
 | assumption | where | consequence |
@@ -488,7 +510,7 @@ now per-case-type rather than constants.
 | transient file set is a box | `_WOMERSLEY_FILES` | now split by geometry |
 
 The driving abstraction (`meanVelocityForce`, cyclic streamwise) and every
-metric needed **no change at all**, and the oracles transferred as pure factor
+metric needed **no change at all**, and the analytic references transferred as pure factor
 changes from tau(y) = G y to tau(r) = G r / 2.
 
 **The axis is not a patch.** r = 0 is a coordinate singularity; the block is
@@ -604,7 +626,7 @@ performs. STATUS: the O-grid is a standalone tool, not yet wired into
 `runners/`, and the 1/cos correction is applied only on the wedge path; the
 full three-case re-verification on the O-grid is NOT done.
 
-CITATIONS. Every pipe equation traces to a source recorded in both the oracle
+CITATIONS. Every pipe equation traces to a source recorded in both the analytic reference
 docstring and the case YAML: Batchelor (1967 §4.2) and Sutera & Skalak (1993)
 for Hagen-Poiseuille; Reynolds (1883) for the Re convention; Womersley (1955)
 for the J0 kernel; Casson (1959) for the constitutive law and Fung (1997
@@ -687,7 +709,7 @@ confirmed three ways (discrete sum 0.707133, independent direct simulation
 interchanged**: 0.8165/sqrt(N) for a single-time 3-D MSD, 0.7071/sqrt(N) for a
 through-origin slope fit, and sqrt(2/N) for a variance estimator such as an
 axial dispersion coefficient. Baking any one of them in as "the Monte Carlo
-error law" is the statistical analogue of reusing a channel oracle on a pipe.
+error law" is the statistical analogue of reusing a channel analytic reference on a pipe.
 
 Fluctuation-dissipation is asserted directly: the friction coefficient in the
 noise amplitude and in Stokes drag must be one and the same zeta = 6 pi mu a
@@ -697,7 +719,7 @@ implementation bug, and it silently changes the MSD slope.
 Overdamped (inertialess) Langevin is justified by St = 5.0e-9 at these
 scales, reported in meta rather than assumed.
 
-## taylor_aris: the last exact oracle
+## taylor_aris: the last exact analytic reference
 
 Dispersion of a nanoparticle in laminar pipe flow, on `runners/langevin.py`
 with an analytic Poiseuille field — no CFD solver. After this there are none:
@@ -705,7 +727,7 @@ margination, capture efficiency and deposition have no closed forms, so this
 is the final rung where a result can be checked against truth rather than
 estimated.
 
-The oracle self-verifies before use, at machine precision: Decuzzi Eq. 15
+The analytic reference self-verifies before use, at machine precision: Decuzzi Eq. 15
 equals Taylor-Aris with Stokes-Einstein substituted (2.2e-16, since
 6/48 = 1/8); Eq. 18 is the stationary point of Eq. 15 found by differentiating
 it rather than hardcoded (2.2e-16); Pe at R_cr is exactly sqrt(48)
@@ -766,7 +788,7 @@ xi = 0.2 in casson_steady: a verification setting, not physiology.
 Everything above transports PARTICLES. A lattice-Boltzmann or finite-volume
 molecular-communications channel model transports a CONCENTRATION FIELD, and
 nothing here tested that formulation. Five components close the gap, built in
-the order oracle -> runner -> case, with the constants derived rather than
+the order analytic reference -> runner -> case, with the constants derived rather than
 quoted at every step.
 
 ### advection_diffusion: the Eulerian twin (43 self-checks)
@@ -820,7 +842,7 @@ geometries — two geometries agreeing to 1% is a common-cause signature — and
 was the discrete mean velocity differing from the nominal U (the G_disc
 lesson again); comparing against u_disc collapsed it to 2.5e-5.
 
-### numerical_diffusion: the scheme's own error as the oracle (16 self-checks)
+### numerical_diffusion: the scheme's own error as the analytic reference (16 self-checks)
 
 A solver with physical diffusivity D and numerical diffusivity D_num
 produces a pulse IDENTICAL to the exact solution for D + D_num — no single
@@ -880,11 +902,11 @@ the tau-dependent MOMENTUM bounce-back wall position (its one sourced claim
 failed adversarial verification 0-3; He/Zou/Luo/Dembo 1997 and Ginzburg's
 TRT papers remain unread).
 
-### The lbm runner: the oracle measured on an actual lattice
+### The lbm runner: the analytic reference measured on an actual lattice
 
 `betaflow/runners/lbm.py` (pure numpy, D1Q3 + D2Q5(omega), both equilibrium
 orders, periodic ring + anti-bounce-back walls with source) confronts every
-oracle claim with a real collide-and-stream lattice — `tests/test_lbm.py`,
+analytic reference claim with a real collide-and-stream lattice — `tests/test_lbm.py`,
 ~5 s, default tier. The slip experiment BISECTS the measured slip and lands
 the zero at tau = 0.9330127019 against the exact 1/2 + sqrt(3)/4 =
 0.9330127019: Lambda = 3/16 to ten digits, MEASURED. Three convention
@@ -913,7 +935,7 @@ transport coefficients sit 40% and 9% off — the reassuring-headline-next-to-
 silently-wrong-physics structure again, in the target code's shipped
 benchmark. No blame attaches to the published EOC study (diffusive scaling
 puts this error inside the O(N^-2) budget); the trap is any FIXED-resolution
-run at the shipped latticeU. One refinement flowed back into the oracle: at
+run at the shipped latticeU. One refinement flowed back into the analytic reference: at
 large tau the k -> 0 law saturates slowly (0.78 vs the true 0.9031 even at
 k = 0.123), so quote the eigenvalue at the actual wavenumber.
 
@@ -930,11 +952,11 @@ not enough for the first of these; TESTING it was what caught the bug.
 ## openfoam_particles: the three-way check
 
 `betaflow/runners/openfoam_particles.py` is the THIRD runner, and it is the
-first time one oracle has been answered by two independent solvers. Until now
+first time one analytic reference has been answered by two independent solvers. Until now
 the layering claim rested on one non-OpenFOAM runner plugging in without
 changes above `runners/`; now `langevin_free` and `taylor_aris` each run
-through two of them, against the same analytic oracle and the same metrics —
-oracle vs `langevin` vs OpenFOAM 14's modular Lagrangian `brownianTracer`
+through two of them, against the same analytic reference and the same metrics —
+analytic reference vs `langevin` vs OpenFOAM 14's modular Lagrangian `brownianTracer`
 cloud. A disagreement can be localised rather than merely detected.
 
 **It closes.** Results in separate `*_openfoam.json` files, deliberately, so
@@ -973,7 +995,7 @@ short-time t² ballistic anchor and the radius sweep for R* stay langevin-only.
 Both tests are `@slow` and need OpenFOAM 14 plus
 `libbrownianTracerCloud.so`; the runner resolves `FOAM_USER_LIBBIN` through
 the OF14 bashrc, because fresh shells on this machine default to OF12. The
-oracle tier is unaffected (14/14, no solver).
+analytic tier is unaffected (14/14, no solver).
 
 ## Conservation check on production code
 
@@ -1129,7 +1151,7 @@ reports a relative residual of 1.0 for a perfect balance.
 
 ### The instrument has its own null test
 
-`tests/test_identity_checker.py`, in the oracle CI tier — pure file parsing
+`tests/test_identity_checker.py`, in the analytic reference CI tier — pure file parsing
 against a committed 76 kB fixture, no solver, milliseconds. It checks the
 closed surface (round-off), the volume from the boundary alone
 (V = 1/3 closed-integral x.n dS, exact), mass closure, and the momentum
@@ -1146,7 +1168,7 @@ This exists because the mass parser's first run reported a spurious 33%
 imbalance, caught only because 33% is implausible; the same bug at 1e-4 would
 have read as mild under-convergence and been believed. An instrument needs
 calibrating against a known answer before it is pointed at unknown data —
-the analytic-oracle argument, one level up. It earned its keep twice more
+the analytic-analytic reference argument, one level up. It earned its keep twice more
 during this work: a display artefact printed BPM120's residual as exactly
 [0, 0, 0], which investigation turned into the worst result of the five.
 
@@ -1227,7 +1249,7 @@ run, an exact analytic reference, a textbook second-order convergence study
 that passes cleanly, and a real defect that only the conservation identity
 sees. The two earlier instances both have an escape route (the kernel swap
 compares two *different* governing solutions; womersley_carreau has no exact
-oracle). This one has none.
+analytic reference). This one has none.
 
 **NOT reproducible from the repo as it stands, and this is the first thing to
 fix here.** The three runs came from an ad-hoc script: the committed runner
@@ -1237,10 +1259,10 @@ committed; the path that produced them is not.
 
 ## Adding a case
 
-1. Write the oracle in `betaflow/analytic/` — a pure function returning
+1. Write the analytic reference in `betaflow/analytic/` — a pure function returning
    non-dimensional profile values, with the Reynolds-number definition (length
    AND velocity scale) stated in the docstring.
-2. Add `betaflow/cases/<name>.yaml`: geometry, `nondim`, dotted `oracle` path,
+2. Add `betaflow/cases/<name>.yaml`: geometry, `nondim`, dotted `analytic reference` path,
    `normalisation`, and `metrics: [{name, tol}]`.
 3. Extend the runner(s) to set up that geometry (add a template set if needed).
 4. Add `tests/test_<name>.py`: load YAML, `run_case`, evaluate metric, assert,
