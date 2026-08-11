@@ -519,10 +519,15 @@ be swapped — and the uncomfortable part is how hard a swap is to detect:
 
 | alpha | amplitude misfit | phase misfit [rad] | WSS amplitude misfit |
 |---|---|---|---|
-| 2 | 1.69e-1 | 3.89e-1 | 3.40e-1 |
+| 2 | 1.69e-1 | 3.89e-1 | 3.39e-1 |
 | 5 | 6.25e-2 | 5.22e-2 | 4.64e-1 |
 | **10** | **9.14e-3** | **1.46e-2** | **4.82e-1** |
 | 20 | 2.59e-3 | 4.56e-3 | 4.91e-1 |
+
+(These rows are the 201-station evaluation the test uses. The
+station-CONVERGED metric values — 9.158e-3 amplitude, 1.459e-2 rad phase at
+alpha = 10 — are in `results/kernel_misfit_operating_point.json`, with the
+convergence sweep; the manuscript quotes those.)
 
 The mechanism: profiles converge as alpha rises because both geometries
 develop the same structure — an inertia-dominated plug core, which is
@@ -1084,8 +1089,10 @@ So the ordering inverts TWICE, and lands where it started:
 | coronary CPD10/14/20 | steady | ~1e-5 | 1.4-2.5e-3 | 1.4-2.5e-3 |
 
 **BPM120 is the genuine outlier after all** — but the first analysis was right
-by accident, two instrument errors having pointed the same way and partially
-cancelled. And BPM120 is the harder finding: its flow has reached a steady
+by accident, two instrument errors having pointed opposite ways and partially
+cancelled. (CORRECTED: this sentence said "the same way", which cannot produce
+cancellation; PAT_0000's datum-free renormalisation raised its residual and
+the omitted transient term's restoration lowered it.) And BPM120 is the harder finding: its flow has reached a steady
 state (d/dt ~ 1e-8) despite a transient scheme, so the steady identity SHOULD
 apply to it, and it does not close. That is the one result here still
 unexplained, and the one worth investigating before publication.
@@ -1128,9 +1135,12 @@ closed surface (round-off), the volume from the boundary alone
 (V = 1/3 closed-integral x.n dS, exact), mass closure, and the momentum
 identity on a case whose answer is known exactly (tau_w = G h), requiring
 **per-component residuals below 1e-12**. Measured on the three betaflow null
-cases: **8.8e-17 (channel), 8.3e-17 (Couette), 1.25e-12 (pipe)** — the pipe
-matching its own case identity of 2.5e-12, so that is the case's convergence
-rather than the instrument.
+cases: **8.8e-17 (channel), 8.3e-17 (Couette), 1.25e-12 (pipe)** — the pipe value
+matching the N=80 level's own identity residual (1.24997e-12 in
+results/pipe.json) to all printed digits, so that is the case's convergence
+rather than the instrument. (CORRECTED: this line previously paired the
+1.25e-12 with the N=40 value 2.5e-12 and called it a match — a factor-of-2
+gap glossed as agreement.)
 
 This exists because the mass parser's first run reported a spurious 33%
 imbalance, caught only because 33% is implausible; the same bug at 1e-4 would
@@ -1198,8 +1208,11 @@ it is not an averaging artefact. Amplitude near the inlet falls at FIRST order
 (0.89, 0.96) while it damps downstream (2.33, 3.88), and the wall viscous
 force converges at second (1.66, 1.74). A momentum balance over the downstream
 half, whose upstream face is an interior plane using the solver's own
-interpolation and its own face fluxes, closes **8x better** at the finest
-level. Its own apparent orders are 0.93 and 2.07 — not constant over three
+interpolation and its own face fluxes, closes **16.3x better than the
+full-domain balance** at the finest level (1.07e-3 vs 6.56e-5;
+`ratio_at_finest` in the record). CORRECTED: this line said 8x, which is
+the interior balance's own coarsest-to-finest improvement — a different
+comparison — and the record carried the same contradiction internally. Its own apparent orders are 0.93 and 2.07 — not constant over three
 levels, so **8x is the quotable number and the rate is not**. Rhie-Chow
 momentum interpolation suppresses the mode in the interior and is weakest at a
 boundary where pressure is specified and velocity is not, which is where the

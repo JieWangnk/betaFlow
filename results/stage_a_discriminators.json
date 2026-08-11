@@ -83,7 +83,7 @@
       "ratio_at_finest": 16.3
     }
   },
-  "LIMIT_OF_THIS_RESULT": "The two REFUTATIONS are firm: they rest on differences of 1e-16 and 1e-9 against quantities with exact answers. The positive claim is weaker. Three levels give two apparent orders, and for the interior control volume they are 0.93 and 2.07 - not constant, so the asymptotic rate is not established. What IS established is that the interior volume closes 8x better at the finest level while excluding only the inlet patch.",
+  "LIMIT_OF_THIS_RESULT": "The two REFUTATIONS are firm: they rest on differences of 1e-16 and 1e-9 against quantities with exact answers. The positive claim is weaker. Three levels give two apparent orders, and for the interior control volume they are 0.93 and 2.07 - not constant, so the asymptotic rate is not established. What IS established is that the interior volume closes 16.3x better than the full-domain balance at the finest level (ratio_at_finest below) while excluding only the inlet patch.",
   "CONSEQUENCE_FOR_THE_AUDIT": "The ~1e-3 is NOT an instrument artefact, so the production momentum residuals are not explained away by it. The checker was reporting a real defect. Note what the same runs do: velocity converges at 2.04 and 3.02 against the exact solution while this is happening, so a profile-based verification passes the case cleanly. That is the paper's central claim, on the configuration production actually uses.",
   "MY_OWN_ERROR_DURING_THIS_WORK": "The first development metric reported an 85% inlet-to-outlet profile change, which would have 'confirmed' hypothesis (c) immediately after the other two were refuted. Cell-centre x carries 1e-16 jitter, so lexsorting on the raw value interleaved the stations: it was comparing r=0.16 against r=0.94. The recorded momentum flux (4.7e-07, three decades below the residual) contradicted it, which is what prompted the check.",
   "runs": [
@@ -188,5 +188,6 @@
     }
   ],
   "timestamp": "2026-08-01T12:36:11+00:00",
-  "git_sha": "175308ec7a89-dirty"
+  "git_sha": "175308ec7a89-dirty",
+  "CORRECTION_8X": "The prose above originally said '8x better at the finest level' while this record's own ratio_at_finest field said 16.3 - an internal contradiction. The 8.0 is 5.2529e-4/6.5641e-5, the interior balance's own coarsest-to-finest improvement, a DIFFERENT comparison from the one the sentence describes. Caught by the manuscript read-through's adversarial reviewers checking the paper against this record; the paper had inherited the 8x. Corrected in place per the repo's convention; the wrong sentence is preserved in git history."
 }

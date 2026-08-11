@@ -1,0 +1,123 @@
+{
+  "purpose": "Station-converged kernel-misfit values at the operating points, so the manuscript's quoted numbers trace to a committed record. results/pipe.json's kernel_discrimination block evaluates the same metrics at the 201 stations tests/test_pipe.py uses; those values carry the station sampling of the metric itself (0.9139% vs the converged 0.9158% at alpha = 10). Both are correct for what they measure; the paper quotes the converged metric of the continuous curves and cites this record.",
+  "station_convergence": {
+    "201": {
+      "2.0": {
+        "amplitude_misfit": 0.1688791558035177,
+        "phase_misfit_rad": 0.38913529186463686
+      },
+      "5.0": {
+        "amplitude_misfit": 0.06252996031035586,
+        "phase_misfit_rad": 0.052215293431635786
+      },
+      "10.0": {
+        "amplitude_misfit": 0.009138522398842674,
+        "phase_misfit_rad": 0.014568596421897971
+      },
+      "20.0": {
+        "amplitude_misfit": 0.0025853151144295855,
+        "phase_misfit_rad": 0.00456087892592553
+      }
+    },
+    "801": {
+      "2.0": {
+        "amplitude_misfit": 0.1689143002287062,
+        "phase_misfit_rad": 0.38909824450062996
+      },
+      "5.0": {
+        "amplitude_misfit": 0.06247745021633294,
+        "phase_misfit_rad": 0.05226993532264493
+      },
+      "10.0": {
+        "amplitude_misfit": 0.009153081072861977,
+        "phase_misfit_rad": 0.014582875469567482
+      },
+      "20.0": {
+        "amplitude_misfit": 0.002590157071518572,
+        "phase_misfit_rad": 0.004565300235358096
+      }
+    },
+    "3201": {
+      "2.0": {
+        "amplitude_misfit": 0.16892312635611909,
+        "phase_misfit_rad": 0.38908894182875947
+      },
+      "5.0": {
+        "amplitude_misfit": 0.06246425422947709,
+        "phase_misfit_rad": 0.052283631957932605
+      },
+      "10.0": {
+        "amplitude_misfit": 0.00915673399092875,
+        "phase_misfit_rad": 0.014586451838646479
+      },
+      "20.0": {
+        "amplitude_misfit": 0.002591370563090938,
+        "phase_misfit_rad": 0.004566407346942694
+      }
+    },
+    "12801": {
+      "2.0": {
+        "amplitude_misfit": 0.16892533540138543,
+        "phase_misfit_rad": 0.3890866135969419
+      },
+      "5.0": {
+        "amplitude_misfit": 0.06246095093078933,
+        "phase_misfit_rad": 0.05228705838368307
+      },
+      "10.0": {
+        "amplitude_misfit": 0.009157648061896966,
+        "phase_misfit_rad": 0.014587346346539527
+      },
+      "20.0": {
+        "amplitude_misfit": 0.0025916741976796946,
+        "phase_misfit_rad": 0.004566684249830566
+      }
+    },
+    "51201": {
+      "2.0": {
+        "amplitude_misfit": 0.16892588781997883,
+        "phase_misfit_rad": 0.3890860313785609
+      },
+      "5.0": {
+        "amplitude_misfit": 0.06246012483687466,
+        "phase_misfit_rad": 0.052287915131908634
+      },
+      "10.0": {
+        "amplitude_misfit": 0.009157876632323092,
+        "phase_misfit_rad": 0.014587569999510256
+      },
+      "20.0": {
+        "amplitude_misfit": 0.0025917501229861264,
+        "phase_misfit_rad": 0.004566753483420315
+      }
+    }
+  },
+  "converged": {
+    "2.0": {
+      "amplitude_misfit": 0.16892588781997883,
+      "phase_misfit_rad": 0.3890860313785609,
+      "wss_amplitude_misfit": 0.3394884829643378
+    },
+    "5.0": {
+      "amplitude_misfit": 0.06246012483687466,
+      "phase_misfit_rad": 0.052287915131908634,
+      "wss_amplitude_misfit": 0.4643107602421172
+    },
+    "10.0": {
+      "amplitude_misfit": 0.009157876632323092,
+      "phase_misfit_rad": 0.014587569999510256,
+      "wss_amplitude_misfit": 0.48210736305343077
+    },
+    "20.0": {
+      "amplitude_misfit": 0.0025917501229861264,
+      "phase_misfit_rad": 0.004566753483420315,
+      "wss_amplitude_misfit": 0.4910939439918055
+    }
+  },
+  "discrimination_ratio": {
+    "alpha_10": 52.644011533395584,
+    "alpha_20": 189.48352298175402
+  },
+  "timestamp": "2026-08-11T10:55:20+00:00",
+  "git_sha": "19d4726a9a89"
+}
