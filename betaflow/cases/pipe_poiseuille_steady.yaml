@@ -2,6 +2,16 @@
 # on an axisymmetric wedge. Same driving mechanism as poiseuille_steady; the
 # geometry is what changes.
 #
+# THE THREE FACTOR-OF-2 TRAPS. Every hazard in this case is one disease —
+# carrying a channel formula into a pipe — surfacing in three independent
+# places, and the case pins each down separately because getting one right
+# does not imply the others:
+#
+#   u_max/u_mean   pipe 2      channel 3/2   area weight 2*pi*r*dr vs flat dy
+#   tau_w          pipe G*a/2  channel G*h   lever arm V/A_wall: a/2 vs h
+#   Re length      pipe D=2a   channel 2h    diameter convention vs gap;
+#                                            a is a RADIUS
+#
 # CITATIONS
 #   Profile u(r) = (G/4mu)(a^2 - r^2), u_mean = u_max/2, Hagen-Poiseuille law:
 #     Batchelor, G.K. (1967), An Introduction to Fluid Dynamics, CUP, sec 4.2.
@@ -28,9 +38,29 @@ normalisation:
   u_max_over_u_mean: 2.0
 
 metrics:
+  # The two metrics split the job, and neither can substitute for the other.
+  # L2_velocity guards the SHAPE: the parabola u(r) = (G/4mu)(a^2 - r^2) is
+  # smooth and second-order schemes resolve it easily, so an ordinary
+  # tolerance checks the discretisation is right.
   - name: L2_velocity
     tol: 1.0e-3
-  # tau_w = G a / 2 — the pipe force balance. The factor of 2 relative to the
-  # channel's G h is the single most likely silent geometry error.
+  # wss_relative guards the GEOMETRY, and its near-machine tolerance is
+  # affordable for a stated reason: this case is force-driven and periodic,
+  # so at steady state the discrete momentum balance leaves the solver no
+  # freedom — total wall friction must equal the applied force, which pins
+  # tau_w = G V/A_wall = G a/2 to round-off at EVERY resolution. Measured
+  # 2.5e-12 / 1.2e-12 / 5.0e-12 across the three mesh levels
+  # (results/pipe.json) — flat under refinement, the signature of an
+  # identity-pinned quantity. What that pinning buys and what it costs:
+  #   - it catches the channel-formula slip (G h instead of G a/2, a clean
+  #     factor of 2) at ~10^6 times this tolerance — unmissable;
+  #   - it is BLIND to resolution error, because the balance holds however
+  #     badly the profile is resolved. L2_velocity exists to cover exactly
+  #     that blind spot.
+  # The test asserts tighter still (1e-9, tests/test_pipe.py IDENTITY_TOL);
+  # this YAML value is the case-level contract. Same doctrine as paper
+  # section 2: a balance the solver already enforces is nearly vacuous as an
+  # accuracy check — its value here is as a geometry trap and as the
+  # convergence gate.
   - name: wss_relative
     tol: 1.0e-6
