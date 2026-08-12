@@ -1,5 +1,15 @@
 # Steady plane Poiseuille flow: laminar channel between parallel plates at
 # y = +/- half_height, driven by a constant mean pressure gradient.
+#
+# THE THREE FACTOR-OF-2 TRAPS, seen from the channel side. One disease —
+# carrying this case's formulas into a pipe, or a pipe's into here —
+# surfaces in three independent places, so this case and
+# pipe_poiseuille_steady.yaml pin each down separately (getting one right
+# does not imply the others):
+#
+#   u_max/u_mean   channel 3/2   pipe 2      flat dy weight vs area 2*pi*r*dr
+#   tau_w          channel G*h   pipe G*a/2  lever arm V/A_wall: h vs a/2
+#   Re length      channel 2h    pipe D=2a   full gap vs diameter convention
 name: poiseuille_steady
 
 nondim:
@@ -21,9 +31,27 @@ normalisation:
   u_max_over_u_mean: 1.5   # exact for plane Poiseuille: u_mean = (2/3) u_max
 
 metrics:
+  # L2_velocity guards the SHAPE: the parabola is smooth, second-order
+  # schemes resolve it easily, and the measured error at N = 80 is 3.3e-4
+  # (results/poiseuille_steady.json).
   - name: L2_velocity
     tol: 1.0e-3
-  # Wall shear stress vs the exact tau_w = G*h, as a relative error. Kinematic
-  # units on both sides (incompressible OpenFOAM reports tau/rho).
+  # Wall shear stress vs the exact tau_w = G*h, as a relative error.
+  # Kinematic units on both sides (incompressible OpenFOAM reports tau/rho).
+  #
+  # WHY 2e-2 HERE WHEN THE PIPE CASE HOLDS 1e-6: the driving mechanism
+  # decides what this metric measures. The pipe applies a FIXED force, so
+  # its steady momentum balance pins tau_w to the known input at round-off
+  # (measured ~1e-12, flat under refinement) — a geometry trap, blind to
+  # resolution. This channel is driven by a meanVelocityForce constraint:
+  # the solver TUNES the force to hold the requested bulk velocity, so the
+  # measured tau_w inherits the DISCRETE relation between u_mean and the
+  # wall gradient and carries genuine discretisation error — measured
+  # 3.1e-4 at N = 80, the same order as the profile error, and it
+  # converges with the mesh instead of sitting at round-off. So here the
+  # metric IS an accuracy check, and 2e-2 is an ordinary engineering
+  # tolerance with ~60x margin; a near-machine tolerance would fail for
+  # honest resolution reasons, and loosening or tightening either case to
+  # match the other would erase the distinction the pair exists to teach.
   - name: wss_relative
     tol: 2.0e-2
