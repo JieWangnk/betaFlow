@@ -40,7 +40,8 @@ indistinguishable from Newtonian in the aorta at peak systole. This case uses
 xi = 0.2 to make the plug measurable at all; it is a numerical-verification
 setting, not a physiological one.
 
-UNITS: every function here is unit-agnostic but requires CONSISTENCY. Pass
+UNITS: every function here works in any unit system but requires
+CONSISTENCY. Pass
 dynamic (tau_y [Pa], mu_c [Pa s], G [Pa/m]) or kinematic (tau0 = tau_y/rho
 [m^2/s^2], nu_c = mu_c/rho [m^2/s], G/rho [m/s^2]) throughout. Incompressible
 OpenFOAM is kinematic — its Casson `tau0` is tau_y/rho and its `m` is nu_c —

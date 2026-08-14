@@ -1,7 +1,7 @@
 """Circular-pipe cases on an axisymmetric wedge.
 
-Purpose is twofold: test whether the harness abstractions are geometry-
-agnostic or quietly channel-specific, and open the route to particle
+Purpose is twofold: test whether the harness abstractions hold for any
+geometry or are quietly channel-specific, and open the route to particle
 transport, whose published analytic references are cylindrical.
 
 Every analytic reference used here is cited in betaflow/analytic/pipe.py and in the case

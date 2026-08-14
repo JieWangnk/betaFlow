@@ -1,4 +1,4 @@
-"""betaflow — a solver-agnostic validation harness for haemodynamic CFD.
+"""betaflow — a solver-independent validation harness for haemodynamic CFD.
 
 Layering (dependencies point downward only):
 

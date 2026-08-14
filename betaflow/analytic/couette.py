@@ -48,7 +48,7 @@ def velocity_profile(y_over_H):
 def tau_wall(mu, u_wall, H):
     """Wall shear stress mu * U / H — uniform, identical at both walls.
 
-    Unit-agnostic: dynamic viscosity mu [Pa s] gives tau in Pa; kinematic
+    Any consistent units: dynamic viscosity mu [Pa s] gives tau in Pa; kinematic
     viscosity nu [m^2/s] gives the kinematic tau [m^2/s^2] that
     incompressible OpenFOAM reports.
     """

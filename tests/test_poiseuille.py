@@ -1,6 +1,6 @@
 """Validation test: steady plane Poiseuille vs the OpenFOAM runner.
 
-Loads the YAML case, runs it through the solver-agnostic run_case() contract,
+Loads the YAML case, runs it through the solver-independent run_case() contract,
 evaluates the configured metric against the analytic reference, asserts the
 tolerance, and logs a provenance-stamped record to results/.
 """
