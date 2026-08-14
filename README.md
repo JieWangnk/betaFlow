@@ -188,8 +188,8 @@ and that duplication is the price of the isolation.
 ## Running
 
     python3 -m pytest -m analytic -v   # analytic tier, NO solver needed (27 tests, ~2 s)
-    python3 -m pytest tests/ -v      # default: skips @slow studies (40 tests)
-    python3 -m pytest -m "" -v       # everything (49 tests; > 45 min, not re-timed)
+    python3 -m pytest tests/ -v      # default: skips @slow studies (45 tests)
+    python3 -m pytest -m "" -v       # everything (54 tests; > 45 min, not re-timed)
     python3 -m pytest -m slow -v     # the 9 slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and

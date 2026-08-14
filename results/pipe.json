@@ -73,7 +73,7 @@
       "wss_amplitude_misfit": 0.4910939439918055
     }
   ],
-  "timestamp": "2026-08-12T13:19:36+00:00",
+  "timestamp": "2026-08-14T10:40:30+00:00",
   "openfoam_version": "14",
-  "git_sha": "3b35d74974ae"
+  "git_sha": "b40c77ff7953-dirty"
 }

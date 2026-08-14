@@ -50,7 +50,9 @@ The same case runs through several runners with the same metrics, and each
 solver's error is PREDICTED by its own analytic reference before it runs.
 With three independent implementations, a later disagreement can be
 localised rather than merely detected. The `mc_channel` case is the first
-Tier-2 case: Langevin (green), OpenFOAM particles, and OpenLB.
+Tier-2 case, with all three legs green and collated in
+`results/mc_channel_benchmark.json`: Langevin, OpenFOAM particles, and
+OpenLB.
 
 ## Architecture: four layers, one of which knows solvers exist
 
@@ -64,7 +66,7 @@ Tier-2 case: Langevin (green), OpenFOAM particles, and OpenLB.
    `runners/__init__.py`): each runner exposes `run(case: dict, **params)
    -> dict`, returning a `meta` provenance sub-dict plus whatever arrays the
    case's metrics consume. Six runners: `openfoam`, `openfoam_particles`,
-   `langevin`, `moments`, `lbm`, and (planned) `openlb`.
+   `langevin`, `moments`, `lbm`, and `openlb`.
 4. **Metrics** (`betaflow/metrics/`) — consume plain arrays; looked up by
    the names used in case YAML. Statistical tolerances come from the error
    law of the specific estimator (`metrics/mc_error.py`), never from a
@@ -92,7 +94,7 @@ at an unknown.
 | Particles | `taylor_aris` | `analytic/taylor_aris.py` | langevin, openfoam_particles | radial invariant P(r) = 2r/a^2 (KS) | `results/taylor_aris.json`, `_openfoam.json` |
 | Eulerian scalar | `scalar_dispersion` | `analytic/advection_diffusion.py` | moments | declared no-axial-mesh scope | `results/scalar_dispersion.json` |
 | LBM scalar | `lbm_scalar` | `analytic/lattice_boltzmann.py` | lbm | mass drift; slip zero at Lambda = 3/16 | `results/lbm_scalar.json` |
-| Comms | `mc_channel` | `analytic/channel_impulse.py` | langevin (+ openfoam_particles, openlb planned) | radial invariant (KS); binomial error laws | `results/mc_channel.json`, `_departure.json` |
+| Comms | `mc_channel` | `analytic/channel_impulse.py` | langevin, openfoam_particles, openlb | radial invariant (KS); binomial error laws | `results/mc_channel*.json`, `mc_channel_benchmark.json` |
 
 ### The two geometry tracks and their fixed roles
 
@@ -130,9 +132,9 @@ Solver-free studies with their own records: the kernel blind spot
 - **analytic** (27 tests, ~2 s, `pytest -m analytic`): self-checks of every
   analytic reference plus the identity-checker fixture null. No solver
   install. Gates every push.
-- **default** (39 tests): adds the pure-Python runners and the OpenFOAM
+- **default** (45 tests): adds the pure-Python runners and the OpenFOAM
   cases; needs OpenFOAM 14 locally.
-- **slow** (7 tests): the long Monte Carlo and OpenFOAM-particle runs.
+- **slow** (9 tests): the long Monte Carlo, OpenFOAM-particle, and OpenLB runs.
 
 CI re-runs the suite and fails if any committed record moves beyond a
 stated, measured tolerance (`tools/compare_results.py`, numeric comparison,
