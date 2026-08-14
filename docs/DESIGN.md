@@ -94,6 +94,30 @@ at an unknown.
 | LBM scalar | `lbm_scalar` | `analytic/lattice_boltzmann.py` | lbm | mass drift; slip zero at Lambda = 3/16 | `results/lbm_scalar.json` |
 | Comms | `mc_channel` | `analytic/channel_impulse.py` | langevin (+ openfoam_particles, openlb planned) | radial invariant (KS); binomial error laws | `results/mc_channel.json`, `_departure.json` |
 
+### The two geometry tracks and their fixed roles
+
+The cases split into two geometry tracks, kept deliberately and with
+distinct jobs:
+
+- **The pipe track is the physics programme.** Everything nanoparticle,
+  molecular-communications, and LBM happens in circular-pipe geometry,
+  because blood vessels are cylinders and every published exact result the
+  transport work stands on is cylindrical (Taylor-Aris, Decuzzi, Hofmann's
+  duct, Liu's micro-vessel). All new physics cases land here.
+- **The channel track is finished and stays as the calibration and
+  discrimination layer.** The plane-channel cases calibrated the
+  instruments (the Couette null, the identity checker) and now keep the
+  geometry traps armed: the kernel blind spot, the three factor-of-2
+  differences, and the wrong-kernel guard in `tests/test_pipe.py` all need
+  a channel reference to exist. The cases are committed, fast, and stable,
+  so keeping them costs nothing.
+
+The failure mode this structure prevents is silent mixing: any channel
+formula that wanders into pipe work must fail a definition-agreement check
+(the Re convention, pinned to twelve digits), a conservation identity
+(written against G a/2), or the planted wrong-kernel comparison — loudly,
+instead of surviving into a result.
+
 Solver-free studies with their own records: the kernel blind spot
 (`kernel_discrimination_scaling.json`), Stage-A discriminators
 (`stage_a_discriminators.json`), the production identity audit

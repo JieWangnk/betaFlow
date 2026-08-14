@@ -145,7 +145,7 @@ def u_mean(pressure_gradient, h, nu0, nu_inf, k, n, a=2.0):
 
 
 def velocity_profile(y_over_h, pressure_gradient, h, nu0, nu_inf, k, n, a=2.0):
-    """Non-dimensional u/u_max at Y = y/h — the harness analytic reference signature."""
+    """Non-dimensional u/u_max at Y = y/h — the framework analytic reference signature."""
     y = np.asarray(y_over_h, dtype=float) * h
     return velocity(y, pressure_gradient, h, nu0, nu_inf, k, n, a) / u_max(
         pressure_gradient, h, nu0, nu_inf, k, n, a

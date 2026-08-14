@@ -2,7 +2,7 @@
 
 import subprocess
 
-# Paths the harness itself rewrites on every run; their churn is not code dirt
+# Paths the framework itself rewrites on every run; their churn is not code dirt
 # and must not mark a revalidation run "-dirty".
 _OUTPUT_PREFIXES = ("results/", "report/")
 
@@ -10,7 +10,7 @@ _OUTPUT_PREFIXES = ("results/", "report/")
 def git_sha(repo):
     """12-char HEAD SHA, suffixed '-dirty' if code or case inputs differ from HEAD.
 
-    Untracked files count as dirty (unlike `git diff`); the harness's own
+    Untracked files count as dirty (unlike `git diff`); the framework's own
     regenerated outputs (results/, report/) do not.
     """
     try:

@@ -82,7 +82,7 @@ def velocity(y, pressure_gradient, tau_y, mu_c, h):
 
 
 def velocity_profile(y_over_h, xi):
-    """Non-dimensional u/u_max at Y = y/h — the harness analytic reference signature."""
+    """Non-dimensional u/u_max at Y = y/h — the framework analytic reference signature."""
     return _f(y_over_h, xi) / _f(0.0, xi)
 
 

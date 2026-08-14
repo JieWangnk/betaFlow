@@ -1,6 +1,6 @@
 # Free Brownian motion of a nanoparticle in quiescent blood plasma.
 # No flow, no walls, no geometry — and no CFD solver: this case runs on
-# runners/langevin.py, the first non-OpenFOAM runner in the harness.
+# runners/langevin.py, the first non-OpenFOAM runner in the framework.
 #
 # CITATIONS (see betaflow/analytic/brownian.py for the full status note)
 #   D = k_B T / (6 pi mu a):      Einstein, A. (1905), Ann. Phys. 322(8):549.

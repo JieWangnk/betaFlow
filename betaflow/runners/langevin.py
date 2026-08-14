@@ -1,6 +1,6 @@
 """Overdamped Langevin particle runner — the FIRST non-OpenFOAM runner.
 
-Architecture note. This module exists as much to test the harness as to do
+Architecture note. This module exists as much to test the framework as to do
 physics: betaflow's design constraint has always been "nothing above
 runners/ may know OpenFOAM exists", and until now that was asserted rather
 than tested, because every runner WAS OpenFOAM. Adding this one exercises the

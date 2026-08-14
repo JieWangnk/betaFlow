@@ -5,7 +5,7 @@ second-order interior scheme, the half-cell one-sided wall gradient, and
 linear (cellPoint) interpolation — is exact for linear fields. So unlike the
 Poiseuille case there is no discretisation error to converge: every error at
 EVERY mesh level must sit at round-off (floors: the 1e-9 steady-convergence
-gate and 12-digit ASCII field I/O). A deviation is a bug in the harness or
+gate and 12-digit ASCII field I/O). A deviation is a bug in the framework or
 solver, not a mesh effect, and is diagnosed rather than tolerated.
 """
 

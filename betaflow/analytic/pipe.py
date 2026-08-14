@@ -108,7 +108,7 @@ def poiseuille_velocity(r, pressure_gradient, a, mu):
 
 
 def poiseuille_profile(r_over_a):
-    """Non-dimensional u/u_max = 1 - (r/a)^2 — the harness analytic reference signature."""
+    """Non-dimensional u/u_max = 1 - (r/a)^2 — the framework analytic reference signature."""
     r = np.asarray(r_over_a, dtype=float)
     return 1.0 - r**2
 

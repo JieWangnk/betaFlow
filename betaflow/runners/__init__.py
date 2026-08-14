@@ -20,7 +20,7 @@ statement was too narrow.
 What IS required of every runner: return a `meta` dict, and return arrays the
 case's declared metrics can consume. Fluid cases conventionally return
 y/u/u_ref, and that convention is worth keeping — but it is a convention of
-those cases, not of the harness.
+those cases, not of the framework.
 """
 
 from importlib import import_module

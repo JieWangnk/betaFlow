@@ -1,6 +1,6 @@
 # betaflow
 
-A solver-independent validation harness for haemodynamic CFD. Each case pairs an
+A solver-independent validation framework for haemodynamic CFD. Each case pairs an
 analytic reference with a solver run and asserts an explicit error norm against an
 explicit tolerance, logging a provenance-stamped record. It is a regression
 suite, not a one-off check: rerun it after any solver upgrade, scheme change,
@@ -36,7 +36,7 @@ or new boundary-condition library, and diff the committed results.
 *The fluid ladder (Tier 1, OpenFOAM)*
 - [Current cases](#current-cases) — Poiseuille, Couette, refinement, Stage A
 - [When error-accumulation reasoning applies — and when it does not](#when-error-accumulation-reasoning-applies--and-when-it-does-not)
-- [Pipe geometry: what the harness assumed](#pipe-geometry-what-the-harness-assumed) — seven quietly channel-specific assumptions
+- [Pipe geometry: what the framework assumed](#pipe-geometry-what-the-framework-assumed) — seven quietly channel-specific assumptions
 
 *Rheology (yield stress and shear thinning)*
 - [casson_steady](#casson_steady-a-non-physical-parameter-that-changes-the-answer) · [carreau_steady](#carreau_steady-the-contrast-case) · [womersley_carreau](#womersley_carreau-verification-without-an-analytic-reference)
@@ -99,7 +99,7 @@ the tolerance.
 
 Two kinds of verification, deliberately distinguished (reviewers notice):
 
-- **Code verification** — the case has an exact solution. The harness measures
+- **Code verification** — the case has an exact solution. The framework measures
   the *true* discretisation error and runs an **order-of-accuracy test**:
   observed p = log2(e_coarse/e_fine) must match the formal order of the
   scheme. This is stronger than any error-estimation procedure. All analytic
@@ -125,7 +125,7 @@ self-verifies against the Newtonian and power-law limits to 1.8e-16 and
 7.2e-16 before being used as ground truth. The same construction would cover
 Herschel-Bulkley, Cross, and power-law without new machinery.
 
-Non-dimensionalisation is where validation harnesses silently rot. The
+Non-dimensionalisation is where validation frameworks silently rot. The
 Reynolds-number definition (bulk velocity, full channel height:
 `Re = u_mean * 2h / nu`) is stated once in the analytic reference docstring
 (`betaflow/analytic/poiseuille.py`), echoed in the case YAML, and
@@ -174,7 +174,7 @@ Metrics and tests consume only that dict. What is REQUIRED of a runner is a
 `meta` sub-dict and arrays the case's declared metrics can consume — nothing
 more. Fluid cases conventionally return `{"y", "u", "u_ref"}`, where `u_ref`
 is the velocity the analytic reference normalises by, but that is a convention of those
-cases and not of the harness: `runners/langevin.py` returns
+cases and not of the framework: `runners/langevin.py` returns
 `{"t", "msd", "msd_components", "D_expected"}` and plugged in with no change
 above this layer. `meta` carries provenance (solver version, cell counts,
 viscosity) and is never used for physics.
@@ -406,7 +406,7 @@ require a mesh nobody runs.
 The stiffening is NOT a linear-solver artefact: `smoothSolver/symGaussSeidel`
 and `PBiCGStab/DILU` stall at bit-identical residuals, and relaxation 1.0
 diverges. It is the nonlinear nu↔gammadot fixed point, which contracts
-algebraically. Two consequences the harness had to absorb: runs start from the
+algebraically. Two consequences the framework had to absorb: runs start from the
 analytic Casson profile (worth orders of magnitude in iterations), and
 **convergence is gated on the conservation identity rather than the residual**
 — residual and profile drift are *change* measures, and a slowly-contracting
@@ -570,7 +570,7 @@ responds non-sinusoidally, so the fundamental carries less than the full
 amplitude. It is the A3/A1 nonlinearity seen from the other side, and the
 profile SHAPE still matches the steady analytic reference to 2e-3.
 
-## Pipe geometry: what the harness assumed
+## Pipe geometry: what the framework assumed
 
 Three cases were ported to a circular pipe on an axisymmetric wedge —
 `pipe_poiseuille_steady`, `pipe_casson_steady`, `pipe_womersley_pulsatile` —
@@ -784,7 +784,7 @@ confirmed three ways (discrete sum 0.707133, independent direct simulation
 0.708732, continuum 0.707107) and against 60 seeds of the runner itself
 (0.769 ± 9%, RMS z = 1.09).
 
-**Three distinct sigma laws now exist in the harness and must not be
+**Three distinct sigma laws now exist in the framework and must not be
 interchanged**: 0.8165/sqrt(N) for a single-time 3-D MSD, 0.7071/sqrt(N) for a
 through-origin slope fit, and sqrt(2/N) for a variance estimator such as an
 axial dispersion coefficient. Baking any one of them in as "the Monte Carlo
@@ -1197,7 +1197,7 @@ closing at the linear-solver tolerance rather than merely "small":
 | AortaCFD PAT_0000 | 1.64e-4 | 1.2e-8 |
 
 A clean bill of health is worth having and worth stating plainly. This is the
-original use #1 that justified building the harness, and the answer is that
+original use #1 that justified building the framework, and the answer is that
 the production code conserves mass.
 
 **One reproducibility note, corrected.** Four of the nine cases examined have

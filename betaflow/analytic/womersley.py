@@ -21,7 +21,7 @@ NOTE ON BESSEL FUNCTIONS: the classical Womersley solution built on J0 Bessel
 functions of complex argument is the CIRCULAR PIPE solution. For the plane
 channel the kernel is the complex cosh above — same physics, same
 alpha-scaling, different geometry. Using J0 against a plane-channel solver
-would be a silent geometry mismatch of exactly the kind this harness exists
+would be a silent geometry mismatch of exactly the kind this framework exists
 to catch.
 
 Scales: all velocities here are normalised by u_ref = G / omega (the

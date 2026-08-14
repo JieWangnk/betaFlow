@@ -9,7 +9,7 @@ This module is an ACTUAL collide-and-stream lattice, so the analytic reference's
 are now confronted with the thing they describe, in-repo, with no external
 dependency. When OpenLB enters, its output is compared against the same
 analytic reference through the same metrics; this runner is the reference implementation
-that establishes the analytic reference and the harness agree before a third party is
+that establishes the analytic reference and the framework agree before a third party is
 measured against them.
 
 TWO EXPERIMENTS, selected by the case's `experiment` key.

@@ -1,6 +1,6 @@
 """Circular-pipe cases on an axisymmetric wedge.
 
-Purpose is twofold: test whether the harness abstractions hold for any
+Purpose is twofold: test whether the framework abstractions hold for any
 geometry or are quietly channel-specific, and open the route to particle
 transport, whose published analytic references are cylindrical.
 

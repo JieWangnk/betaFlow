@@ -504,7 +504,7 @@ def mrt_zero_slip_s1(s3):
     condition. THE PUBLISHED EQ. (73) of arXiv:1603.09577 PRINTS THE
     DENOMINATOR WITH THE OPPOSITE SIGN, 8(s3 - 2)/(8 - s3), which returns a
     NEGATIVE relaxation rate for every admissible s3 < 8 (s3 = 1 gives
-    -8/7). A harness implementing the printed form would demand an
+    -8/7). A framework implementing the printed form would demand an
     unphysical parameter; `verify_limits` demonstrates both facts.
     """
     s3 = float(s3)

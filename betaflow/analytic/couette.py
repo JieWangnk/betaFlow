@@ -22,7 +22,7 @@ Null-test role: the exact profile is linear. The second-order interior
 scheme, the half-cell one-sided wall gradient, and linear (cellPoint)
 interpolation are all EXACT for linear fields, so every numerical error in
 this case should sit at round-off on every mesh — there is no discretisation
-error to converge. A deviation is a harness or solver bug, not a mesh effect.
+error to converge. A deviation is a framework or solver bug, not a mesh effect.
 """
 
 import numpy as np
