@@ -2,3 +2,11 @@ __pycache__/
 *.pyc
 .pytest_cache/
 _runs/
+
+# OpenLB app build artifacts and run outputs (sources + Makefiles are tracked)
+openlb_cases/**/tmp*/
+openlb_cases/**/sweep_*/
+openlb_cases/**/*.o
+openlb_cases/**/*.d
+openlb_cases/mcChannel3d/mcChannel3d
+openlb_cases/pipeFlow3d/pipeFlow3d
