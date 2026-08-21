@@ -10,4 +10,4 @@ openlb_cases/**/*.o
 openlb_cases/**/*.d
 openlb_cases/mcChannel3d/mcChannel3d
 openlb_cases/pipeFlow3d/pipeFlow3d
-report/mc_channel_particles.gif
+report/*.gif
