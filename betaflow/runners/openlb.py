@@ -191,15 +191,72 @@ def _run_pipe_momentum(case, resolution=41, tau=0.53, wall="bb",
 
 
 def _run_cir(case, resolution=12, u_lat_target=0.04, time_horizon_over_t2=6.5,
-             outputs=400, workdir=None):
-    """Build, execute, parse; the case supplies physics, this layer numerics."""
+             outputs=400, workdir=None, coupled=False):
+    """Build, execute, parse; the case supplies physics, this layer numerics.
+
+    coupled=True is the COUPLED channel scenario: OpenLB's own fluid
+    solver (openlb_cases/pipeFlow3d, Bouzidi walls per the wall-position
+    measurement) produces the flow at the case's microfluidic physics
+    (Re = u_mean*2a/nu = 0.6, water), and the scalar rides on the SOLVED
+    profile instead of the analytic one. The flow is steady, so staging
+    (converge fluid, freeze profile, run scalar) is physically identical
+    to per-step coupling and decouples the two lattices' time steps —
+    which matters because Sc = nu/D = 667 would otherwise force
+    tau_fluid ~ 2.9 on a shared step. The fluid stage's own exam numbers
+    (profile L2 vs the parabola, effective-radius shift) are returned in
+    meta["fluid_stage"].
+    """
     from betaflow.analytic import channel_impulse as ci
 
     binary = _build()
+
+    fluid_meta = None
+    profile_arg = []
+    if coupled:
+        phys = case["physical"]
+        a = float(phys["vessel_radius"])
+        u_max = 2.0 * float(phys["mean_velocity"])
+        nu = float(phys["kinematic_viscosity"])
+        fluid_bin = _build("pipeFlow3d")
+        fdir = (Path(workdir) if workdir is not None else Path.cwd() / "_runs")
+        fdir = fdir / f"mc_channel_fluid_res{resolution}"
+        fdir.mkdir(parents=True, exist_ok=True)
+        proc = subprocess.run(
+            [str(fluid_bin), "--radius", repr(a), "--umax", repr(u_max),
+             "--nu", repr(nu), "--resolution", str(2 * resolution),
+             "--tau", "0.8", "--wall", "bouzidi", "--maxt", "0.5",
+             "--outdir", str(fdir) + "/"],
+            cwd=fluid_bin.parent, capture_output=True, text=True)
+        if proc.returncode != 0 or "betaflow-done" not in proc.stdout:
+            raise RuntimeError(
+                f"coupled fluid stage failed:\n{proc.stdout[-1500:]}")
+        fp = np.loadtxt(fdir / "profile.csv", delimiter=",", skiprows=1)
+        y, u = fp[:, 0], fp[:, 1]
+        sel = np.abs(y) <= 0.85
+        A = np.column_stack([np.ones(int(sel.sum())), y[sel] ** 2])
+        cf, *_ = np.linalg.lstsq(A, u[sel], rcond=None)
+        a_eff = float(np.sqrt(-cf[0] / cf[1]))
+        fluid_meta = {
+            "wall": "bouzidi", "tau": 0.8,
+            "resolution_per_diameter": 2 * resolution,
+            "reynolds_bulk": float(phys["mean_velocity"]) * 2.0 * a / nu,
+            "schmidt": nu / float(phys["diffusivity"]),
+            "L2_vs_parabola": float(np.sqrt(np.mean(
+                (u / u_max - (1.0 - y**2)) ** 2))),
+            "u_max_fit_over_target": float(cf[0] / u_max),
+            "a_eff_shift_dx": (a_eff - 1.0) / (2.0 / (2 * resolution)),
+            "profile_csv": str(fdir / "profile.csv"),
+            "staging_note": "steady flow: fluid converged then frozen; "
+                            "per-step coupling adds nothing at steady "
+                            "state and a shared dt at Sc = 667 would "
+                            "force tau_fluid ~ 2.9",
+        }
+        profile_arg = ["--profile", str(fdir / "profile.csv")]
     tau, dt, predictions = scope_parameters(case, resolution, u_lat_target)
 
     outdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
-    outdir = outdir / f"mc_channel_openlb_res{resolution}_u{u_lat_target:g}"
+    outdir = outdir / (f"mc_channel_openlb_res{resolution}_u{u_lat_target:g}"
+                      + ("_coupled" if coupled else ""))
     outdir.mkdir(parents=True, exist_ok=True)
 
     proc = subprocess.run(
@@ -208,7 +265,7 @@ def _run_cir(case, resolution=12, u_lat_target=0.04, time_horizon_over_t2=6.5,
          "--tau", repr(tau),
          "--horizon", repr(float(time_horizon_over_t2)),
          "--outputs", str(outputs),
-         "--outdir", str(outdir) + "/"],
+         "--outdir", str(outdir) + "/"] + profile_arg,
         cwd=_APP_DIR, capture_output=True, text=True)
     if proc.returncode != 0 or "betaflow-done" not in proc.stdout:
         raise RuntimeError(
@@ -282,5 +339,6 @@ def _run_cir(case, resolution=12, u_lat_target=0.04, time_horizon_over_t2=6.5,
             "dt": dt,
             "outputs": int(outputs),
             "time_horizon_over_t2": float(time_horizon_over_t2),
+            "fluid_stage": fluid_meta,
         },
     }

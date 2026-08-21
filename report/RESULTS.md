@@ -1,6 +1,6 @@
 # betaFlow results report
 
-**Date:** 2026-08-21 · **State:** all results committed through `43a00ae` · **Suite:** 55 tests (27 analytic-tier, ~3 s; 45 default; 10 slow) ·
+**Date:** 2026-08-21 · **State:** all results committed through `43a00ae` · **Suite:** 56 tests (27 analytic-tier, ~3 s; 45 default; 11 slow) ·
 **CI:** analytic and solver jobs green on the pushed state.
 
 Every number below traces to a committed record in `results/`, named in
@@ -154,6 +154,17 @@ inter-symbol interference the analytic model first under-estimates, then
 over-estimates. `results/mc_channel_departure.json`,
 `mc_channel_openfoam.json`, `mc_channel_openlb.json`.
 
+**The coupled channel model (new).** The same case with OpenLB solving
+the flow it advects on — the case YAML now states the fluid physics:
+water, Re = 0.60, Sc = 667. The runner stages the lattices (converge the
+D3Q19 fluid with Bouzidi walls per the wall measurement, freeze the
+solved profile, run the scalar on it); staging is exact for steady flow
+and avoids the Sc = 667 shared-step trap (tau_fluid would be ~2.9). The
+fluid stage passes its own exam (L2 3.5e-3, shift −0.021 dx), and the
+measured cost of the solved flow on the CIR is small: peaks 0.1–0.3%
+below the prescribed leg, tail ratios within 0.04.
+`results/mc_channel_openlb_coupled.json`.
+
 **The Hofmann replication claim.** Their published model contains no
 diffusion, so the diffusion-free rung IS the replication of their model
 class, and it matches within counting noise. Exact MPPIC fidelity is
@@ -202,11 +213,7 @@ their reasons, because how errors present is data. The trail so far:
 
 ## What is next
 
-1. **The coupled channel model** — OpenLB solving its own flow while
-   advecting the scalar; today's wall measurement says use Bouzidi for the
-   fluid lattice or budget the dx^1.4 radius bias. This is paper 1's
-   production configuration.
-2. **The layer-escape O(1) constant** — the measured prefactor is 2.78 ±
+1. **The layer-escape O(1) constant** — the measured prefactor is 2.78 ±
    0.17 times the crude balance; a proper derivation is open theory work.
 3. **Comms-rate metrics** (inter-symbol interference in symbol terms,
    achievable rate) on top of the CIR; then bifurcating geometry.

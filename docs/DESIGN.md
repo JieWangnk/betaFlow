@@ -94,7 +94,7 @@ at an unknown.
 | Particles | `taylor_aris` | `analytic/taylor_aris.py` | langevin, openfoam_particles | radial invariant P(r) = 2r/a^2 (KS) | `results/taylor_aris.json`, `_openfoam.json` |
 | Eulerian scalar | `scalar_dispersion` | `analytic/advection_diffusion.py` | moments | declared no-axial-mesh scope | `results/scalar_dispersion.json` |
 | LBM scalar | `lbm_scalar` | `analytic/lattice_boltzmann.py` | lbm | mass drift; slip zero at Lambda = 3/16 | `results/lbm_scalar.json` |
-| Comms | `mc_channel` | `analytic/channel_impulse.py` | langevin, openfoam_particles, openlb | radial invariant (KS); binomial error laws | `results/mc_channel*.json`, `mc_channel_benchmark.json` |
+| Comms | `mc_channel` | `analytic/channel_impulse.py` | langevin, openfoam_particles, openlb (prescribed + coupled flow) | radial invariant (KS); binomial error laws | `results/mc_channel*.json`, `mc_channel_benchmark.json` |
 
 ### The two geometry tracks and their fixed roles
 
@@ -134,7 +134,7 @@ Solver-free studies with their own records: the kernel blind spot
   install. Gates every push.
 - **default** (45 tests): adds the pure-Python runners and the OpenFOAM
   cases; needs OpenFOAM 14 locally.
-- **slow** (9 tests): the long Monte Carlo, OpenFOAM-particle, and OpenLB runs.
+- **slow** (11 tests): the long Monte Carlo, OpenFOAM-particle, and OpenLB runs.
 
 CI re-runs the suite and fails if any committed record moves beyond a
 stated, measured tolerance (`tools/compare_results.py`, numeric comparison,

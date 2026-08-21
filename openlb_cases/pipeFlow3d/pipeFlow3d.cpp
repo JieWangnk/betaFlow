@@ -56,13 +56,15 @@ using MyCase = Case<
 using T = MyCase::value_t;
 using DESCRIPTOR = MyCase::descriptor_t_of<NavierStokes>;
 
-// betaflow/cases/pipe_poiseuille_steady.yaml, SI: radius 1 m, bulk Re 100.
-// u_max is the char velocity; u_mean = u_max/2 (pipe factor of two), so
-// nu = u_mean * D / Re_bulk = 0.5 * 2 / 100 = 0.01. The runner records
-// BOTH Reynolds conventions; this file works in (u_max, nu) only.
-static constexpr T RADIUS = 1.0;
-static constexpr T U_MAX  = 1.0;
-static constexpr T NU     = 0.01;
+// Defaults: betaflow/cases/pipe_poiseuille_steady.yaml (radius 1 m, bulk
+// Re 100 -> u_max 1, nu 0.01). Overridable via --radius/--umax/--nu so the
+// COUPLED channel scenario can run the same app at the microfluidic
+// point (a = 200 um, u_max = 3 mm/s, water nu = 1e-6: Re = 0.6). The
+// runner records both Reynolds conventions; this file works in
+// (u_max, nu) only.
+static T RADIUS = 1.0;
+static T U_MAX  = 1.0;
+static T NU     = 0.01;
 
 static T argOpt(int argc, char** argv, const char* name, T fallback) {
   for (int i = 1; i + 1 < argc; ++i) {
@@ -88,6 +90,9 @@ int main(int argc, char* argv[]) {
   const T    maxT = argOpt(argc, argv, "--maxt", 120.0);
   const std::string wall = argStr(argc, argv, "--wall", "bb");
   const std::string outdir = argStr(argc, argv, "--outdir", "./tmp/");
+  RADIUS = argOpt(argc, argv, "--radius", RADIUS);
+  U_MAX  = argOpt(argc, argv, "--umax", U_MAX);
+  NU     = argOpt(argc, argv, "--nu", NU);
   singleton::directories().setOutputDir(outdir);
 
   const T diameter = 2.0 * RADIUS;
@@ -166,6 +171,7 @@ int main(int argc, char* argv[]) {
   lattice.initialize();
 
   clout << "betaflow-provenance"
+        << " radius=" << RADIUS << " umax=" << U_MAX << " nu=" << NU
         << " wall=" << wall
         << " tau_requested=" << tau
         << " omega=" << converter.getLatticeRelaxationFrequency()

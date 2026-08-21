@@ -189,16 +189,16 @@ and that duplication is the price of the isolation.
 
     python3 -m pytest -m analytic -v   # analytic tier, NO solver needed (27 tests, ~3 s)
     python3 -m pytest tests/ -v      # default: skips @slow studies (45 tests)
-    python3 -m pytest -m "" -v       # everything (55 tests; > 50 min, not re-timed)
-    python3 -m pytest -m slow -v     # the 10 slow studies alone
+    python3 -m pytest -m "" -v       # everything (56 tests; > 50 min, not re-timed)
+    python3 -m pytest -m slow -v     # the 11 slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and
 wired into `.github/workflows/ci.yml`: the analytic tier gates every push with no
-solver install, the default tier runs on push, the full tier runs nightly. Ten
+solver install, the default tier runs on push, the full tier runs nightly. Eleven
 tests are marked slow — the casson two-axis grid, womersley_carreau,
 taylor_aris, the langevin error distribution, the three `openfoam_particles`
 tests (skipped where libbrownianTracerCloud.so cannot exist, e.g. CI), and
-the two OpenLB runs (skipped cleanly when the OpenLB build is absent). `langevin_free` needs no solver and runs in ~5 s under the `langevin`
+the three OpenLB runs (skipped cleanly when the OpenLB build is absent). `langevin_free` needs no solver and runs in ~5 s under the `langevin`
 runner; the same case under `openfoam_particles` needs OpenFOAM 14 and
 `libbrownianTracerCloud.so`.
 
@@ -1138,6 +1138,18 @@ consistency anchor. Both failures are recorded in the tool.
   no density functor on bounce-back cells is mass accounting, and the CIR
   uses bulk-only sums with the parked-mass decline (-2.7%) named, bounded,
   and recorded.
+
+**The coupled leg** (`results/mc_channel_openlb_coupled.json`): the same
+case with OpenLB solving the flow it advects on — water viscosity in the
+case YAML gives Re = 0.60 (creeping laminar, Hofmann's regime) and
+Sc = 667. The runner stages the lattices (converge the D3Q19 fluid with
+Bouzidi walls, freeze its solved profile, run the D3Q7 scalar on it):
+the flow is steady, so staging is physically identical to per-step
+coupling, and a shared time step at Sc = 667 would force tau_fluid ~ 2.9.
+The fluid stage passes its own exam (profile L2 3.5e-3, effective-radius
+shift -0.021 dx), and the measured cost of the solved flow on the CIR is
+small: peaks 0.1-0.3% below the prescribed leg, tail ratios within 0.04,
+with the one visible lag change equal to one output-sampling step.
 
 The Tier-2 statement: what the two independent particle implementations
 agree on is the physics; OpenLB's excess over that is its numerical

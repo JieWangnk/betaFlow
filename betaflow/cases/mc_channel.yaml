@@ -31,6 +31,13 @@ physical:
   vessel_radius: 200.0e-6      # m — Hofmann Table 1
   mean_velocity: 1.5e-3        # m/s — our split of Pe = 200
   diffusivity: 1.5e-9          # m^2/s — our split of Pe = 200
+  # Water at room temperature, for the COUPLED scenario where OpenLB
+  # solves the flow instead of prescribing it: Re = u_mean*2a/nu = 0.6
+  # (creeping laminar, matching Hofmann's regime) and Sc = nu/D = 667.
+  # That Schmidt number is why the coupled runner STAGES the two
+  # lattices (converge the fluid, freeze its profile, run the scalar):
+  # a shared time step would force tau_fluid ~ 2.9.
+  kinematic_viscosity: 1.0e-6  # m^2/s
 
 receiver:                      # presence of this key selects the CIR mode
   axial_length: 100.0e-6       # m — Hofmann Table 1 (c_x)

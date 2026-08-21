@@ -1,0 +1,90 @@
+{
+  "case": "mc_channel",
+  "solver_leg": "openlb COUPLED (D3Q19 Bouzidi fluid -> frozen solved profile -> D3Q7 scalar)",
+  "fluid_stage": {
+    "wall": "bouzidi",
+    "tau": 0.8,
+    "resolution_per_diameter": 24,
+    "reynolds_bulk": 0.6000000000000001,
+    "schmidt": 666.6666666666666,
+    "L2_vs_parabola": 0.0035307032141652776,
+    "u_max_fit_over_target": 0.9963849288851182,
+    "a_eff_shift_dx": -0.02088918124370087,
+    "profile_csv": "/home/mchi4jw4/GitHub/betaFlow/_runs/mc_channel_fluid_res12/profile.csv",
+    "staging_note": "steady flow: fluid converged then frozen; per-step coupling adds nothing at steady state and a shared dt at Sc = 667 would force tau_fluid ~ 2.9"
+  },
+  "receivers": [
+    {
+      "dbar_um": 150.0,
+      "peak_measured": 0.546093143048,
+      "peak_minus_prescribed": -0.0018171440039999043,
+      "peak_lag_relative": 0.03999999999949999,
+      "tail_ratio_3_to_6_t2": 1.250883938858573,
+      "tail_ratio_minus_prescribed": -0.035631915085328814
+    },
+    {
+      "dbar_um": 750.0,
+      "peak_measured": 0.141667744263,
+      "peak_minus_prescribed": -0.0004175171790000154,
+      "peak_lag_relative": 0.07250000000000001,
+      "tail_ratio_3_to_6_t2": 1.5596631109439127,
+      "tail_ratio_minus_prescribed": -0.020258199474686656
+    },
+    {
+      "dbar_um": 1550.0,
+      "peak_measured": 0.0641662938411,
+      "peak_minus_prescribed": -6.452591250000195e-05,
+      "peak_lag_relative": 0.04000000000062509,
+      "tail_ratio_3_to_6_t2": 1.3584893397749607,
+      "tail_ratio_minus_prescribed": 0.013758953202917423
+    }
+  ],
+  "mass_final_over_initial": 0.9725773078283978,
+  "meta": {
+    "solver": "openlb",
+    "app": "/home/mchi4jw4/GitHub/betaFlow/openlb_cases/mcChannel3d/mcChannel3d.cpp",
+    "openlb_version": "1.9.0",
+    "descriptor": "D3Q7<VELOCITY>, AdvectionDiffusionBGKdynamics (first-order equilibrium, source-confirmed)",
+    "mode": "cir: Eulerian slug, prescribed Poiseuille, bounce-back walls, bulk-only accounting",
+    "resolution_cells_per_radius": 12,
+    "predictions_before_run": {
+      "peclet_cell": 33.333333333333336,
+      "u_lat_centreline": 0.04,
+      "tau": 0.5048,
+      "naive_over_exact_D_factor": 105.16666666666609,
+      "depletion_relative_centreline": 0.0064,
+      "d_lattice_exact": 0.0012000000000000066
+    },
+    "provenance_from_app": {
+      "velocity_source": "/home/mchi4jw4/GitHub/betaFlow/_runs/mc_channel_fluid_res12/profile.csv",
+      "tau_requested": 0.5048,
+      "omega": 1.98098,
+      "dx": 1.66667e-05,
+      "dt": 0.000222222,
+      "uLatCentre": 0.04,
+      "iTmax": 15600.0,
+      "statIter": 39.0,
+      "length": 0.0110746,
+      "x0": 0.0001,
+      "slugW": 3.33333e-05
+    },
+    "tau_realised": 0.5048006542216479,
+    "dt": 0.00022222222222222223,
+    "outputs": 400,
+    "time_horizon_over_t2": 6.5,
+    "fluid_stage": {
+      "wall": "bouzidi",
+      "tau": 0.8,
+      "resolution_per_diameter": 24,
+      "reynolds_bulk": 0.6000000000000001,
+      "schmidt": 666.6666666666666,
+      "L2_vs_parabola": 0.0035307032141652776,
+      "u_max_fit_over_target": 0.9963849288851182,
+      "a_eff_shift_dx": -0.02088918124370087,
+      "profile_csv": "/home/mchi4jw4/GitHub/betaFlow/_runs/mc_channel_fluid_res12/profile.csv",
+      "staging_note": "steady flow: fluid converged then frozen; per-step coupling adds nothing at steady state and a shared dt at Sc = 667 would force tau_fluid ~ 2.9"
+    }
+  },
+  "git_sha": "9e9c79fa9433-dirty",
+  "timestamp": "2026-08-21T14:01:44+00:00"
+}

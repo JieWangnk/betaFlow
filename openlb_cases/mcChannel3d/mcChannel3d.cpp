@@ -27,8 +27,10 @@
 
 #include <olb.h>
 
+#include <algorithm>
 #include <cstring>
 #include <fstream>
+#include <vector>
 
 using namespace olb;
 using namespace olb::names;
@@ -49,15 +51,60 @@ static constexpr T CX          = 100e-6;
 static constexpr T DBAR[3]     = {150e-6, 750e-6, 1550e-6};
 static constexpr T CS2_D3Q7    = 0.25;   // source-confirmed, descriptor cs2<3,7>
 
-// Prescribed Poiseuille advection, returned in LATTICE units.
+// Prescribed advection, returned in LATTICE units. Two sources:
+//   analytic (default)  the exact Poiseuille parabola;
+//   --profile FILE      a SOLVED axisymmetric profile from the fluid stage
+//                       (CSV rows "y_over_a, u_x_phys", the exact format
+//                       openlb_cases/pipeFlow3d writes) — this is the
+//                       COUPLED channel scenario, staged: the flow is
+//                       steady, so converging the fluid first and running
+//                       the scalar on the solved field is physically
+//                       identical to per-step coupling, and it decouples
+//                       the two lattices' time steps. That matters here:
+//                       Sc = nu/D ~ 667, so a SHARED dt would force
+//                       tau_fluid ~ 2.9 (recorded as a scenario-design
+//                       fact; staging avoids it).
 class PoiseuilleLatticeVelocity : public AnalyticalF3D<T,T> {
   T _convVel;
+  std::vector<T> _r, _u;   // solved profile table over |y|/a, empty = analytic
 public:
-  explicit PoiseuilleLatticeVelocity(T convVel)
-    : AnalyticalF3D<T,T>(3), _convVel(convVel) {}
+  explicit PoiseuilleLatticeVelocity(T convVel, const std::string& profile)
+    : AnalyticalF3D<T,T>(3), _convVel(convVel) {
+    if (!profile.empty()) {
+      std::ifstream f(profile);
+      std::string line;
+      while (std::getline(f, line)) {
+        if (line.empty() || line[0] == '#') { continue; }
+        const auto comma = line.find(',');
+        _r.push_back(std::fabs(std::atof(line.substr(0, comma).c_str())));
+        _u.push_back(std::atof(line.substr(comma + 1).c_str()));
+      }
+      // sort by |r| for interpolation (profile file runs -a..a)
+      std::vector<std::size_t> idx(_r.size());
+      for (std::size_t i = 0; i < idx.size(); ++i) { idx[i] = i; }
+      std::sort(idx.begin(), idx.end(),
+                [&](std::size_t i, std::size_t j){ return _r[i] < _r[j]; });
+      std::vector<T> rs, us;
+      for (auto i : idx) { rs.push_back(_r[i]); us.push_back(_u[i]); }
+      _r = rs; _u = us;
+    }
+  }
   bool operator()(T out[], const T in[]) override {
-    const T r2 = (in[1]*in[1] + in[2]*in[2]) / (RADIUS*RADIUS);
-    const T u = 2.0 * U_MEAN * util::max(T(0), T(1) - r2);
+    const T r = std::sqrt(in[1]*in[1] + in[2]*in[2]) / RADIUS;
+    T u;
+    if (_r.empty()) {
+      u = 2.0 * U_MEAN * util::max(T(0), T(1) - r*r);
+    } else if (r >= _r.back()) {
+      u = T(0);
+    } else {
+      auto hi = std::upper_bound(_r.begin(), _r.end(), r) - _r.begin();
+      if (hi == 0) { u = _u[0]; }
+      else {
+        const T w = (r - _r[hi-1]) / (_r[hi] - _r[hi-1]);
+        u = _u[hi-1] * (1 - w) + _u[hi] * w;
+      }
+      u = util::max(T(0), u);
+    }
     out[0] = u / _convVel;
     out[1] = T(0);
     out[2] = T(0);
@@ -106,6 +153,7 @@ int main(int argc, char* argv[]) {
   const T    horizon = argOpt(argc, argv, "--horizon", 6.5);
   const int  outputs = int(argOpt(argc, argv, "--outputs", 160));
   const std::string outdir = argStr(argc, argv, "--outdir", "./tmp/");
+  const std::string profile = argStr(argc, argv, "--profile", "");
   singleton::directories().setOutputDir(outdir);
 
   const T dx = RADIUS / T(res);
@@ -172,7 +220,7 @@ int main(int argc, char* argv[]) {
   // a slow, mechanism-named decline of the bulk total, recorded not hidden.
   boundary::set<boundary::BounceBack>(lattice, geometry, 2);
 
-  PoiseuilleLatticeVelocity uF(converter.getConversionFactorVelocity());
+  PoiseuilleLatticeVelocity uF(converter.getConversionFactorVelocity(), profile);
   SlugInit slugF(x0, slugW);
   auto everything = geometry.getMaterialIndicator({1, 2});
   fields::set<descriptors::VELOCITY>(lattice, everything, uF);
@@ -193,6 +241,7 @@ int main(int argc, char* argv[]) {
 
   // Provenance the runner parses. omega must recover the requested tau.
   clout << "betaflow-provenance"
+        << " velocity_source=" << (profile.empty() ? std::string("analytic") : profile)
         << " tau_requested=" << tau
         << " omega=" << converter.getLatticeAdeRelaxationFrequency()
         << " dx=" << dx << " dt=" << dt

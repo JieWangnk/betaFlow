@@ -269,3 +269,83 @@ def test_pipe_momentum_openlb():
     # The measured law: the shift MAGNITUDE shrinks under refinement
     # (a_eff - a ~ dx^1.4), so a fixed-c model would fail here.
     assert abs(bb[1]["wall_shift_dx"]) < abs(bb[0]["wall_shift_dx"])
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(
+    not (OPENLB_ROOT / "build" / "lib" / "libolbcore.a").is_file(),
+    reason="OpenLB 1.9 build not present at ~/GitHub/openlb")
+def test_mc_channel_openlb_coupled():
+    """The COUPLED channel scenario: OpenLB solves the flow it advects on.
+
+    The right physical setting, stated in the case YAML: water
+    (nu = 1e-6 m^2/s), so Re = 0.6 (creeping laminar, Hofmann's regime)
+    and Sc = 667. The runner stages the two lattices — converge the fluid
+    (D3Q19, Bouzidi walls per the wall-position measurement), freeze its
+    solved profile, run the scalar on it — because the flow is steady, so
+    staging is physically identical to per-step coupling, and a shared
+    time step at Sc = 667 would force tau_fluid ~ 2.9.
+
+    Demands: the fluid stage passes its own exam (profile L2 and
+    effective-radius shift within measured Bouzidi bands); the coupled
+    CIR sits close to the prescribed-flow leg (the difference is bounded
+    by the fluid error — measured 4e-3 max absolute on the scoping run);
+    and the standard gates (mass, peak lag) hold as on the prescribed leg.
+    """
+    from betaflow.runners import run_case
+
+    case = _load()
+    res = run_case(case, runner="openlb", resolution=RESOLUTION,
+                   u_lat_target=U_LAT_TARGET, time_horizon_over_t2=6.5,
+                   outputs=400, coupled=True)
+
+    fl = res["meta"]["fluid_stage"]
+    assert fl["L2_vs_parabola"] < 1.0e-2, (
+        f"solved-flow profile L2 {fl['L2_vs_parabola']:.2e} — the fluid "
+        f"stage failed its own exam")
+    assert abs(fl["a_eff_shift_dx"]) < 0.10
+    assert abs(fl["reynolds_bulk"] - 0.6) < 1e-9
+    assert abs(fl["schmidt"] - 2000.0 / 3.0) < 1e-6
+
+    m = res["mass_over_initial"]
+    assert m[-1] > 0.94 and m[-1] < 1.005
+
+    prescribed = json.loads(RESULTS_FILE.read_text())
+    receivers = []
+    for rec, pres in zip(res["receivers"], prescribed["receivers"]):
+        t, cm, co = rec["t"], rec["cir_measured"], rec["cir_reference"]
+        lag = float(t[np.argmax(cm)]) / rec["t2"] - 1.0
+        assert -0.005 < lag < 0.10
+        peak = float(np.max(cm))
+        # The coupled peak must sit close to the prescribed leg's: the
+        # difference is the cost of the solved flow, bounded by the fluid
+        # stage's sub-percent profile error.
+        assert abs(peak - pres["peak_measured"]) < 0.03 * pres["peak_measured"], (
+            f"dbar={rec['dbar']*1e6:.0f}um: coupled peak {peak:.4f} vs "
+            f"prescribed {pres['peak_measured']:.4f}")
+        rsel = (t >= 3.0 * rec["t2"]) & (t <= 6.0 * rec["t2"])
+        tail_ratio = float(np.mean(cm[rsel]) / np.mean(co[rsel]))
+        assert abs(tail_ratio - pres["tail_ratio_3_to_6_t2"]) < 0.10
+        receivers.append({
+            "dbar_um": rec["dbar"] * 1e6,
+            "peak_measured": peak,
+            "peak_minus_prescribed": peak - pres["peak_measured"],
+            "peak_lag_relative": lag,
+            "tail_ratio_3_to_6_t2": tail_ratio,
+            "tail_ratio_minus_prescribed":
+                tail_ratio - pres["tail_ratio_3_to_6_t2"],
+        })
+
+    record = {
+        "case": "mc_channel",
+        "solver_leg": "openlb COUPLED (D3Q19 Bouzidi fluid -> frozen solved "
+                      "profile -> D3Q7 scalar)",
+        "fluid_stage": fl,
+        "receivers": receivers,
+        "mass_final_over_initial": float(m[-1]),
+        "meta": res["meta"],
+        "git_sha": git_sha(REPO),
+        "timestamp": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+    }
+    (REPO / "results" / "mc_channel_openlb_coupled.json").write_text(
+        json.dumps(record, indent=2) + "\n")
