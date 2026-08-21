@@ -206,15 +206,30 @@ def test_mc_channel_departure():
         f"— the tail should have terminated"
     )
 
-    # The crossover, still recorded in eigentime units for continuity with
-    # the earlier records. The eigentime ATTRIBUTION is withdrawn: the
-    # pre-registered Pe sweep (results/eigentime_pe_sweep.json) measured
-    # t_cross = K tau_r^0.31 dbar^0.73 — the layer-escape scaling — and
-    # the 0.95-of-eigentime value below is a coincidence of this
-    # parameter point.
-    beyond = t > 2.0 * t2
-    ratio = cm[beyond] / np.maximum(co[beyond], 1e-300)
-    t_cross = float(t[beyond][np.argmax(ratio < 1.0)])
+    # The crossover via the CUMULATIVE excess E(t) = int (m - ref) dt',
+    # whose argmax is the sustained crossing — the same extractor the Pe
+    # sweep settled on after two sample-level versions each measured the
+    # wrong crossing (tools/eigentime_pe_sweep.py has both failures). The
+    # eigentime ATTRIBUTION is withdrawn: the sweep measured t_cross =
+    # K tau_r^0.31 dbar^0.73, the layer-escape scaling; the value here is
+    # one point of it.
+    valid = t > t2
+    dm = (cm - co)[valid]
+    tt_v = t[valid]
+    cum_excess = np.concatenate(
+        [[0.0], np.cumsum(np.diff(tt_v) * 0.5 * (dm[1:] + dm[:-1]))])
+    t_cross = float(tt_v[int(np.argmax(cum_excess))])
+    # Persist the enhancement-ratio numbers the docstrings quote, so they
+    # trace to this record: measured/reference at 5 t2 and the maximum of
+    # a lightly smoothed ratio over the enhanced stretch.
+    k5 = int(np.argmin(np.abs(t - 5.0 * t2)))
+    ratio_at_5_t2 = float(cm[k5] / co[k5])
+    win = 25
+    kern = np.ones(win) / win
+    smooth = np.convolve(cm, kern, "same") / np.maximum(
+        np.convolve(co, kern, "same"), 1e-300)
+    sel_enh = (t > 2.0 * t2) & (t < t_cross)
+    max_ratio = float(np.max(smooth[sel_enh])) if sel_enh.any() else None
 
     record = {
         "case": case["name"],
@@ -225,6 +240,8 @@ def test_mc_channel_departure():
             "enhancement_sigma_bound": bound,
             "cir_at_12_t2_measured": float(cm[k12]),
             "cir_at_12_t2_reference": float(co[k12]),
+            "ratio_at_5_t2": ratio_at_5_t2,
+            "max_smoothed_enhancement_ratio": max_ratio,
             "crossover_t_over_tau_r": t_cross / tau_r,
             "crossover_t_beta1sq_over_tau_r": t_cross * BETA_1**2 / tau_r,
             "crossover_clock": (

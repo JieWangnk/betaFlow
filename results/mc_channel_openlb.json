@@ -7,21 +7,24 @@
       "peak_measured": 0.547910287052,
       "peak_reference_slug_averaged": 0.4745879292583325,
       "peak_lag_relative": 0.03999999999949999,
-      "ringing_min": -0.00953998059647
+      "ringing_min": -0.00953998059647,
+      "tail_ratio_3_to_6_t2": 1.2865158539439019
     },
     {
       "dbar_um": 750.0,
       "peak_measured": 0.142085261442,
       "peak_reference_slug_averaged": 0.12172594913177624,
       "peak_lag_relative": 0.039999999998749924,
-      "ringing_min": -0.00141653540612
+      "ringing_min": -0.00141653540612,
+      "tail_ratio_3_to_6_t2": 1.5799213104185994
     },
     {
       "dbar_um": 1550.0,
       "peak_measured": 0.0642308197536,
       "peak_reference_slug_averaged": 0.06176887761427076,
       "peak_lag_relative": 0.04000000000062509,
-      "ringing_min": -0.000807477321926
+      "ringing_min": -0.000807477321926,
+      "tail_ratio_3_to_6_t2": 1.3447303865720432
     }
   ],
   "mass_final_over_initial": 0.9725773078283978,
@@ -58,6 +61,6 @@
     "outputs": 400,
     "time_horizon_over_t2": 6.5
   },
-  "git_sha": "d234845db88c-dirty",
-  "timestamp": "2026-08-11T14:42:53+00:00"
+  "git_sha": "fb0843bf1d74-dirty",
+  "timestamp": "2026-08-21T12:46:47+00:00"
 }

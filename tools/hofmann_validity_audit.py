@@ -20,8 +20,9 @@ is t_cross = K tau_r^0.31 dbar^0.73 — the layer-escape family
 (exponents 1/3, 2/3), prefactor 2.78x the crude balance — and the
 one-point eigentime match was a coincidence of the parameter point. The
 eigentime-based extents (27.2 / 6.8 / 3.4 t2) are kept in this record as
-the WITHDRAWN prediction; the measured extents at Pe = 200 are
-7.9 / 6.4 / 5.5 t2, wrong in shape as well as size (the true extent
+the WITHDRAWN prediction; the DIRECTLY measured extents at Pe = 200 are 7.9 / 6.4 / 5.5 t2
+(seed-averaged sweep crossings), and the fitted-law form this record
+stores gives 8.5 / 6.2 / 5.0 t2, wrong in shape as well as size (the true extent
 SHRINKS with receiver distance far more slowly than the eigentime form
 said, and the near receiver's 27.2 was off by 3.4x).
 

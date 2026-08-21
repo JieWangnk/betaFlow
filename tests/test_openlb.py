@@ -107,12 +107,18 @@ def test_mc_channel_openlb():
             f"dbar={rec['dbar']*1e6:.0f}um: peak {peak_ratio:.3f} of the "
             f"slug-averaged reference")
         ringing_min = float(np.min(cm))
+        # The tail ratio the README and benchmark quote, persisted here so
+        # the claim traces to a record: mean(measured)/mean(reference) over
+        # [3, 6] t2 of THIS receiver.
+        rsel = (t >= 3.0 * rec["t2"]) & (t <= 6.0 * rec["t2"])
+        tail_ratio = float(np.mean(cm[rsel]) / np.mean(co[rsel]))
         receivers.append({
             "dbar_um": rec["dbar"] * 1e6,
             "peak_measured": float(np.max(cm)),
             "peak_reference_slug_averaged": float(np.max(co)),
             "peak_lag_relative": lag,
             "ringing_min": ringing_min,
+            "tail_ratio_3_to_6_t2": tail_ratio,
         })
 
     # Far receiver, late tail: ABOVE the flow-dominated reference — the

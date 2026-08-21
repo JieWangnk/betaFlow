@@ -12,7 +12,7 @@ or new boundary-condition library, and diff the committed results.
 
 | Goal | Do this |
 |---|---|
-| Run the fast checks (no solver install) | `python3 -m pytest -m analytic -v` — 27 tests, ~2 s |
+| Run the fast checks (no solver install) | `python3 -m pytest -m analytic -v` — 27 tests, ~3 s |
 | Run everything my machine supports | `python3 -m pytest tests/ -v` (default, needs OpenFOAM 14) — see [Running](#running) |
 | Run one case, including a slow one | `python3 -m pytest tests/test_mc_channel.py -q -m ""` (the `-m ""` also selects `@slow`) |
 | See what a case tests and why | Read its YAML in `betaflow/cases/` — each carries its citations, tolerances, and their reasons |
@@ -187,7 +187,7 @@ and that duplication is the price of the isolation.
 
 ## Running
 
-    python3 -m pytest -m analytic -v   # analytic tier, NO solver needed (27 tests, ~2 s)
+    python3 -m pytest -m analytic -v   # analytic tier, NO solver needed (27 tests, ~3 s)
     python3 -m pytest tests/ -v      # default: skips @slow studies (45 tests)
     python3 -m pytest -m "" -v       # everything (55 tests; > 50 min, not re-timed)
     python3 -m pytest -m slow -v     # the 10 slow studies alone
@@ -1110,8 +1110,8 @@ consistency anchor. Both failures are recorded in the tool.
 - **langevin** — exact kinematics at D = 0 (closed-form positions, binomial
   tolerances: RMSE at 1.06-1.27x its floor, pre-onset counts exactly zero);
   at physical D the tail departs in TWO regimes, in the OPPOSITE order to
-  the prediction written beforehand: enhanced up to 1.6x at 5 t2 (the
-  upstream reservoir, ~ dbar/c_x times the window population, is pumped in
+  the prediction written beforehand: enhanced 1.67x at 5 t2 (the
+  upstream reservoir, dbar/c_x = 7.5 times the window population, is pumped in
   faster than the window drains), then terminated — exactly zero by 12 t2
   where the model predicts 1e-2. The wrong prediction stays in
   `runners/langevin.py` with its correction.
@@ -1174,7 +1174,7 @@ outcomes, corrections kept per policy:
 - **H-bouzidi (confirmed, the control):** the interpolated-link wall gives
   shift ~ dx² (−0.050/−0.025/−0.011 dx) and order 2.1. Both walls share
   Ma² compressibility and the convergence budget (a doubled-time pair moved
-  the shift by 0.0001 dx), so the control isolates the wall and validates
+  the shift by under 5e-5 dx), so the control isolates the wall and validates
   the instrument.
 
 Stability pins tau here exactly as on the ADE lattice: at fixed target

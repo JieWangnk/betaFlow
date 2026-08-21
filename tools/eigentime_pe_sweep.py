@@ -34,7 +34,7 @@ OUTCOME (measured 11 Aug 2026, this file's record): H1 is REFUTED and
 WITHDRAWN — the joint fit over 12 (Pe, dbar) points gives
 t_cross = K * tau_r^0.306 * dbar^0.729 (rms log-residual 0.018, at the
 level of seed scatter), against H1's (1, 0). The LAYER-ESCAPE family H2
-(1/3, 2/3) matches both exponents to within 0.06; the absolute value runs
+(1/3, 2/3) matches both exponents to within 0.07; the absolute value runs
 2.78 +/- 0.17 times the crude 32-constant balance, so the mechanism's
 scaling is right and its O(1) constant is open. The Pe = 200
 middle-receiver agreement with the eigentime (0.95) was a one-point
@@ -207,7 +207,7 @@ def main():
         "measured_over_H2_absolute_sd": float(np.std(t_mean / h2_abs)),
         "outcome": (
             "H1 eigentime REFUTED (predicted exponents 1, 0); H2 "
-            "layer-escape scaling matches (1/3, 2/3) within 0.06 on both "
+            "layer-escape scaling matches (1/3, 2/3) within 0.07 on both "
             "exponents; prefactor 2.78x the crude balance constant"),
     }
 

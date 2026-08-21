@@ -188,7 +188,7 @@ def _run_cir(case, n_particles, seed, epsilon, diffusivity=None,
     wrong at intermediate times, because the same mechanism pumps the
     upstream reservoir of still-slower particles INTO the window, and that
     reservoir outweighs the window population (mass ratio ~ dbar/c_x). So
-    the measured tail is first ENHANCED (up to 1.6x at 5 t2), then crosses
+    the measured tail is first ENHANCED (1.67x at 5 t2), then crosses
     below and TERMINATES: exactly zero by 12 t2 at the middle receiver,
     where the analytic reference's log-divergent tail still predicts 1e-2.
     The crossover CLOCK: first attributed to the radial relaxation
