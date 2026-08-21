@@ -1,0 +1,798 @@
+{
+  "definitions": "see module docstring; worst-case OOK, detection at the measured peak; model numbers truncated at the data window because the untruncated model diverges",
+  "pre_registered_direction": "short T_s: measured ISI above the equally-truncated model (enhanced tail); long T_s: below it (terminated tail); the regime crossover per receiver is recorded",
+  "direction_correction_measured": "the pre-registered slot-position picture was TOO SIMPLE and is kept per the correction policy. The ISI sum spans the whole tail at once, so the BALANCE of enhancement (finite extra mass) against termination (all model mass beyond t_cross is phantom) decides the direction per receiver: the truncated model OVERSTATES ISI for the near and middle receivers at every sampled T_s, while the far receiver's enhancement outweighs its (late) termination at short T_s. Consequence at the thresholds: the model UNDERSTATES the achievable rate wherever its phantom tail dominates.",
+  "receivers": [
+    {
+      "dbar_um": 150.0,
+      "t2_s": 0.06666666666666667,
+      "t_detect_s": 0.06799999999999999,
+      "signal_measured": 0.47,
+      "signal_model_at_t_detect": 0.4901960784313726,
+      "t_cross_s": 0.5306666666666666,
+      "sweep": [
+        {
+          "t_symbol_over_t2": 0.3,
+          "isi_ratio_measured": 8.630212765957454,
+          "isi_ratio_model_truncated": 13.590269226274645,
+          "memory_symbols_measured": 27,
+          "model_divergence_coefficient_per_lnK": 1.6666666666666667
+        },
+        {
+          "t_symbol_over_t2": 0.6,
+          "isi_ratio_measured": 4.087234042553192,
+          "isi_ratio_model_truncated": 6.576525878010334,
+          "memory_symbols_measured": 14,
+          "model_divergence_coefficient_per_lnK": 0.8333333333333334
+        },
+        {
+          "t_symbol_over_t2": 0.9,
+          "isi_ratio_measured": 2.587730496453902,
+          "isi_ratio_model_truncated": 4.2524286815042975,
+          "memory_symbols_measured": 9,
+          "model_divergence_coefficient_per_lnK": 0.5555555555555556
+        },
+        {
+          "t_symbol_over_t2": 1.2,
+          "isi_ratio_measured": 1.8519858156028368,
+          "isi_ratio_model_truncated": 3.107335332600538,
+          "memory_symbols_measured": 7,
+          "model_divergence_coefficient_per_lnK": 0.4166666666666667
+        },
+        {
+          "t_symbol_over_t2": 1.5,
+          "isi_ratio_measured": 1.4209219858156028,
+          "isi_ratio_model_truncated": 2.413597705642103,
+          "memory_symbols_measured": 6,
+          "model_divergence_coefficient_per_lnK": 0.3333333333333333
+        },
+        {
+          "t_symbol_over_t2": 1.8,
+          "isi_ratio_measured": 1.1221985815602837,
+          "isi_ratio_model_truncated": 1.9608081625925318,
+          "memory_symbols_measured": 5,
+          "model_divergence_coefficient_per_lnK": 0.2777777777777778
+        },
+        {
+          "t_symbol_over_t2": 2.1,
+          "isi_ratio_measured": 0.9236170212765958,
+          "isi_ratio_model_truncated": 1.6406054069016962,
+          "memory_symbols_measured": 4,
+          "model_divergence_coefficient_per_lnK": 0.23809523809523814
+        },
+        {
+          "t_symbol_over_t2": 2.4,
+          "isi_ratio_measured": 0.7771631205673757,
+          "isi_ratio_model_truncated": 1.4148962953153692,
+          "memory_symbols_measured": 4,
+          "model_divergence_coefficient_per_lnK": 0.20833333333333334
+        },
+        {
+          "t_symbol_over_t2": 2.7,
+          "isi_ratio_measured": 0.6655319148936171,
+          "isi_ratio_model_truncated": 1.2305881193233226,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.1851851851851852
+        },
+        {
+          "t_symbol_over_t2": 3.0,
+          "isi_ratio_measured": 0.579858156028369,
+          "isi_ratio_model_truncated": 1.0749864132186606,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.1666666666666667
+        },
+        {
+          "t_symbol_over_t2": 3.3,
+          "isi_ratio_measured": 0.5083687943262413,
+          "isi_ratio_model_truncated": 0.9721452548624218,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.15151515151515155
+        },
+        {
+          "t_symbol_over_t2": 3.6,
+          "isi_ratio_measured": 0.4502127659574469,
+          "isi_ratio_model_truncated": 0.8688860964412263,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.1388888888888889
+        },
+        {
+          "t_symbol_over_t2": 3.9,
+          "isi_ratio_measured": 0.40219858156028376,
+          "isi_ratio_model_truncated": 0.7932359472843885,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.12820512820512822
+        },
+        {
+          "t_symbol_over_t2": 4.2,
+          "isi_ratio_measured": 0.3615602836879432,
+          "isi_ratio_model_truncated": 0.7108404715039266,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.11904761904761903
+        },
+        {
+          "t_symbol_over_t2": 4.5,
+          "isi_ratio_measured": 0.3248226950354611,
+          "isi_ratio_model_truncated": 0.6517391985455183,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.11111111111111112
+        },
+        {
+          "t_symbol_over_t2": 4.8,
+          "isi_ratio_measured": 0.29319148936170214,
+          "isi_ratio_model_truncated": 0.6145162804412396,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.10416666666666667
+        },
+        {
+          "t_symbol_over_t2": 5.1,
+          "isi_ratio_measured": 0.2653900709219858,
+          "isi_ratio_model_truncated": 0.5661799889048207,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.09803921568627452
+        },
+        {
+          "t_symbol_over_t2": 5.4,
+          "isi_ratio_measured": 0.23645390070921982,
+          "isi_ratio_model_truncated": 0.5217407939080146,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.0925925925925926
+        },
+        {
+          "t_symbol_over_t2": 5.7,
+          "isi_ratio_measured": 0.21354609929078022,
+          "isi_ratio_model_truncated": 0.49642632948917886,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.08771929824561404
+        },
+        {
+          "t_symbol_over_t2": 6.0,
+          "isi_ratio_measured": 0.19170212765957445,
+          "isi_ratio_model_truncated": 0.45824227128173134,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.08333333333333333
+        },
+        {
+          "t_symbol_over_t2": 6.3,
+          "isi_ratio_measured": 0.17085106382978726,
+          "isi_ratio_model_truncated": 0.422095520907177,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.07936507936507936
+        },
+        {
+          "t_symbol_over_t2": 6.6,
+          "isi_ratio_measured": 0.15539007092198595,
+          "isi_ratio_model_truncated": 0.40430675705533947,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.07575757575757577
+        },
+        {
+          "t_symbol_over_t2": 6.9,
+          "isi_ratio_measured": 0.13950354609929086,
+          "isi_ratio_model_truncated": 0.38795997719847336,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.07246376811594203
+        },
+        {
+          "t_symbol_over_t2": 7.2,
+          "isi_ratio_measured": 0.12496453900709217,
+          "isi_ratio_model_truncated": 0.35738952487906744,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.06944444444444445
+        },
+        {
+          "t_symbol_over_t2": 7.5,
+          "isi_ratio_measured": 0.11304964539007094,
+          "isi_ratio_model_truncated": 0.3440562344079942,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.06666666666666668
+        },
+        {
+          "t_symbol_over_t2": 7.8,
+          "isi_ratio_measured": 0.0995744680851064,
+          "isi_ratio_model_truncated": 0.3316837225025841,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.0641025641025641
+        },
+        {
+          "t_symbol_over_t2": 8.1,
+          "isi_ratio_measured": 0.0886524822695036,
+          "isi_ratio_model_truncated": 0.30467478023729977,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.0617283950617284
+        },
+        {
+          "t_symbol_over_t2": 8.4,
+          "isi_ratio_measured": 0.0777304964539007,
+          "isi_ratio_model_truncated": 0.2944813474196286,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.059523809523809514
+        },
+        {
+          "t_symbol_over_t2": 8.7,
+          "isi_ratio_measured": 0.06645390070921986,
+          "isi_ratio_model_truncated": 0.28494884240086726,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.057471264367816084
+        },
+        {
+          "t_symbol_over_t2": 9.0,
+          "isi_ratio_measured": 0.058439716312056744,
+          "isi_ratio_model_truncated": 0.26008240085805456,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.05555555555555556
+        },
+        {
+          "t_symbol_over_t2": 9.3,
+          "isi_ratio_measured": 0.05049645390070922,
+          "isi_ratio_model_truncated": 0.2521983565651901,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.053763440860215055
+        },
+        {
+          "t_symbol_over_t2": 9.6,
+          "isi_ratio_measured": 0.043333333333333335,
+          "isi_ratio_model_truncated": 0.24477876149038397,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.052083333333333336
+        },
+        {
+          "t_symbol_over_t2": 9.9,
+          "isi_ratio_measured": 0.03829787234042553,
+          "isi_ratio_model_truncated": 0.23778370670153795,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.05050505050505051
+        },
+        {
+          "t_symbol_over_t2": 10.2,
+          "isi_ratio_measured": 0.03184397163120568,
+          "isi_ratio_model_truncated": 0.23117773270691225,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.049019607843137254
+        },
+        {
+          "t_symbol_over_t2": 10.5,
+          "isi_ratio_measured": 0.02723404255319151,
+          "isi_ratio_model_truncated": 0.20899670454047756,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.04761904761904762
+        },
+        {
+          "t_symbol_over_t2": 10.8,
+          "isi_ratio_measured": 0.023191489361702122,
+          "isi_ratio_model_truncated": 0.20351309970776504,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.04629629629629629
+        },
+        {
+          "t_symbol_over_t2": 11.1,
+          "isi_ratio_measured": 0.02028368794326241,
+          "isi_ratio_model_truncated": 0.19831012064138903,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.04504504504504504
+        },
+        {
+          "t_symbol_over_t2": 11.4,
+          "isi_ratio_measured": 0.016737588652482267,
+          "isi_ratio_model_truncated": 0.1933667469288015,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.04385964912280702
+        },
+        {
+          "t_symbol_over_t2": 11.7,
+          "isi_ratio_measured": 0.013617021276595746,
+          "isi_ratio_model_truncated": 0.18866400789927415,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.042735042735042736
+        },
+        {
+          "t_symbol_over_t2": 12.0,
+          "isi_ratio_measured": 0.011489361702127662,
+          "isi_ratio_model_truncated": 0.1841847385586123,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.041666666666666664
+        }
+      ],
+      "max_rate_hz": {
+        "0.1": {
+          "measured": 1.9254154843940008,
+          "model_truncated": null
+        },
+        "0.2": {
+          "measured": 2.548403111037564,
+          "model_truncated": 1.3633187374377138
+        }
+      },
+      "regime_crossover_t_symbol_over_t2": null
+    },
+    {
+      "dbar_um": 750.0,
+      "t2_s": 0.26666666666666666,
+      "t_detect_s": 0.2813333333333333,
+      "signal_measured": 0.11656666666666667,
+      "signal_model_at_t_detect": 0.11848341232227493,
+      "t_cross_s": 1.7173333333333334,
+      "sweep": [
+        {
+          "t_symbol_over_t2": 0.3,
+          "isi_ratio_measured": 7.9104947097512115,
+          "isi_ratio_model_truncated": 9.064606891384674,
+          "memory_symbols_measured": 22,
+          "model_divergence_coefficient_per_lnK": 0.4166666666666667
+        },
+        {
+          "t_symbol_over_t2": 0.6,
+          "isi_ratio_measured": 3.736345438947669,
+          "isi_ratio_model_truncated": 4.300009263942567,
+          "memory_symbols_measured": 11,
+          "model_divergence_coefficient_per_lnK": 0.20833333333333334
+        },
+        {
+          "t_symbol_over_t2": 0.9,
+          "isi_ratio_measured": 2.343151272519302,
+          "isi_ratio_model_truncated": 2.7475408525727656,
+          "memory_symbols_measured": 8,
+          "model_divergence_coefficient_per_lnK": 0.1388888888888889
+        },
+        {
+          "t_symbol_over_t2": 1.2,
+          "isi_ratio_measured": 1.6977409207892475,
+          "isi_ratio_model_truncated": 1.9800418209861612,
+          "memory_symbols_measured": 6,
+          "model_divergence_coefficient_per_lnK": 0.10416666666666667
+        },
+        {
+          "t_symbol_over_t2": 1.5,
+          "isi_ratio_measured": 1.2493565913640254,
+          "isi_ratio_model_truncated": 1.4853875218594992,
+          "memory_symbols_measured": 5,
+          "model_divergence_coefficient_per_lnK": 0.08333333333333333
+        },
+        {
+          "t_symbol_over_t2": 1.8,
+          "isi_ratio_measured": 1.0151558478696026,
+          "isi_ratio_model_truncated": 1.2268443810449083,
+          "memory_symbols_measured": 4,
+          "model_divergence_coefficient_per_lnK": 0.06944444444444445
+        },
+        {
+          "t_symbol_over_t2": 2.1,
+          "isi_ratio_measured": 0.8464398055476129,
+          "isi_ratio_model_truncated": 1.0256984599496692,
+          "memory_symbols_measured": 4,
+          "model_divergence_coefficient_per_lnK": 0.059523809523809534
+        },
+        {
+          "t_symbol_over_t2": 2.4,
+          "isi_ratio_measured": 0.7063197026022306,
+          "isi_ratio_model_truncated": 0.8614329595102994,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.052083333333333336
+        },
+        {
+          "t_symbol_over_t2": 2.7,
+          "isi_ratio_measured": 0.5853588790391762,
+          "isi_ratio_model_truncated": 0.7211111603097882,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.0462962962962963
+        },
+        {
+          "t_symbol_over_t2": 3.0,
+          "isi_ratio_measured": 0.5070060051472692,
+          "isi_ratio_model_truncated": 0.5954468335560937,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.04166666666666668
+        },
+        {
+          "t_symbol_over_t2": 3.3,
+          "isi_ratio_measured": 0.4626822991135259,
+          "isi_ratio_model_truncated": 0.5503808839317305,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.03787878787878789
+        },
+        {
+          "t_symbol_over_t2": 3.6,
+          "isi_ratio_measured": 0.4126394052044609,
+          "isi_ratio_model_truncated": 0.5116940408157685,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.034722222222222224
+        },
+        {
+          "t_symbol_over_t2": 3.9,
+          "isi_ratio_measured": 0.37346296825850744,
+          "isi_ratio_model_truncated": 0.4147706357546173,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.032051282051282055
+        },
+        {
+          "t_symbol_over_t2": 4.2,
+          "isi_ratio_measured": 0.33342865313125486,
+          "isi_ratio_model_truncated": 0.3896034303394987,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.029761904761904757
+        },
+        {
+          "t_symbol_over_t2": 4.5,
+          "isi_ratio_measured": 0.2816700028595936,
+          "isi_ratio_model_truncated": 0.3673255984009432,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.02777777777777778
+        },
+        {
+          "t_symbol_over_t2": 4.8,
+          "isi_ratio_measured": 0.23849013440091518,
+          "isi_ratio_model_truncated": 0.3474651189291911,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.026041666666666668
+        },
+        {
+          "t_symbol_over_t2": 5.1,
+          "isi_ratio_measured": 0.19931369745496139,
+          "isi_ratio_model_truncated": 0.2651414787759281,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.02450980392156863
+        },
+        {
+          "t_symbol_over_t2": 5.4,
+          "isi_ratio_measured": 0.16585644838432945,
+          "isi_ratio_model_truncated": 0.252431180926513,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.02314814814814815
+        },
+        {
+          "t_symbol_over_t2": 5.7,
+          "isi_ratio_measured": 0.1312553617386334,
+          "isi_ratio_model_truncated": 0.24088554473380264,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.02192982456140351
+        },
+        {
+          "t_symbol_over_t2": 6.0,
+          "isi_ratio_measured": 0.10666285387474954,
+          "isi_ratio_model_truncated": 0.2303512832504687,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.020833333333333332
+        },
+        {
+          "t_symbol_over_t2": 6.3,
+          "isi_ratio_measured": 0.08864741206748622,
+          "isi_ratio_model_truncated": 0.2207009133744273,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.01984126984126984
+        },
+        {
+          "t_symbol_over_t2": 6.6,
+          "isi_ratio_measured": 0.06548470117243352,
+          "isi_ratio_model_truncated": 0.21182753894092418,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.018939393939393943
+        },
+        {
+          "t_symbol_over_t2": 6.9,
+          "isi_ratio_measured": 0.04746925936517015,
+          "isi_ratio_model_truncated": 0.2036408517195661,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.018115942028985508
+        },
+        {
+          "t_symbol_over_t2": 7.2,
+          "isi_ratio_measured": 0.038604518158421405,
+          "isi_ratio_model_truncated": 0.19606403068167863,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.017361111111111112
+        },
+        {
+          "t_symbol_over_t2": 7.5,
+          "isi_ratio_measured": 0.02316271089505338,
+          "isi_ratio_model_truncated": 0.12331969608416135,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.01666666666666667
+        },
+        {
+          "t_symbol_over_t2": 7.8,
+          "isi_ratio_measured": 0.01658564483843294,
+          "isi_ratio_model_truncated": 0.11914172783738,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.016025641025641024
+        },
+        {
+          "t_symbol_over_t2": 8.1,
+          "isi_ratio_measured": 0.01315413211323992,
+          "isi_ratio_model_truncated": 0.11523757509557621,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.0154320987654321
+        },
+        {
+          "t_symbol_over_t2": 8.4,
+          "isi_ratio_measured": 0.008578781812982461,
+          "isi_ratio_model_truncated": 0.1115811739820201,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.014880952380952378
+        },
+        {
+          "t_symbol_over_t2": 8.7,
+          "isi_ratio_measured": 0.00657706605661996,
+          "isi_ratio_model_truncated": 0.10814966683751921,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.014367816091954021
+        },
+        {
+          "t_symbol_over_t2": 9.0,
+          "isi_ratio_measured": 0.004575350300257364,
+          "isi_ratio_model_truncated": 0.10492292391844854,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.01388888888888889
+        },
+        {
+          "t_symbol_over_t2": 9.3,
+          "isi_ratio_measured": 0.0042893909064912784,
+          "isi_ratio_model_truncated": 0.1018831482375664,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.013440860215053764
+        },
+        {
+          "t_symbol_over_t2": 9.6,
+          "isi_ratio_measured": 0.002001715756362692,
+          "isi_ratio_model_truncated": 0.09901454716095731,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.013020833333333334
+        },
+        {
+          "t_symbol_over_t2": 9.9,
+          "isi_ratio_measured": 0.0014297969688304261,
+          "isi_ratio_model_truncated": 0.09630305796439982,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.012626262626262628
+        },
+        {
+          "t_symbol_over_t2": 10.2,
+          "isi_ratio_measured": 0.00028595939376608524,
+          "isi_ratio_model_truncated": 0.09373611728120834,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.012254901960784314
+        },
+        {
+          "t_symbol_over_t2": 10.5,
+          "isi_ratio_measured": 0.00028595939376608524,
+          "isi_ratio_model_truncated": 0.09130246646473389,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.011904761904761906
+        },
+        {
+          "t_symbol_over_t2": 10.8,
+          "isi_ratio_measured": 0.00028595939376608524,
+          "isi_ratio_model_truncated": 0.08899198650358499,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.011574074074074072
+        },
+        {
+          "t_symbol_over_t2": 11.1,
+          "isi_ratio_measured": 0.0,
+          "isi_ratio_model_truncated": 0.08679555738379269,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.01126126126126126
+        },
+        {
+          "t_symbol_over_t2": 11.4,
+          "isi_ratio_measured": 0.0,
+          "isi_ratio_model_truncated": 0.08470493777599357,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.010964912280701756
+        },
+        {
+          "t_symbol_over_t2": 11.7,
+          "isi_ratio_measured": 0.0,
+          "isi_ratio_model_truncated": 0.08271266170129361,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.010683760683760684
+        },
+        {
+          "t_symbol_over_t2": 12.0,
+          "isi_ratio_measured": 0.0,
+          "isi_ratio_model_truncated": 0.08081194944465722,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.010416666666666666
+        }
+      ],
+      "max_rate_hz": {
+        "0.1": {
+          "measured": 0.6136523026572123,
+          "model_truncated": 0.3948639983591623
+        },
+        "0.2": {
+          "measured": 0.7360526089572768,
+          "model_truncated": 0.532356070178639
+        }
+      },
+      "regime_crossover_t_symbol_over_t2": null
+    },
+    {
+      "dbar_um": 1550.0,
+      "t2_s": 0.5333333333333333,
+      "t_detect_s": 0.5653333333333334,
+      "signal_measured": 0.0584,
+      "signal_model_at_t_detect": 0.05896226415094329,
+      "t_cross_s": 2.916,
+      "sweep": [
+        {
+          "t_symbol_over_t2": 0.3,
+          "isi_ratio_measured": 7.486872146118721,
+          "isi_ratio_model_truncated": 6.713333061043904,
+          "memory_symbols_measured": 19,
+          "model_divergence_coefficient_per_lnK": 0.20833333333333334
+        },
+        {
+          "t_symbol_over_t2": 0.6,
+          "isi_ratio_measured": 3.486872146118723,
+          "isi_ratio_model_truncated": 3.1081378886450186,
+          "memory_symbols_measured": 10,
+          "model_divergence_coefficient_per_lnK": 0.10416666666666667
+        },
+        {
+          "t_symbol_over_t2": 0.9,
+          "isi_ratio_measured": 2.210045662100458,
+          "isi_ratio_model_truncated": 1.9195843103871275,
+          "memory_symbols_measured": 7,
+          "model_divergence_coefficient_per_lnK": 0.06944444444444445
+        },
+        {
+          "t_symbol_over_t2": 1.2,
+          "isi_ratio_measured": 1.5587899543379007,
+          "isi_ratio_model_truncated": 1.3338817564073968,
+          "memory_symbols_measured": 5,
+          "model_divergence_coefficient_per_lnK": 0.052083333333333336
+        },
+        {
+          "t_symbol_over_t2": 1.5,
+          "isi_ratio_measured": 1.1512557077625591,
+          "isi_ratio_model_truncated": 1.015935368916243,
+          "memory_symbols_measured": 4,
+          "model_divergence_coefficient_per_lnK": 0.041666666666666664
+        },
+        {
+          "t_symbol_over_t2": 1.8,
+          "isi_ratio_measured": 0.9366438356164383,
+          "isi_ratio_model_truncated": 0.7621838690946704,
+          "memory_symbols_measured": 4,
+          "model_divergence_coefficient_per_lnK": 0.034722222222222224
+        },
+        {
+          "t_symbol_over_t2": 2.1,
+          "isi_ratio_measured": 0.8042237442922373,
+          "isi_ratio_model_truncated": 0.680985689652647,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.029761904761904767
+        },
+        {
+          "t_symbol_over_t2": 2.4,
+          "isi_ratio_measured": 0.6369863013698641,
+          "isi_ratio_model_truncated": 0.48724575351654204,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.026041666666666668
+        },
+        {
+          "t_symbol_over_t2": 2.7,
+          "isi_ratio_measured": 0.5667808219178082,
+          "isi_ratio_model_truncated": 0.4460015809235228,
+          "memory_symbols_measured": 3,
+          "model_divergence_coefficient_per_lnK": 0.02314814814814815
+        },
+        {
+          "t_symbol_over_t2": 3.0,
+          "isi_ratio_measured": 0.4503424657534271,
+          "isi_ratio_model_truncated": 0.41122538690185473,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.02083333333333334
+        },
+        {
+          "t_symbol_over_t2": 3.3,
+          "isi_ratio_measured": 0.3972602739726029,
+          "isi_ratio_model_truncated": 0.38150046709943236,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.018939393939393943
+        },
+        {
+          "t_symbol_over_t2": 3.6,
+          "isi_ratio_measured": 0.3481735159817351,
+          "isi_ratio_model_truncated": 0.2274678111587983,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.017361111111111112
+        },
+        {
+          "t_symbol_over_t2": 3.9,
+          "isi_ratio_measured": 0.3144977168949775,
+          "isi_ratio_model_truncated": 0.21370967741935487,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.016025641025641028
+        },
+        {
+          "t_symbol_over_t2": 4.2,
+          "isi_ratio_measured": 0.252283105022831,
+          "isi_ratio_model_truncated": 0.20152091254752855,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.014880952380952378
+        },
+        {
+          "t_symbol_over_t2": 4.5,
+          "isi_ratio_measured": 0.1643835616438356,
+          "isi_ratio_model_truncated": 0.19064748201438853,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.01388888888888889
+        },
+        {
+          "t_symbol_over_t2": 4.8,
+          "isi_ratio_measured": 0.13641552511415525,
+          "isi_ratio_model_truncated": 0.18088737201365188,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.013020833333333334
+        },
+        {
+          "t_symbol_over_t2": 5.1,
+          "isi_ratio_measured": 0.09303652968036549,
+          "isi_ratio_model_truncated": 0.1720779220779221,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.012254901960784315
+        },
+        {
+          "t_symbol_over_t2": 5.4,
+          "isi_ratio_measured": 0.06449771689497717,
+          "isi_ratio_model_truncated": 0.16408668730650156,
+          "memory_symbols_measured": 2,
+          "model_divergence_coefficient_per_lnK": 0.011574074074074075
+        },
+        {
+          "t_symbol_over_t2": 5.7,
+          "isi_ratio_measured": 0.049657534246575145,
+          "isi_ratio_model_truncated": 0.1568047337278107,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.010964912280701756
+        },
+        {
+          "t_symbol_over_t2": 6.0,
+          "isi_ratio_measured": 0.02511415525114155,
+          "isi_ratio_model_truncated": 0.1501416430594901,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.010416666666666666
+        },
+        {
+          "t_symbol_over_t2": 6.3,
+          "isi_ratio_measured": 0.017123287671232876,
+          "isi_ratio_model_truncated": 0.14402173913043478,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.00992063492063492
+        },
+        {
+          "t_symbol_over_t2": 6.6,
+          "isi_ratio_measured": 0.012557077625570776,
+          "isi_ratio_model_truncated": 0.13838120104438645,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.009469696969696972
+        },
+        {
+          "t_symbol_over_t2": 6.9,
+          "isi_ratio_measured": 0.003995433789954338,
+          "isi_ratio_model_truncated": 0.13316582914572866,
+          "memory_symbols_measured": 1,
+          "model_divergence_coefficient_per_lnK": 0.009057971014492754
+        }
+      ],
+      "max_rate_hz": {
+        "0.1": {
+          "measured": 0.3711517424597593,
+          "model_truncated": null
+        },
+        "0.2": {
+          "measured": 0.42823456130984167,
+          "model_truncated": 0.4420124186029961
+        }
+      },
+      "regime_crossover_t_symbol_over_t2": 4.5
+    }
+  ],
+  "meta": {
+    "n_particles": 30000,
+    "seed": 1,
+    "source_run": "same configuration as results/mc_channel_departure.json"
+  },
+  "git_sha": "cb3827ccab0e-dirty",
+  "timestamp": "2026-08-21T15:26:46+00:00"
+}

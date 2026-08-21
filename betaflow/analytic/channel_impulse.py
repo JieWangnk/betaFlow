@@ -140,6 +140,44 @@ def flow_dominated(peclet, dbar, radius):
     return peclet / (4.0 * dbar / radius)
 
 
+def isi_sum(t_detect, t_symbol, v_mean, dbar, c_x, n_terms):
+    """Worst-case inter-symbol interference after n_terms symbols, exact.
+
+    On-off keying: each 1-bit releases a puff at its slot's start, and the
+    receiver reads at time t_detect within the current slot. Interference
+    is what PREVIOUS puffs still contribute at that instant — puff k slots
+    ago contributes CIR(t_detect + k t_symbol) — and the worst case (all
+    previous bits were 1) is the sum over k. This function evaluates that
+    sum exactly under the flow-dominated model.
+    """
+    ks = np.arange(1, int(n_terms) + 1)
+    return float(np.sum(cir(t_detect + ks * t_symbol, v_mean, dbar, c_x)))
+
+
+def isi_divergence_coefficient(t_symbol, v_mean, c_x):
+    """The model's ISI grows as this coefficient times ln(number of bits).
+
+    THE SHARP CONSEQUENCE of the log-divergent tail: for t beyond t2 the
+    model's CIR is c_x/(2 V t), so the worst-case interference after K
+    symbols behaves as (c_x / (2 V t_symbol)) ln K — it DIVERGES. Under
+    the flow-dominated model, worst-case ISI is unbounded at every
+    signalling rate, and "channel memory" is undefined; any finite number
+    requires truncating the sum by hand. The measured tail terminates
+    (results/mc_channel_departure.json), which is what makes the memory
+    finite in reality — the layer-escape clock t_cross sets it.
+    """
+    return c_x / (2.0 * v_mean * t_symbol)
+
+
+def channel_memory_symbols(t_cross, t_symbol):
+    """Measured channel memory: slots until a puff's contribution ends.
+
+    t_cross is the MEASURED termination-side crossover (the layer-escape
+    clock), not a model quantity — the model's memory is infinite.
+    """
+    return int(np.ceil(t_cross / t_symbol))
+
+
 def verify_limits(rtol=1e-9):
     """Re-derive every claim by an independent route before use as truth."""
     errors = {}
@@ -212,6 +250,39 @@ def verify_limits(rtol=1e-9):
             4.0 * dbar_i / HOFMANN_TABLE_1["radius"] - expect
         )
 
+    # 6. The comms metrics: the ISI sum against a direct loop, its exact
+    #    integral bracket (every term is on the 1/t tail when t_detect >=
+    #    t2), the log-divergence coefficient, and the vanishing limit.
+    t_d, t_s = t2, 0.8 * t2
+    direct = sum(float(cir(t_d + k * t_s, v_mean, dbar, c_x))
+                 for k in range(1, 41))
+    errors["isi_sum_vs_loop"] = abs(
+        isi_sum(t_d, t_s, v_mean, dbar, c_x, 40) / direct - 1.0)
+    coeff = c_x / (2.0 * v_mean)
+    lower = (coeff / t_s) * np.log((t_d + 41 * t_s) / (t_d + t_s))
+    upper = (coeff / t_s) * np.log((t_d + 40 * t_s) / t_d)
+    s40 = isi_sum(t_d, t_s, v_mean, dbar, c_x, 40)
+    errors["isi_integral_bracket"] = 0.0 if lower <= s40 <= upper else \
+        min(abs(s40 - lower), abs(s40 - upper))
+    # Divergence: S_2K - S_K -> coefficient * ln 2 as K grows, with a
+    # DERIVED truncation error: the block sum of 1/(k + t_d/t_s) deviates
+    # from ln 2 by O(1/K), bounded by 2/K — so the check's own limit is
+    # 2/K, stated in the pass loop below, never absorbed into a fudge.
+    s_k = isi_sum(t_d, t_s, v_mean, dbar, c_x, 4000)
+    s_2k = isi_sum(t_d, t_s, v_mean, dbar, c_x, 8000)
+    errors["isi_log_divergence"] = abs(
+        (s_2k - s_k) / (isi_divergence_coefficient(t_s, v_mean, c_x)
+                        * np.log(2.0)) - 1.0)
+    # With t_detect = 0 and t_symbol > t2, every term sits on the 1/t
+    # tail, so the sum equals (c_x/2V t_s) * H_K EXACTLY — the closed form
+    # of the slow-signalling behaviour, checked at machine precision.
+    h_k = float(np.sum(1.0 / np.arange(1, 101)))
+    exact_sum = c_x / (2.0 * v_mean * (3.0 * t2)) * h_k
+    errors["isi_pure_tail_closed_form"] = abs(
+        isi_sum(0.0, 3.0 * t2, v_mean, dbar, c_x, 100) / exact_sum - 1.0)
+    errors["memory_is_ceiling"] = abs(
+        channel_memory_symbols(6.44 * t2, t_s) - int(np.ceil(6.44 * t2 / t_s)))
+
     for name, err in errors.items():
         # Checks that integrate an INDICATOR function (the lemma and the
         # branch quadratures) inherit trapezoid's first-order error at the
@@ -220,6 +291,8 @@ def verify_limits(rtol=1e-9):
         limit = rtol
         if "branch" in name or "tail" in name or "lemma" in name:
             limit = 1e-6
+        if name == "isi_log_divergence":
+            limit = 2.0 / 4000.0   # the O(1/K) block-sum truncation, derived
         if not err < limit:
             raise AssertionError(
                 f"channel_impulse analytic reference {name} error {err:.3e} > {limit:.0e}"
