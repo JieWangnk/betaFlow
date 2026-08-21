@@ -32,6 +32,7 @@ import numpy as np
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
 
+from betaflow.analytic import channel_impulse as ci_ref  # noqa: E402
 from betaflow.analytic import taylor_aris as ta          # noqa: E402
 from betaflow.runners.langevin import _specular_reflect  # noqa: E402
 
@@ -139,10 +140,18 @@ def animate():
     ax2.grid(True, color=GRID, linewidth=0.7)
     ax2.set_xlabel("time  [s]", color=INK2, fontsize=10)
     ax2.set_ylabel("fraction inside (CIR)", color=INK2, fontsize=10)
+    # The exact flow-dominated model, dashed, as the fixed background the
+    # measured traces are judged against — same convention as every figure.
+    t_model = np.linspace(1e-3, T_END, 600)
+    for d, c in zip(DBAR, S):
+        ax2.plot(t_model, ci_ref.cir(t_model, V, d, CX), color=c,
+                 linewidth=1.1, linestyle=(0, (4, 3)), alpha=0.65)
+    ax2.plot([], [], color=INK2, linewidth=1.1, linestyle=(0, (4, 3)),
+             label="flow-dominated model")
     lines = [ax2.plot([], [], color=c, linewidth=1.8,
                       label=f"{d*1e6:.0f} µm")[0] for d, c in zip(DBAR, S)]
     marker = ax2.axvline(0, color=INK2, linewidth=0.9, linestyle=":")
-    ax2.legend(frameon=False, fontsize=9, ncol=3, labelcolor=INK)
+    ax2.legend(frameon=False, fontsize=8.5, ncol=4, labelcolor=INK)
 
     def draw(i):
         xf, yf, t = frames_x[i], frames_y[i], times[i]
