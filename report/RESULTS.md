@@ -1,7 +1,6 @@
 # betaFlow results report
 
-**Date:** 2026-08-21 · **State:** commit `fb0843b` plus the crossover-extractor
-fix · **Suite:** 55 tests (27 analytic-tier, ~3 s; 45 default; 10 slow) ·
+**Date:** 2026-08-21 · **State:** all results committed through `43a00ae` · **Suite:** 55 tests (27 analytic-tier, ~3 s; 45 default; 10 slow) ·
 **CI:** analytic and solver jobs green on the pushed state.
 
 Every number below traces to a committed record in `results/`, named in
