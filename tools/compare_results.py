@@ -124,6 +124,13 @@ def main():
     ).stdout.split()
     all_failures = []
     for rel in tracked:
+        # The gate knows two formats: JSON records and markdown reports.
+        # Binary outputs (committed figures) carry no numbers to compare
+        # and crashed the text reader on the PNG magic byte — the red CI
+        # runs of 2026-08-21 afternoon, first at the commit that added
+        # report/mc_channel_coupled.png and nothing else.
+        if not rel.endswith((".json", ".md")):
+            continue
         all_failures.extend(compare_file(rel, repo))
     if all_failures:
         print(f"RESULTS GATE: {len(all_failures)} field(s) moved beyond "
