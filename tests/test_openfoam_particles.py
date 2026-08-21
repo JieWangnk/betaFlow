@@ -38,6 +38,29 @@ from betaflow.runners import run_case
 
 REPO = Path(__file__).resolve().parents[1]
 
+
+def _cloud_library_available():
+    """True when libbrownianTracerCloud.so is built and findable.
+
+    The library lives outside this repository (built from
+    ~/OpenFOAM/of14-catchup/diffusiveTracer under OpenFOAM 14), so a CI
+    runner can never have it: these tests must SKIP there with the reason
+    stated, never fail. Diagnosed from the nightly full-tier failures of
+    2026-08-20/21, whose oracle and solver jobs were green.
+    """
+    try:
+        from betaflow.runners.openfoam_particles import _require_library
+        _require_library()
+        return True
+    except Exception:
+        return False
+
+
+needs_cloud_library = pytest.mark.skipif(
+    not _cloud_library_available(),
+    reason="libbrownianTracerCloud.so not built; see "
+           "runners/openfoam_particles.py for the build recipe")
+
 FREE_CASE = REPO / "betaflow" / "cases" / "langevin_free.yaml"
 FREE_RESULTS = REPO / "results" / "langevin_free_openfoam.json"
 
@@ -48,6 +71,7 @@ RUNNER = "openfoam_particles"
 
 
 @pytest.mark.slow
+@needs_cloud_library
 def test_langevin_free_openfoam():
     case = yaml.safe_load(FREE_CASE.read_text())
     n = int(case["study"]["reference_particles"])
@@ -96,6 +120,7 @@ def test_langevin_free_openfoam():
 
 
 @pytest.mark.slow
+@needs_cloud_library
 def test_taylor_aris_openfoam_long_time():
     case = yaml.safe_load(TA_CASE.read_text())
     num = case["numerics"]
@@ -162,6 +187,7 @@ def test_taylor_aris_openfoam_long_time():
 
 
 @pytest.mark.slow
+@needs_cloud_library
 def test_mc_channel_openfoam():
     """The CIR through the OpenFOAM Lagrangian tracker — both rungs.
 
