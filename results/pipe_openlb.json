@@ -1,0 +1,58 @@
+{
+  "case": "pipe_poiseuille_steady",
+  "solver_leg": "openlb (D3Q19 ForcedBGK, openlb_cases/pipeFlow3d)",
+  "fixed_tau": 0.53,
+  "runs": [
+    {
+      "wall": "bb",
+      "resolution": 21,
+      "tau": 0.5300006890008957,
+      "L2_velocity": 0.06682646896458197,
+      "u_max_fit": 0.9366722825144913,
+      "a_eff": 0.9611826674169655,
+      "wall_shift_dx": -0.40758199212186275,
+      "u_lat_char": 0.09523809523809532
+    },
+    {
+      "wall": "bb",
+      "resolution": 41,
+      "tau": 0.5300006890008957,
+      "L2_velocity": 0.025911417633201442,
+      "u_max_fit": 0.978227664923431,
+      "a_eff": 0.9846798850159678,
+      "wall_shift_dx": -0.3140623571726598,
+      "u_lat_char": 0.04878048780487809
+    },
+    {
+      "wall": "bouzidi",
+      "resolution": 21,
+      "tau": 0.5300006890008957,
+      "L2_velocity": 0.009662469404116657,
+      "u_max_fit": 0.9901469364240413,
+      "a_eff": 0.9952126812405678,
+      "wall_shift_dx": -0.05026684697403777,
+      "u_lat_char": 0.09523809523809532
+    },
+    {
+      "wall": "bouzidi",
+      "resolution": 41,
+      "tau": 0.5300006890008957,
+      "L2_velocity": 0.002306203415574986,
+      "u_max_fit": 0.9977769433557112,
+      "a_eff": 0.9988029169107061,
+      "wall_shift_dx": -0.024540203330524812,
+      "u_lat_char": 0.04878048780487809
+    }
+  ],
+  "observed_order": {
+    "bb": [
+      1.416061673425403
+    ],
+    "bouzidi": [
+      2.141315914397153
+    ]
+  },
+  "prediction_correction": "H-bb's sign was wrong: predicted the wall outside the last fluid node, measured INSIDE the geometric radius. Kept per the correction policy.",
+  "git_sha": "08728fcf230a-dirty",
+  "timestamp": "2026-08-21T11:14:21+00:00"
+}

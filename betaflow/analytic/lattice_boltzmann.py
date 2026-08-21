@@ -307,15 +307,22 @@ UNRESOLVED = {
         "the actual wavenumber when tau is large, not the limit law."
     ),
     "bounce_back_wall_position": (
-        "MOMENTUM lattice: for halfway bounce-back the effective wall "
-        "location is reputedly tau-dependent, with anchors He, Zou, Luo & "
-        "Dembo (1997) and Ginzburg's Lambda = 3/16. STILL OPEN: the one "
-        "research claim tying this to a readable source failed adversarial "
-        "verification 0-3, and the primary papers remain unread, so no "
-        "coefficient is given. NOTE the SCALAR-lattice analogue is now "
-        "RESOLVED and is different in kind: its slip converges as 1/N^2 "
-        "(see ade_dirichlet_slip), so do not carry the 'refinement-"
-        "independent' framing across to it."
+        "MOMENTUM lattice, now MEASURED for the staircase-cylinder "
+        "configuration (2026-08-21, results/openlb_wall_position.json, "
+        "openlb_cases/pipeFlow3d): the effective radius sits INSIDE the "
+        "geometric one and the offset DECAYS under refinement, "
+        "a_eff - a ~ -dx^1.4 (shift -0.41/-0.31/-0.24 dx at N = 21/41/81, "
+        "D3Q19 ForcedBGK, tau = 0.53), with only a 3% tau-dependence over "
+        "the stability-allowed probe range 0.53-0.64 — resolution "
+        "dominates tau in this geometry. The Bouzidi control on the same "
+        "runs confirms the instrument: shift ~ dx^2 and order 2.1. WHAT "
+        "REMAINS OPEN, so this entry stays: the flat-wall theory "
+        "(He/Zou/Luo/Dembo 1997; Ginzburg's Lambda = 3/16), where the "
+        "position IS strongly tau-dependent, remains unread and unmeasured "
+        "here — the staircase average evidently washes much of it out, "
+        "and no coefficient for the flat-wall case is given. NOTE the "
+        "SCALAR-lattice analogue is RESOLVED and different in kind: its "
+        "slip converges as 1/N^2 (see ade_dirichlet_slip)."
     ),
     # RESOLVED 2026-08-11 against an OpenLB 1.9.0 checkout (gitlab.com/
     # openlb/release, commit 3dedbdd2c4d5). src/descriptor/definition/

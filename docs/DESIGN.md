@@ -84,7 +84,7 @@ at an unknown.
 |---|---|---|---|---|---|
 | Fluid, steady | `couette_steady` | `analytic/couette.py` | openfoam | null test: round-off at every resolution | `results/couette_steady.json` |
 | Fluid, steady | `poiseuille_steady` | `analytic/poiseuille.py` | openfoam | momentum identity tau_w = G V/A_wall | `results/poiseuille_steady.json`, `_refinement.json` |
-| Fluid, steady | `pipe_poiseuille_steady` | `analytic/pipe.py` | openfoam (wedge) | momentum identity (lever arm a/2) | `results/pipe.json` |
+| Fluid, steady | `pipe_poiseuille_steady` | `analytic/pipe.py` | openfoam (wedge), openlb (D3Q19) | momentum identity (lever arm a/2); wall-position sweep | `results/pipe.json`, `pipe_openlb.json`, `openlb_wall_position.json` |
 | Fluid, steady | `pipe_poiseuille_io` | `analytic/pipe.py` | openfoam (wedge, inlet/outlet) | momentum identity; Stage-A pairing | `results/pipe_io_stage_a.json` |
 | Fluid, pulsatile | `womersley_pulsatile` | `analytic/womersley.py` | openfoam | transient identity tau_w = h(G - d<u>/dt); asserted on wall shear, not profiles | `results/womersley_pulsatile.json` |
 | Fluid, pulsatile | `pipe_womersley_pulsatile` | `analytic/womersley.py` (Bessel kernel) | openfoam (wedge) | same, pipe form | (kernel study: `results/kernel_misfit_operating_point.json`) |

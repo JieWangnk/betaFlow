@@ -1,0 +1,144 @@
+{
+  "question": "effective wall position of bounce-back on a staircase cylinder, D3Q19 forced Poiseuille",
+  "app": "openlb_cases/pipeFlow3d/pipeFlow3d.cpp",
+  "rows": [
+    {
+      "tag": "bb21_t120",
+      "N": 21,
+      "tau": 0.53,
+      "wall": "bb",
+      "maxt_s": 120,
+      "reused_existing_output": true,
+      "u_max_fit": 0.9366722825144913,
+      "a_eff": 0.9611826674169655,
+      "wall_shift_dx": -0.40758199212186275,
+      "L2_vs_a_wall_parabola": 0.06682646896458197
+    },
+    {
+      "tag": "bb21_t300",
+      "N": 21,
+      "tau": 0.53,
+      "wall": "bb",
+      "maxt_s": 300,
+      "reused_existing_output": true,
+      "u_max_fit": 0.9366164733320034,
+      "a_eff": 0.9611868725836525,
+      "wall_shift_dx": -0.4075378378716483,
+      "L2_vs_a_wall_parabola": 0.06685957270306232
+    },
+    {
+      "tag": "bb41",
+      "N": 41,
+      "tau": 0.53,
+      "wall": "bb",
+      "maxt_s": 120,
+      "reused_existing_output": true,
+      "u_max_fit": 0.978227664923431,
+      "a_eff": 0.9846798850159678,
+      "wall_shift_dx": -0.3140623571726598,
+      "L2_vs_a_wall_parabola": 0.025911417633201442
+    },
+    {
+      "tag": "bb81",
+      "N": 81,
+      "tau": 0.53,
+      "wall": "bb",
+      "maxt_s": 120,
+      "reused_existing_output": true,
+      "u_max_fit": 0.991643115233301,
+      "a_eff": 0.9940910874401784,
+      "wall_shift_dx": -0.2393109586727757,
+      "L2_vs_a_wall_parabola": 0.010594905533949862
+    },
+    {
+      "tag": "bz21",
+      "N": 21,
+      "tau": 0.53,
+      "wall": "bouzidi",
+      "maxt_s": 120,
+      "reused_existing_output": true,
+      "u_max_fit": 0.9901469364240413,
+      "a_eff": 0.9952126812405678,
+      "wall_shift_dx": -0.05026684697403777,
+      "L2_vs_a_wall_parabola": 0.009662469404116657
+    },
+    {
+      "tag": "bz41",
+      "N": 41,
+      "tau": 0.53,
+      "wall": "bouzidi",
+      "maxt_s": 120,
+      "reused_existing_output": true,
+      "u_max_fit": 0.9977769433557112,
+      "a_eff": 0.9988029169107061,
+      "wall_shift_dx": -0.024540203330524812,
+      "L2_vs_a_wall_parabola": 0.002306203415574986
+    },
+    {
+      "tag": "bz81",
+      "N": 81,
+      "tau": 0.53,
+      "wall": "bouzidi",
+      "maxt_s": 120,
+      "reused_existing_output": true,
+      "u_max_fit": 0.9994782682781735,
+      "a_eff": 0.9997168854681628,
+      "wall_shift_dx": -0.011466138539404924,
+      "L2_vs_a_wall_parabola": 0.000551545192205663
+    },
+    {
+      "tag": "bb81_tau0.58",
+      "N": 81,
+      "tau": 0.58,
+      "wall": "bb",
+      "maxt_s": 120,
+      "reused_existing_output": false,
+      "u_max_fit": 0.9919976228902198,
+      "a_eff": 0.9941688129499565,
+      "wall_shift_dx": -0.23616307552676113,
+      "L2_vs_a_wall_parabola": 0.010356658299462529
+    },
+    {
+      "tag": "bb81_tau0.64",
+      "N": 81,
+      "tau": 0.64,
+      "wall": "bb",
+      "maxt_s": 120,
+      "reused_existing_output": false,
+      "u_max_fit": 0.9925215931296318,
+      "a_eff": 0.9942946267926964,
+      "wall_shift_dx": -0.23106761489579486,
+      "L2_vs_a_wall_parabola": 0.010002844167507593
+    }
+  ],
+  "observed_order": {
+    "bb": [
+      1.416061673425403,
+      1.3134682412510457
+    ],
+    "bouzidi": [
+      2.141315914397153,
+      2.101163564111907
+    ]
+  },
+  "convergence_budget_check": {
+    "shift_at_maxt_120": -0.40758199212186275,
+    "shift_at_maxt_300": -0.4075378378716483
+  },
+  "tau_probe_N81_bb": [
+    {
+      "tau": 0.53,
+      "wall_shift_dx": -0.2393109586727757
+    },
+    {
+      "tau": 0.58,
+      "wall_shift_dx": -0.23616307552676113
+    },
+    {
+      "tau": 0.64,
+      "wall_shift_dx": -0.23106761489579486
+    }
+  ],
+  "git_sha": "08728fcf230a-dirty",
+  "timestamp": "2026-08-21T11:10:10+00:00"
+}

@@ -189,16 +189,16 @@ and that duplication is the price of the isolation.
 
     python3 -m pytest -m analytic -v   # analytic tier, NO solver needed (27 tests, ~2 s)
     python3 -m pytest tests/ -v      # default: skips @slow studies (45 tests)
-    python3 -m pytest -m "" -v       # everything (54 tests; > 45 min, not re-timed)
-    python3 -m pytest -m slow -v     # the 9 slow studies alone
+    python3 -m pytest -m "" -v       # everything (55 tests; > 50 min, not re-timed)
+    python3 -m pytest -m slow -v     # the 10 slow studies alone
 
 Tiering is by pytest marker (`addopts = -m 'not slow'` in pyproject.toml) and
 wired into `.github/workflows/ci.yml`: the analytic tier gates every push with no
-solver install, the default tier runs on push, the full tier runs nightly. Nine
+solver install, the default tier runs on push, the full tier runs nightly. Ten
 tests are marked slow — the casson two-axis grid, womersley_carreau,
 taylor_aris, the langevin error distribution, the three `openfoam_particles`
-tests, and the OpenLB mc_channel run (skipped cleanly when the OpenLB build
-is absent). `langevin_free` needs no solver and runs in ~5 s under the `langevin`
+tests (skipped where libbrownianTracerCloud.so cannot exist, e.g. CI), and
+the two OpenLB runs (skipped cleanly when the OpenLB build is absent). `langevin_free` needs no solver and runs in ~5 s under the `langevin`
 runner; the same case under `openfoam_particles` needs OpenFOAM 14 and
 `libbrownianTracerCloud.so`.
 
@@ -1146,6 +1146,42 @@ inter-symbol interference the flow-dominated model underestimates while
 the tail is enhanced and overestimates after the termination — and its
 Eulerian competitors carry the same limitation plus their scheme's own
 dispersion.
+
+## The momentum rung: OpenLB's fluid solver takes the pipe exam
+
+The same case, exact solution, and metric that examined OpenFOAM
+(`pipe_poiseuille_steady.yaml`) now examine OpenLB's Navier-Stokes solver:
+steady forced Poiseuille on the D3Q19 lattice (`openlb_cases/pipeFlow3d`,
+adapted from OpenLB's own poiseuille3d example), dispatched through the same
+`runner="openlb"` by geometry type. Records:
+`results/openlb_wall_position.json` (the full sweep, owned by
+`tools/openlb_wall_position_sweep.py`) and `results/pipe_openlb.json`
+(the cheap N = 21/41 regression subset the slow test re-runs).
+
+The exam's centrepiece is the bounce-back wall position — declared
+UNRESOLVED in `analytic/lattice_boltzmann.py` since the LBM reference was
+written, now measured with a control. Pre-registered predictions and
+outcomes, corrections kept per policy:
+
+- **H-bb (wrong in two ways, kept):** predicted the wall OUTSIDE the last
+  fluid node at a fixed fraction of dx. Measured: the effective radius sits
+  INSIDE the geometric one, and the offset DECAYS under refinement —
+  a_eff − a ~ −dx^1.4 (shift −0.41/−0.31/−0.24 dx at N = 21/41/81), error
+  order 1.4–1.3, the staircase signature between first and second order.
+  The tau-probe over the stability-allowed range (0.53–0.64 at N = 81)
+  moves the shift by only 3%: on a staircase cylinder, resolution dominates
+  tau, so the flat-wall tau-dependence theory does not carry over unread.
+- **H-bouzidi (confirmed, the control):** the interpolated-link wall gives
+  shift ~ dx² (−0.050/−0.025/−0.011 dx) and order 2.1. Both walls share
+  Ma² compressibility and the convergence budget (a doubled-time pair moved
+  the shift by 0.0001 dx), so the control isolates the wall and validates
+  the instrument.
+
+Stability pins tau here exactly as on the ADE lattice: at fixed target
+u_lat the admissible tau shrinks toward 1/2 as the grid coarsens
+(u_lat = (tau − 1/2) c_s² Re_cell), so the resolution sweep runs at FIXED
+tau = 0.53 — a tau that varied with N would conflate the wall's
+dx-dependence with its tau-dependence.
 
 ## Conservation check on production code
 
