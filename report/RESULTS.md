@@ -1,6 +1,6 @@
 # betaFlow results report
 
-**Date:** 2026-08-21 · **State:** all results committed through `43a00ae` · **Suite:** 56 tests (27 analytic-tier, ~3 s; 45 default; 11 slow) ·
+**Date:** 2026-08-24 · **State:** all results committed through `3e370a9` · **Suite:** 56 tests (27 analytic-tier, ~3 s; 45 default; 11 slow) ·
 **CI:** analytic and solver jobs green on the pushed state.
 
 Every number below traces to a committed record in `results/`, named in
@@ -36,13 +36,14 @@ never drift from the claim).
 **The molecular-communications model's validity clock.** The
 flow-dominated channel-impulse-response model (Hofmann et al. 2024,
 Eq. 13) was re-derived independently and confirmed
-(`betaflow/analytic/channel_impulse.py`, 18 self-checks). Its
+(`betaflow/analytic/channel_impulse.py`, 23 self-checks). Its
 log-divergent tail is usable for at most 8.3 / 6.1 / 4.9 peak-times at
 the paper's three receivers; the crossover clock, measured by a
-pre-registered Peclet sweep (5 Pe values × 3 seeds × 3 receivers), is
-**t_cross = K·τ_r^0.31·dbar^0.71** — the layer-escape scaling (predicted
-exponents 1/3, 2/3; both matched within 0.07, rms log-residual 0.018, at
-seed-scatter level). A first attribution to the relaxation eigentime
+pre-registered Peclet sweep (7 Pe values 50–3200 × 3 seeds × 3
+receivers, 18 seed-averaged points spanning nearly two decades of τ_r),
+is **t_cross = K·τ_r^0.31·dbar^0.71** — the layer-escape scaling
+(predicted exponents 1/3, 2/3; both matched within 0.05, rms
+log-residual 0.026, at seed-scatter level). A first attribution to the relaxation eigentime
 τ_r/β₁² rested on a one-point match (0.95) and was refuted by the sweep.
 `results/eigentime_pe_sweep.json`, `hofmann_validity_audit.json`.
 
@@ -165,6 +166,25 @@ measured cost of the solved flow on the CIR is small: peaks 0.1–0.3%
 below the prescribed leg, tail ratios within 0.04.
 `results/mc_channel_openlb_coupled.json`.
 
+**Comms-rate consequences (new).** The two-act tail changes the
+communications numbers computed from the CIR. Worst-case on-off-keying
+interference is the sum of every earlier symbol's tail at the detection
+instant; under the analytic model every term sits on the c_x/(2Vt) tail,
+so the sum grows as (c_x/2VT_s)·ln K without bound — the model cannot
+define a worst-case interference or a channel memory at any signalling
+rate (proved in closed form in `channel_impulse.py`, including the O(1/K)
+truncation bound). The measured termination makes both finite: memory is
+8 symbols at T_s = t₂ for the middle receiver. Truncating the model at
+the same data window for a like-for-like sweep, the model *overstates*
+interference at the near and middle receivers at every sampled interval
+(its phantom tail keeps contributing particles that have physically
+left), and at a 10% interference bound it certifies no rate at all for
+the near and far receivers where the measured channel supports 1.93 and
+0.37 bit/s, and understates the middle receiver by 1.6× (0.39 vs 0.61
+bit/s). The pre-registered direction picture was too simple and is kept
+per policy (see the corrections trail).
+`results/comms_rate_metrics.json`.
+
 **The Hofmann replication claim.** Their published model contains no
 diffusion, so the diffusion-free rung IS the replication of their model
 class, and it matches within counting noise. Exact MPPIC fidelity is
@@ -207,15 +227,17 @@ their reasons, because how errors present is data. The trail so far:
    withdrawn error-floor claim, the mis-attributed dispersion constant,
    the 749/750 off-by-one that wore a plausible physics story, and the
    audit's eigentime-based validity extents (27.2/6.8/3.4 peak-times,
-   wrong in shape as well as size; measured 8.5/6.2/5.0).
+   wrong in shape as well as size; measured 8.3/6.1/4.9), and the
+   pre-registered slot-position picture for interference direction (too
+   simple; the whole-tail mass balance decides it, kept in
+   `results/comms_rate_metrics.json`).
 
 ---
 
 ## What is next
 
-1. **The layer-escape O(1) constant** — the measured prefactor is 2.78 ±
-   0.17 times the crude balance; a proper derivation is open theory work.
-3. **Comms-rate metrics** (inter-symbol interference in symbol terms,
-   achievable rate) on top of the CIR; then bifurcating geometry.
-4. **Paper loose ends needing the author:** §1 exemplar citations, the
+1. **The layer-escape O(1) constant** — the measured prefactor is 2.73 ±
+   0.16 times the crude balance; a proper derivation is open theory work.
+2. **Bifurcating geometry** — the first case beyond the straight pipe.
+3. **Paper loose ends needing the author:** §1 exemplar citations, the
    Rhie & Chow reference, the author block; BPM120's outlier.

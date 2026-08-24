@@ -1084,7 +1084,7 @@ fraction inside a transparent receiver window over time. Geometry and
 Pe = 200 are Hofmann et al. 2024's Table 1 (doi:10.1109/ACCESS.2024.3438243);
 the exact flow-dominated solution (their Eq. 13) was re-derived
 independently via the uniform-speed lemma before use
-(`betaflow/analytic/channel_impulse.py`, 18 self-checks). The dimensional
+(`betaflow/analytic/channel_impulse.py`, 23 self-checks). The dimensional
 split V = 1.5 mm/s, D = 1.5e-9 m^2/s is ours and the case YAML says so.
 
 **The analytic model's own limits, measured then corrected**
