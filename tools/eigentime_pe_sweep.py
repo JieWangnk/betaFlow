@@ -210,10 +210,14 @@ def main():
         "rms_log_residual": float(np.sqrt(np.mean(resid**2))),
         "measured_over_H2_absolute_mean": float(np.mean(t_mean / h2_abs)),
         "measured_over_H2_absolute_sd": float(np.std(t_mean / h2_abs)),
+        # Computed, never hand-written: a hard-coded version of this string
+        # went stale against the fit fields beside it when the sweep grew.
         "outcome": (
             "H1 eigentime REFUTED (predicted exponents 1, 0); H2 "
-            "layer-escape scaling matches (1/3, 2/3) within 0.07 on both "
-            "exponents; prefactor 2.73x the crude balance constant"),
+            "layer-escape scaling matches (1/3, 2/3) within "
+            f"{max(abs(coef[1] - 1 / 3), abs(coef[2] - 2 / 3)):.3f} on both "
+            f"exponents; prefactor {np.mean(t_mean / h2_abs):.2f}x the "
+            "crude balance constant"),
     }
 
     record = {

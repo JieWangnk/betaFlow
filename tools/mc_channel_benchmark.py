@@ -136,7 +136,7 @@ def main():
     record = {
         "case": "mc_channel",
         "tier": 2,
-        "referee": "betaflow/analytic/channel_impulse.py (18 self-checks)",
+        "referee": "betaflow/analytic/channel_impulse.py (23 self-checks)",
         "validity_audit": "results/hofmann_validity_audit.json",
         "legs_present": sorted(legs),
         "legs_missing": [k for k in ("langevin", "openfoam_particles",
