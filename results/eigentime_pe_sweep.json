@@ -1,12 +1,12 @@
 {
   "question": "which clock sets the CIR crossover",
   "joint_fit": {
-    "n_points": 12,
-    "tau_r_exponent": 0.3057514620469587,
-    "dbar_exponent": 0.7285889299253726,
-    "rms_log_residual": 0.017886842253067272,
-    "measured_over_H2_absolute_mean": 2.783293462809612,
-    "measured_over_H2_absolute_sd": 0.170850144994551,
+    "n_points": 18,
+    "tau_r_exponent": 0.3068733985421349,
+    "dbar_exponent": 0.713570452814976,
+    "rms_log_residual": 0.025778861084208758,
+    "measured_over_H2_absolute_mean": 2.7348489795693753,
+    "measured_over_H2_absolute_sd": 0.1587976278262548,
     "outcome": "H1 eigentime REFUTED (predicted exponents 1, 0); H2 layer-escape scaling matches (1/3, 2/3) within 0.07 on both exponents; prefactor 2.78x the crude balance constant"
   },
   "pre_registered": {
@@ -29,7 +29,9 @@
       100,
       200,
       400,
-      800
+      800,
+      1600,
+      3200
     ],
     "seeds": [
       0,
@@ -624,6 +626,240 @@
       "max_cumulative_excess": 0.011016431442185715,
       "censored_at_horizon": false,
       "t_cross_over_eigentime": 0.6127887496732431
+    },
+    {
+      "peclet": 1600,
+      "seed": 0,
+      "dbar_um": 150.0,
+      "flow_dominated_ratio": 533.3333333333334,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 1.036,
+      "max_cumulative_excess": 0.007760268310884733,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.07129931993053458
+    },
+    {
+      "peclet": 1600,
+      "seed": 0,
+      "dbar_um": 750.0,
+      "flow_dominated_ratio": 106.66666666666667,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 3.1746666666666665,
+      "max_cumulative_excess": 0.010459589342939354,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.21848607561724945
+    },
+    {
+      "peclet": 1600,
+      "seed": 0,
+      "dbar_um": 1550.0,
+      "flow_dominated_ratio": 51.612903225806456,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 5.14,
+      "max_cumulative_excess": 0.010603843178158042,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.35374373015728544
+    },
+    {
+      "peclet": 1600,
+      "seed": 1,
+      "dbar_um": 150.0,
+      "flow_dominated_ratio": 533.3333333333334,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 1.0493333333333332,
+      "max_cumulative_excess": 0.008165760481932098,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.07221694309566372
+    },
+    {
+      "peclet": 1600,
+      "seed": 1,
+      "dbar_um": 750.0,
+      "flow_dominated_ratio": 106.66666666666667,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 3.2666666666666666,
+      "max_cumulative_excess": 0.0090944518584432,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.22481767545664055
+    },
+    {
+      "peclet": 1600,
+      "seed": 1,
+      "dbar_um": 1550.0,
+      "flow_dominated_ratio": 51.612903225806456,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 5.244,
+      "max_cumulative_excess": 0.010115838067449402,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.36090119084529276
+    },
+    {
+      "peclet": 1600,
+      "seed": 2,
+      "dbar_um": 150.0,
+      "flow_dominated_ratio": 533.3333333333334,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 1.0506666666666666,
+      "max_cumulative_excess": 0.008732610200318376,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.07230870541217664
+    },
+    {
+      "peclet": 1600,
+      "seed": 2,
+      "dbar_um": 750.0,
+      "flow_dominated_ratio": 106.66666666666667,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 3.1693333333333333,
+      "max_cumulative_excess": 0.009610901982145452,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.2181190263511978
+    },
+    {
+      "peclet": 1600,
+      "seed": 2,
+      "dbar_um": 1550.0,
+      "flow_dominated_ratio": 51.612903225806456,
+      "model_marginal": false,
+      "tau_r_s": 213.33333333333331,
+      "eigentime_s": 14.530292869684493,
+      "t_cross_s": 5.212,
+      "max_cumulative_excess": 0.010340446068734176,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.3586988952489828
+    },
+    {
+      "peclet": 3200,
+      "seed": 0,
+      "dbar_um": 150.0,
+      "flow_dominated_ratio": 1066.6666666666667,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 1.292,
+      "max_cumulative_excess": 0.00738074683965525,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.04445884235050708
+    },
+    {
+      "peclet": 3200,
+      "seed": 0,
+      "dbar_um": 750.0,
+      "flow_dominated_ratio": 213.33333333333334,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 3.9,
+      "max_cumulative_excess": 0.009675614293884069,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.13420238790013747
+    },
+    {
+      "peclet": 3200,
+      "seed": 0,
+      "dbar_um": 1550.0,
+      "flow_dominated_ratio": 103.22580645161291,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 6.226666666666667,
+      "max_cumulative_excess": 0.010759018740870787,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.2142650090576554
+    },
+    {
+      "peclet": 3200,
+      "seed": 1,
+      "dbar_um": 150.0,
+      "flow_dominated_ratio": 1066.6666666666667,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 1.312,
+      "max_cumulative_excess": 0.008071881689210574,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.04514705972435394
+    },
+    {
+      "peclet": 3200,
+      "seed": 1,
+      "dbar_um": 750.0,
+      "flow_dominated_ratio": 213.33333333333334,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 3.9666666666666663,
+      "max_cumulative_excess": 0.008735740117047738,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.13649644581296033
+    },
+    {
+      "peclet": 3200,
+      "seed": 1,
+      "dbar_um": 1550.0,
+      "flow_dominated_ratio": 103.22580645161291,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 6.616,
+      "max_cumulative_excess": 0.009901758273361117,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.2276623072685409
+    },
+    {
+      "peclet": 3200,
+      "seed": 2,
+      "dbar_um": 150.0,
+      "flow_dominated_ratio": 1066.6666666666667,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 1.316,
+      "max_cumulative_excess": 0.00894529914797857,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.04528470319912332
+    },
+    {
+      "peclet": 3200,
+      "seed": 2,
+      "dbar_um": 750.0,
+      "flow_dominated_ratio": 213.33333333333334,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 4.069333333333333,
+      "max_cumulative_excess": 0.009080970953923715,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.14002929499870753
+    },
+    {
+      "peclet": 3200,
+      "seed": 2,
+      "dbar_um": 1550.0,
+      "flow_dominated_ratio": 103.22580645161291,
+      "model_marginal": false,
+      "tau_r_s": 426.66666666666663,
+      "eigentime_s": 29.060585739368985,
+      "t_cross_s": 6.237333333333333,
+      "max_cumulative_excess": 0.009955832191062771,
+      "censored_at_horizon": false,
+      "t_cross_over_eigentime": 0.21463205832370705
     }
   ],
   "fits": {
@@ -633,29 +869,37 @@
         100,
         200,
         400,
-        800
+        800,
+        1600,
+        3200
       ],
       "t_cross_mean_s": [
         0.3413333333333333,
         0.41999999999999993,
         0.5262222222222223,
         0.6622222222222222,
-        0.8297777777777777
+        0.8297777777777777,
+        1.0453333333333334,
+        1.3066666666666666
       ],
       "t_cross_sd_s": [
         0.004988876515698593,
         0.002177324215807256,
         0.0062853936105470775,
         0.008243216440440643,
-        0.0033259176771324016
+        0.0033259176771324016,
+        0.006622073078111662,
+        0.010498677165349092
       ],
-      "slope_log_t_vs_log_tau_r": 0.32200135192511825,
+      "slope_log_t_vs_log_tau_r": 0.32492751125217245,
       "C_over_eigentime": [
         0.7517168968737956,
         0.46248207522508905,
         0.2897242206701088,
         0.18230113547232346,
-        0.11421349661974091
+        0.11421349661974091,
+        0.07194165614612498,
+        0.04496353509132811
       ]
     },
     "750um": {
@@ -663,52 +907,68 @@
         100,
         200,
         400,
-        800
+        800,
+        1600,
+        3200
       ],
       "t_cross_mean_s": [
         1.4373333333333334,
         1.7026666666666666,
         2.108,
-        2.587111111111111
+        2.587111111111111,
+        3.2035555555555555,
+        3.978666666666667
       ],
       "t_cross_sd_s": [
         0.008502722875426175,
         0.01710966804881799,
         0.03245966157601807,
-        0.022213331554844055
+        0.022213331554844055,
+        0.0446793790643989,
+        0.06964885471393581
       ],
-      "slope_log_t_vs_log_tau_r": 0.28519208589784106,
+      "slope_log_t_vs_log_tau_r": 0.29644436836717236,
       "C_over_eigentime": [
         1.5827164352147494,
         0.9374438254959345,
         0.5803048896276713,
-        0.3560989629477836
+        0.3560989629477836,
+        0.2204742591416959,
+        0.13690937623726845
       ]
     },
     "1550um": {
       "peclets": [
         200,
         400,
-        800
+        800,
+        1600,
+        3200
       ],
       "t_cross_mean_s": [
         2.9564444444444447,
         3.550222222222222,
-        4.349333333333333
+        4.349333333333333,
+        5.198666666666667,
+        6.359999999999999
       ],
       "t_cross_sd_s": [
         0.05909272897137144,
         0.04225262063608946,
-        0.08550676819648495
+        0.08550676819648495,
+        0.04349201714746694,
+        0.18107170668815972
       ],
-      "slope_log_t_vs_log_tau_r": 0.2784655570728853,
+      "slope_log_t_vs_log_tau_r": 0.2760559519328342,
       "C_over_eigentime": [
         1.627741145183753,
         0.9773298457402146,
-        0.5986573529302542
+        0.5986573529302542,
+        0.3577812720838537,
+        0.21885312488330108
       ]
     }
   },
-  "git_sha": "fb0843bf1d74-dirty",
-  "timestamp": "2026-08-21T12:47:23+00:00"
+  "git_sha": "cf2ee0329461-dirty",
+  "timestamp": "2026-08-24T15:19:03+00:00"
 }

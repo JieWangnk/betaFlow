@@ -16,8 +16,8 @@ EIGENTIME tau_r/beta_1^2, on the strength of a single-point agreement
 (measured 0.95 of it at Pe = 200, middle receiver). The pre-registered
 Peclet sweep (tools/eigentime_pe_sweep.py,
 results/eigentime_pe_sweep.json) REFUTED that clock: the measured scaling
-is t_cross = K tau_r^0.31 dbar^0.73 — the layer-escape family
-(exponents 1/3, 2/3), prefactor 2.78x the crude balance — and the
+is t_cross = K tau_r^0.31 dbar^0.71 — the layer-escape family
+(exponents 1/3, 2/3), prefactor 2.73x the crude balance — and the
 one-point eigentime match was a coincidence of the parameter point. The
 eigentime-based extents (27.2 / 6.8 / 3.4 t2) are kept in this record as
 the WITHDRAWN prediction; the DIRECTLY measured extents at Pe = 200 are 7.9 / 6.4 / 5.5 t2
@@ -74,9 +74,9 @@ def main():
         # 2 Pe a / (beta_1^2 (dbar + c_x/2)).
         withdrawn = 2.0 * peclet * a / (BETA_1**2 * (dbar + c_x / 2.0))
         # MEASURED law (results/eigentime_pe_sweep.json): the layer-escape
-        # scaling with its measured prefactor, t_cross = 2.78 *
+        # scaling with its measured prefactor, t_cross = 2.73 *
         # (a^2 dbar^2 / (32 D V^2))^(1/3), converted to this receiver's t2.
-        t_cross = 2.78 * (a**2 * dbar**2
+        t_cross = 2.73 * (a**2 * dbar**2
                           / (32.0 * DIFFUSIVITY * V_MEAN**2))**(1.0 / 3.0)
         receivers.append({
             "dbar_um": dbar * 1e6,
@@ -113,8 +113,8 @@ def main():
         "crossover_finding": (
             "the eigentime attribution is WITHDRAWN: the pre-registered "
             "Pe sweep (results/eigentime_pe_sweep.json) measured "
-            "t_cross = K tau_r^0.31 dbar^0.73 — the layer-escape scaling "
-            "(1/3, 2/3), prefactor 2.78x the crude balance; the one-point "
+            "t_cross = K tau_r^0.31 dbar^0.71 — the layer-escape scaling "
+            "(1/3, 2/3), prefactor 2.73x the crude balance; the one-point "
             "0.95-of-eigentime match at Pe = 200 was a coincidence"
         ),
         "receivers": receivers,

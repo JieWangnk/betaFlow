@@ -30,7 +30,7 @@
     "max_smoothed_enhancement_ratio": 1.6668741749230978,
     "crossover_t_over_tau_r": 0.0644,
     "crossover_t_beta1sq_over_tau_r": 0.9455189093490711,
-    "crossover_clock": "eigentime attribution WITHDRAWN by the pre-registered Pe sweep (results/eigentime_pe_sweep.json): measured t_cross = K tau_r^0.31 dbar^0.73, the layer-escape scaling; the 0.95-of-eigentime value here is a coincidence of this parameter point"
+    "crossover_clock": "eigentime attribution WITHDRAWN by the pre-registered Pe sweep (results/eigentime_pe_sweep.json): measured t_cross = K tau_r^0.31 dbar^0.71, the layer-escape scaling; the 0.95-of-eigentime value here is a coincidence of this parameter point"
   },
   "prediction_correction": "The pre-measurement prediction was a DEPLETED tail. Measured: enhancement first (reservoir pumping), termination after. Recorded in place per the correction policy.",
   "meta": {
@@ -51,6 +51,6 @@
     "t_max_over_tau_r": 0.16,
     "peclet": 200.00000000000003
   },
-  "git_sha": "fb0843bf1d74-dirty",
-  "timestamp": "2026-08-21T12:44:54+00:00"
+  "git_sha": "cf2ee0329461-dirty",
+  "timestamp": "2026-08-24T15:21:00+00:00"
 }

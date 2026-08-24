@@ -11,7 +11,7 @@ Two legs, one release each:
   MEASURED structure: softened onset, depressed peak, and a two-regime
   tail — enhanced while the upstream reservoir of slower particles feeds
   the window, then terminated (crossover clock: the layer-escape scaling
-  t_cross = K tau_r^0.31 dbar^0.73, measured by the pre-registered Pe
+  t_cross = K tau_r^0.31 dbar^0.71, measured by the pre-registered Pe
   sweep; an earlier eigentime attribution is withdrawn there).
   The pre-measurement prediction was a DEPLETED tail; it
   was wrong in direction at intermediate times, and the assertions below
@@ -211,7 +211,7 @@ def test_mc_channel_departure():
     # sweep settled on after two sample-level versions each measured the
     # wrong crossing (tools/eigentime_pe_sweep.py has both failures). The
     # eigentime ATTRIBUTION is withdrawn: the sweep measured t_cross =
-    # K tau_r^0.31 dbar^0.73, the layer-escape scaling; the value here is
+    # K tau_r^0.31 dbar^0.71, the layer-escape scaling; the value here is
     # one point of it.
     valid = t > t2
     dm = (cm - co)[valid]
@@ -247,7 +247,7 @@ def test_mc_channel_departure():
             "crossover_clock": (
                 "eigentime attribution WITHDRAWN by the pre-registered Pe "
                 "sweep (results/eigentime_pe_sweep.json): measured "
-                "t_cross = K tau_r^0.31 dbar^0.73, the layer-escape "
+                "t_cross = K tau_r^0.31 dbar^0.71, the layer-escape "
                 "scaling; the 0.95-of-eigentime value here is a "
                 "coincidence of this parameter point"
             ),

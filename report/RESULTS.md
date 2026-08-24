@@ -37,10 +37,10 @@ never drift from the claim).
 flow-dominated channel-impulse-response model (Hofmann et al. 2024,
 Eq. 13) was re-derived independently and confirmed
 (`betaflow/analytic/channel_impulse.py`, 18 self-checks). Its
-log-divergent tail is usable for at most 8.5 / 6.2 / 5.0 peak-times at
+log-divergent tail is usable for at most 8.3 / 6.1 / 4.9 peak-times at
 the paper's three receivers; the crossover clock, measured by a
 pre-registered Peclet sweep (5 Pe values × 3 seeds × 3 receivers), is
-**t_cross = K·τ_r^0.31·dbar^0.73** — the layer-escape scaling (predicted
+**t_cross = K·τ_r^0.31·dbar^0.71** — the layer-escape scaling (predicted
 exponents 1/3, 2/3; both matched within 0.07, rms log-residual 0.018, at
 seed-scatter level). A first attribution to the relaxation eigentime
 τ_r/β₁² rested on a one-point match (0.95) and was refuted by the sweep.

@@ -70,8 +70,8 @@ undefined, and it understates the channel's achievable rate.
   by two independent implementations. `results/mc_channel_departure.json`,
   `mc_channel_openfoam.json`.
 - The validity clock: pre-registered Pe sweep refutes the eigentime
-  attribution and measures t_cross = K·τ_r^0.31·dbar^0.73 — the
-  layer-escape scaling; prefactor 2.78 (derivation open, stated).
+  attribution and measures t_cross = K·τ_r^0.31·dbar^0.71 — the
+  layer-escape scaling; prefactor 2.73 (derivation open, stated).
   `results/eigentime_pe_sweep.json`. The refutation trail is presented as
   method, not embarrassment.
 

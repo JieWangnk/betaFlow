@@ -45,7 +45,7 @@ of still-slower particles into the window faster than it clears the window
 population, and then TERMINATES — measured exactly zero by 12 t2 at the
 middle receiver. The crossover clock, measured by the pre-registered
 Peclet sweep (results/eigentime_pe_sweep.json): t_cross = K tau_r^0.31
-dbar^0.73, the layer-escape scaling (1/3, 2/3) — a first attribution to
+dbar^0.71, the layer-escape scaling (1/3, 2/3) — a first attribution to
 the relaxation eigentime tau_r/beta_1^2 rested on a one-point match and
 is withdrawn. The tail is precisely
 what sets inter-symbol interference, so past the crossover the
