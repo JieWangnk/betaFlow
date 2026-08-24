@@ -102,15 +102,14 @@ undefined, and it understates the channel's achievable rate.
 ## Figures (assets exist unless marked)
 
 1. Setup schematic — `report/mc_channel_schematic.png`.
-2. The two-act tail: measured vs model CIR (from the coupled-figure tool;
-   a publication-quality still of the animation's lower panel — NEEDS a
-   dedicated version with all three receivers and both acts annotated).
+2. The two-act tail — `report/fig_two_act_tail.pdf` (all three receivers
+   collapsed onto the model's master curve, both acts annotated).
 3. Wall-position sweep, both wall treatments — Ledger chart 1 (rebuild at
    print quality from `results/openlb_wall_position.json`).
 4. Crossover-clock sweep with refuted slope-1 guide — Ledger chart 2
    (rebuild likewise from `results/eigentime_pe_sweep.json`).
 5. ISI ratio and achievable rate vs symbol interval, model vs measured —
-   NEEDS building from `results/comms_rate_metrics.json`.
+   `report/fig_isi_rate.pdf`.
 6. Coupled-model figure — `report/mc_channel_coupled.png`.
 
 ## Before submission (owner)
