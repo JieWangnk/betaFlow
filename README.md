@@ -1089,7 +1089,7 @@ split V = 1.5 mm/s, D = 1.5e-9 m^2/s is ours and the case YAML says so.
 
 **The analytic model's own limits, measured then corrected**
 (`results/hofmann_validity_audit.json`, `eigentime_pe_sweep.json`): the
-model's log-divergent tail describes at most 8.5 / 6.2 / 5.0 peak-times
+model's log-divergent tail describes at most 8.3 / 6.1 / 4.9 peak-times
 past release at the three receivers. The first version of this claim
 (27 / 6.8 / 3.4) converted the crossover through the radial relaxation
 eigentime tau_r/beta_1^2, resting on a one-point agreement (predicted 6.8
