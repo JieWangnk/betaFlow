@@ -173,6 +173,54 @@ def isi_rate():
     print("written: report/fig_isi_rate.[pdf|png]")
 
 
+def wall_position():
+    """report/fig_wall_position.(pdf|png): the wall-placement measurement.
+
+    |a_eff - a| against resolution, log-log, from
+    results/openlb_wall_position.json. Bounce-back decays with order
+    ~1.4 and sits INSIDE the geometric wall; the Bouzidi control decays
+    with order ~2.1 on identical runs, isolating the wall treatment.
+    Shift is plotted in physical units (fractions of a) so the slopes
+    ARE the observed orders.
+    """
+    rec = json.loads((REPO / "results" / "openlb_wall_position.json")
+                     .read_text())
+    rows = [r for r in rec["rows"] if r["tau"] == 0.53
+            and not r["tag"].endswith("_t300")]
+    series = {}
+    for r in rows:
+        series.setdefault(r["wall"], []).append(
+            (r["N"], abs(r["wall_shift_dx"]) / r["N"]))
+
+    fig, ax = plt.subplots(figsize=(3.5, 2.5))
+    labels = {"bb": "bounce-back", "bouzidi": "Bouzidi"}
+    orders = {k: rec["observed_order"][k] for k in ("bb", "bouzidi")}
+    for (wall, pts), c in zip(sorted(series.items()), S):
+        pts.sort()
+        n = np.array([p[0] for p in pts], float)
+        s = np.array([p[1] for p in pts], float)
+        ax.loglog(n, s, "o-", color=c, lw=1.4, ms=4.5, label=labels[wall])
+        # slope guide at the mean observed order, anchored at the last point
+        p = float(np.mean(orders[wall]))
+        gn = np.array([n[-2], n[-1] * 1.35])
+        gs = s[-1] * (gn / n[-1]) ** (-p)
+        ax.loglog(gn, gs * 1.35, ls="--", lw=0.9, color=c, alpha=0.6)
+        ax.annotate(f"order {p:.1f}", (gn[-1], gs[-1] * 1.35),
+                    fontsize=7, color=c, ha="right", va="bottom")
+    ax.set_xlabel("cells per radius $N$", color=INK)
+    ax.set_ylabel(r"$|a_{\mathrm{eff}} - a|\,/\,a$", color=INK)
+    ax.set_xticks([21, 41, 81], ["21", "41", "81"])
+    ax.minorticks_off()
+    _style(ax)
+    ax.legend(frameon=False, fontsize=7.5, loc="lower left")
+    fig.tight_layout()
+    for ext in ("pdf", "png"):
+        fig.savefig(REPO / "report" / f"fig_wall_position.{ext}", dpi=300)
+    plt.close(fig)
+    print("written: report/fig_wall_position.[pdf|png]")
+
+
 if __name__ == "__main__":
     two_act_tail()
     isi_rate()
+    wall_position()
