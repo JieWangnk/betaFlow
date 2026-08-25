@@ -220,7 +220,105 @@ def wall_position():
     print("written: report/fig_wall_position.[pdf|png]")
 
 
+def schematic():
+    """report/fig_schematic.(pdf|png): the channel geometry, print form.
+
+    Same construction as tools/animate_mc_channel.py::schematic (which
+    keeps the titled PNG for the README gallery), redrawn vector at IEEE
+    column size with the caption carrying what the title said.
+    """
+    a, v_mean, cx = 200e-6, 1.5e-3, 100e-6
+    dbar = (150e-6, 750e-6, 1550e-6)
+    fig, ax = plt.subplots(figsize=(3.5, 1.55))
+    mm, L, x0 = 1e3, 2.2e-3, 0.05e-3
+    for ys in (a, -a):
+        ax.plot([0, L * mm], [ys * mm, ys * mm], color=INK, lw=1.4)
+    for yy in np.linspace(-0.85 * a, 0.85 * a, 7):
+        u = 2 * v_mean * (1 - (yy / a) ** 2)
+        ax.annotate("", xy=((x0 + u * 0.12) * mm, yy * mm),
+                    xytext=(x0 * mm, yy * mm),
+                    arrowprops=dict(arrowstyle="->", color=INK2, lw=0.8))
+    ax.axvline(x0 * mm, color=INK, lw=0.8, ls=":")
+    ax.text(x0 * mm, 1.18 * a * mm, "release", ha="center", fontsize=7,
+            color=INK)
+    for d, col in zip(dbar, S):
+        lo, hi = (x0 + d - cx / 2) * mm, (x0 + d + cx / 2) * mm
+        ax.axvspan(lo, hi, ymin=0.18, ymax=0.82, color=col, alpha=0.22)
+        ax.text((lo + hi) / 2, -1.38 * a * mm,
+                f"{d*1e6:.0f} " + r"$\mu$m", ha="center", fontsize=7,
+                color=col, fontweight="bold")
+    ax.set_xlim(-0.05, L * mm)
+    ax.set_ylim(-1.62 * a * mm, 1.5 * a * mm)
+    ax.set_xlabel("x  [mm]", color=INK, fontsize=8)
+    ax.set_ylabel("y  [mm]", color=INK, fontsize=8)
+    _style(ax)
+    fig.tight_layout()
+    for ext in ("pdf", "png"):
+        fig.savefig(REPO / "report" / f"fig_schematic.{ext}", dpi=300)
+    plt.close(fig)
+    print("written: report/fig_schematic.[pdf|png]")
+
+
+def coupled():
+    """report/fig_coupled.(pdf|png): the coupled model, print form.
+
+    Same data as tools/plot_mc_channel_coupled.py (which keeps the wide
+    titled PNG): the solved profile from
+    _runs/mc_channel_fluid_res12/profile.csv and the CIR from
+    _runs/mc_channel_openlb_res12_u0.04_coupled/cir.csv. Stacked panels
+    at IEEE column width; skipped with a message if _runs/ is clean.
+    """
+    fluid = REPO / "_runs" / "mc_channel_fluid_res12" / "profile.csv"
+    cirf = (REPO / "_runs" / "mc_channel_openlb_res12_u0.04_coupled"
+            / "cir.csv")
+    if not (fluid.exists() and cirf.exists()):
+        print("fig_coupled SKIPPED: regenerate _runs/ via "
+              "tests/test_openlb.py::test_mc_channel_openlb_coupled")
+        return
+    u_mean, cx = 1.5e-3, 100e-6
+    dbar = (150e-6, 750e-6, 1550e-6)
+    prof = np.loadtxt(fluid, delimiter=",", skiprows=1)
+    cir = np.loadtxt(cirf, delimiter=",", skiprows=1)
+
+    fig, (ax1, ax2) = plt.subplots(
+        2, 1, figsize=(3.5, 3.3),
+        gridspec_kw={"height_ratios": [1, 1.35], "hspace": 0.52})
+    y, u = prof[:, 0], prof[:, 1] / (2.0 * u_mean)
+    yy = np.linspace(-1, 1, 300)
+    ax1.plot(yy, 1 - yy**2, color=INK2, lw=1.1, ls="--",
+             label="exact parabola")
+    ax1.plot(y[::6], u[::6], "o", color=S[0], ms=3.2,
+             markeredgecolor="white", markeredgewidth=0.8,
+             label="OpenLB, solved")
+    ax1.set_xlabel("r / a", color=INK, fontsize=8)
+    ax1.set_ylabel(r"$u / u_{\max}$", color=INK, fontsize=8)
+    ax1.legend(frameon=False, fontsize=6.8, loc="lower center")
+
+    t = cir[:, 0]
+    tt = np.linspace(t[1], t[-1], 1200)
+    for k, (d, col) in enumerate(zip(dbar, S)):
+        ax2.plot(tt, ci.cir(tt, u_mean, d, cx), color=INK2, lw=0.9,
+                 ls="--")
+        ax2.plot(t, cir[:, 1 + k], color=col, lw=1.3,
+                 label=f"{d*1e6:.0f} " + r"$\mu$m")
+    ax2.plot([], [], color=INK2, lw=0.9, ls="--", label="model")
+    ax2.set_xscale("log")
+    ax2.set_xlim(t[1], t[-1])
+    ax2.set_xlabel("time  [s]", color=INK, fontsize=8)
+    ax2.set_ylabel("CIR", color=INK, fontsize=8)
+    ax2.legend(frameon=False, fontsize=6.8, ncols=2)
+    for ax in (ax1, ax2):
+        _style(ax)
+    fig.tight_layout()
+    for ext in ("pdf", "png"):
+        fig.savefig(REPO / "report" / f"fig_coupled.{ext}", dpi=300)
+    plt.close(fig)
+    print("written: report/fig_coupled.[pdf|png]")
+
+
 if __name__ == "__main__":
     two_act_tail()
     isi_rate()
     wall_position()
+    schematic()
+    coupled()
