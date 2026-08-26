@@ -1,0 +1,160 @@
+{
+  "question": "a conservative, stable, accurate no-flux scalar wall for advection oblique to the lattice",
+  "rig": {
+    "geometry": "doubly periodic oblique channel, slope 1/2, P=50 W=30 box 100x100, D2Q5(2/3)",
+    "null_test": "uniform C with Poiseuille profile across the channel is a steady state of the continuous problem; any deviation is the wall scheme's",
+    "tau": 0.5048,
+    "u0": 0.08,
+    "steps": 20000
+  },
+  "schemes": {
+    "bounce_back": {
+      "plug": {
+        "mass_over_initial": 0.9999999999980412,
+        "diverged_at_step": null,
+        "wall_amp": 0.8917557756155449,
+        "mid_amp": 0.2643129424656232,
+        "layer_bins": {
+          "0-1": 0.8917557756155449,
+          "1-2": 0.42076539891464826,
+          "2-3": 0.40923205389349815,
+          "3-4": 0.2692305912731394,
+          "4-6": 0.29588133611783984
+        }
+      },
+      "profile": {
+        "mass_over_initial": 0.999999999998018,
+        "diverged_at_step": null,
+        "wall_amp": 0.4163940164651996,
+        "mid_amp": 0.03692069927688868,
+        "layer_bins": {
+          "0-1": 0.4163940164651996,
+          "1-2": 0.38819954011506974,
+          "2-3": 0.21458531189434948,
+          "3-4": 0.17735293381613015,
+          "4-6": 0.10334052176726427
+        }
+      },
+      "blob_plug": {
+        "mass_over_initial": 0.9999999999978912,
+        "diverged_at_step": null,
+        "c_min": -0.006628045960546185
+      },
+      "note": "conservative; bounded in this 2-D rig with an O(1) wall layer; the SAME wall diverges in 3-D D3Q7 at the pin (results/bifurcation_g4_control.json)"
+    },
+    "non_equilibrium_reflection": {
+      "plug_uniform": {
+        "mass_over_initial": 0.9999999999979184,
+        "diverged_at_step": null,
+        "wall_amp": 4.630740235711528e-13,
+        "mid_amp": 4.2299497238218464e-14,
+        "layer_bins": {
+          "0-1": 4.630740235711528e-13,
+          "1-2": 3.5638159090467525e-13,
+          "2-3": 2.391420395042587e-13,
+          "3-4": 1.7930101847696278e-13,
+          "4-6": 1.0957901253050295e-13
+        }
+      },
+      "profile": {
+        "mass_over_initial": 177.8561763215473,
+        "diverged_at_step": null,
+        "wall_amp": 1401.2622869491827,
+        "mid_amp": 16.88859762214817,
+        "layer_bins": {
+          "0-1": 1401.2622869491827,
+          "1-2": 601.4524885185206,
+          "2-3": 309.10225840820493,
+          "3-4": 149.15146359696632,
+          "4-6": 63.23129392794612
+        }
+      },
+      "blob_plug": {
+        "mass_over_initial": 0.3032294873920843,
+        "diverged_at_step": null,
+        "c_min": -0.39698720905539703
+      },
+      "outcome": "REFUTED: exact on uniform C + uniform u (machine-zero deviation), but its per-link exchange is proportional to local C - a positive-feedback pump that diverges with any gradient"
+    },
+    "noble_torczynski": {
+      "plug": {
+        "mass_over_initial": 0.9999999999980471,
+        "diverged_at_step": null,
+        "wall_amp": 0.36859866937263064,
+        "mid_amp": 0.1885168549134456
+      },
+      "profile": {
+        "mass_over_initial": 0.9999999999979888,
+        "diverged_at_step": null,
+        "wall_amp": 0.3405396997728578,
+        "mid_amp": 0.038176026140089636
+      },
+      "blob_plug": {
+        "mass_over_initial": 0.9999999999979542,
+        "diverged_at_step": null,
+        "c_min": 0.01567135687876188
+      },
+      "outcome": "the best conservative candidate: exact mass, stable (u_w = 0 form), true-wall geometry, wall layer ~20% below bounce-back's; the u_w = local form diverges under plug flow"
+    },
+    "bouzidi_reflection": {
+      "outcome": "REFUTED on the G4 control (3-D): stable axis-aligned but retains 0.25 of the scalar - the interpolation is not conservative and a scalar has no pressure field to self-correct (results/bifurcation_g4_control.json)"
+    }
+  },
+  "layer_scaling": {
+    "u_sweep_tau_0.5048": {
+      "0.02": {
+        "wall_amp": 0.1249063490737381,
+        "amp_over_u": 6.245317453686905
+      },
+      "0.04": {
+        "wall_amp": 0.21426643564426207,
+        "amp_over_u": 5.356660891106552
+      },
+      "0.08": {
+        "wall_amp": 0.38489250189826874,
+        "amp_over_u": 4.8111562737283595
+      }
+    },
+    "tau_sweep_u_0.08": {
+      "0.5048": {
+        "wall_amp": 0.38489250189826874
+      },
+      "0.51": {
+        "wall_amp": 0.2333992203695343
+      },
+      "0.53": {
+        "wall_amp": 0.09567873144461148
+      }
+    },
+    "reading": "amp ~ 5 u_lat, decreasing in (tau-1/2) with measured exponent ~ -0.7; at the stability pin refinement at fixed u_lat grows tau-1/2 linearly, so the layer shrinks ~ res^0.7 - a ~1% window bias needs ~48 cells per radius"
+  },
+  "trt_lambda_sweep": {
+    "bgk_equiv": {
+      "lambda": 2.3040000000000254e-05,
+      "wall_amp": 0.384892501898195,
+      "mid_amp": 0.03415841800381536
+    },
+    "advection_magic": {
+      "lambda": 0.08333333333333333,
+      "wall_amp": 0.5130212768624812,
+      "mid_amp": 0.008337106112542347
+    },
+    "wall_magic": {
+      "lambda": 0.1875,
+      "wall_amp": 0.7221176238088943,
+      "mid_amp": 0.0461581978849579
+    },
+    "stability_magic": {
+      "lambda": 0.25,
+      "wall_amp": 0.9386804303328928,
+      "mid_amp": 0.06501937739034602
+    },
+    "reading": "no Lambda cures the layer (wall amp GROWS with Lambda); Lambda = 1/12 minimises the mid-channel spill, 4x below BGK"
+  },
+  "paths_forward": [
+    "(a) Noble-Torczynski walls + TRT Lambda=1/12 + high resolution (~48 cells/radius) on HPC - layer budgeted by the measured scaling; needs the NT ADE operator ported to OpenLB",
+    "(b) a boundary-layer-corrected wall scheme - open theory: the layer is the equilibrium face-flux inconsistency, no collision knob removes it, and every conservative local correction measured so far either keeps it (BB, NT) or destabilises (NER)"
+  ],
+  "git_sha": "cce78d183333-dirty",
+  "timestamp": "2026-08-26T11:17:48+00:00"
+}

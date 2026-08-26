@@ -290,9 +290,16 @@ their reasons, because how errors present is data. The trail so far:
    0.16 times the crude balance; a proper derivation is open theory work.
 2. **Bifurcating geometry** — pre-registered 2026-08-26; gate G4's
    machinery control PASSED (0.007% peaks) and surfaced the oblique-wall
-   instability (see Tier 1); the naive interpolated candidate is refuted
-   by probe. Next concrete step: design a mass-conserving interpolated
-   no-flux ADE wall scheme, verified on the same G4 control before any
-   bend or junction measurement.
+   instability (see Tier 1). The wall-scheme study on the reference
+   lattice (`results/oblique_wall_scheme_study.json`) characterised the
+   problem: four schemes measured, two refuted (non-equilibrium
+   reflection is a C-proportional feedback pump; Bouzidi reflection is
+   not conservative for scalars), Noble–Torczynski partially-saturated
+   cells the best conservative candidate (exact mass, stable, positive,
+   true-wall geometry), and the residual wall layer's scaling law
+   measured (≈5 u_lat, shrinking ≈ res^0.7 at the pin — ~1% window bias
+   at ~48 cells/radius). Next concrete step: port the NT ADE operator to
+   OpenLB and run the oblique ladder at HPC resolution, layer budgeted
+   by the measured law.
 3. **Paper loose ends needing the author:** §1 exemplar citations, the
    Rhie & Chow reference, the author block; BPM120's outlier.

@@ -170,6 +170,38 @@ exactly zero in the axis-aligned case, which is why the straight programme
 never saw it — and the barely-relaxed odd sector (ω_odd → 2 at the pin)
 feeds the reflected populations back with near-unit gain.
 
+**The scheme study (2026-08-26, `results/oblique_wall_scheme_study.json`).**
+The wall-scheme question moved to the pure-numpy reference lattice — a
+doubly periodic oblique channel with rational slope 1/2, where uniform
+concentration under a Poiseuille profile is an exact steady state, so any
+deviation is the wall scheme's own artifact. Measured there:
+
+- **Bounce-back**: conservative; bounded in 2-D with an O(1) steady wall
+  layer, amplitude ≈ 5 u_lat decaying over 2–3 cells (the same mechanism
+  that diverges in 3-D D3Q7).
+- **Non-equilibrium reflection** (the Zou–He-type scalar wall): exact on
+  uniform C with uniform u — and REFUTED in general: its per-link
+  exchange is proportional to local C, a positive-feedback pump (mass
+  ×178 in 6000 steps on the profile null).
+- **Noble–Torczynski partially-saturated cells** (u_w = 0 form): exactly
+  conservative, stable, true-wall geometry, keeps the field positive
+  where bounce-back undershoots, wall layer ~20% below bounce-back's —
+  the best conservative candidate measured.
+- **Layer scaling**: amp ≈ 5 u_lat, falling in (τ−½) with exponent ~−0.7.
+  At the stability pin, refinement at fixed u_lat grows τ−½ linearly, so
+  the layer shrinks ≈ res^0.7 — a ~1% window bias needs ~48 cells per
+  radius.
+- **No TRT Λ cures the layer** (amplitude grows with Λ); Λ = 1/12
+  confines the mid-channel spill 4× below BGK.
+
+Two costed paths forward: (a) Noble–Torczynski walls + Λ = 1/12 +
+~48 cells/radius on HPC, the layer budgeted by the measured scaling —
+needs the NT ADE operator ported to OpenLB; (b) a boundary-layer-
+corrected wall scheme — open theory: the layer is the equilibrium
+face-flux inconsistency, no collision knob removes it, and every
+conservative local correction measured so far either keeps it or
+destabilises.
+
 **Decision.** The angle-0 control runs TRT at magic Λ = 1/4 (Ginzburg's
 bounce-back stability optimum; the diffusivity rides the TRT's ODD rate —
 measured on the exact dispersion relation — so Λ touches stability only)
