@@ -66,6 +66,23 @@ Eq. 73). The mini-LBM runner then measured the slip zero-crossing at
 τ = 0.9330127019, against the exact ½+√3/4 = 0.9330127019 — agreement to
 ten digits. `results/lbm_scalar.json`.
 
+**The off-axis Ma² tensor (new).** The depletion law's diagonal-flow
+conjecture is resolved: the BGK ADE scheme's exact k→0 diffusion tensor
+is D_ab = (τ−½)(Π^eq_ab/C − u_a u_b) for every tabulated velocity set,
+both equilibrium orders, any flow direction — verified against the exact
+amplification matrix at 50-digit precision (80 cases, worst 5.6e-17; the
+LBM reference now carries 119 self-checks) and confirmed on an actual
+D2Q5 lattice to 9.4e-8 of D_xx. Three consequences with teeth: the
+first-order depletion is rank-one along the flow (transverse diffusion
+exactly undepleted); oblique advection generates a *negative* cross
+diffusion −(τ−½)u_x u_y; and on the reduced sets — OpenLB's ADE
+lattices — that cross term survives the second-order equilibrium fix at
+full size, because no D2Q5/D3Q7 velocity carries the fourth moment the
+fix routes through. This was the blocking prerequisite for the
+bifurcation rung, whose daughter branches run oblique to the lattice;
+the budget line is in `docs/bifurcation-preregistration.md`.
+`results/lbm_offaxis_tensor.json`.
+
 **OpenLB first contact.** OpenLB 1.9's shipped advection-diffusion
 benchmark realises D_eff = 0.908 of its requested 1.5 and u_eff = 9.09 of
 its requested 10; the depletion law predicted the exact-eigenvalue values
@@ -238,6 +255,9 @@ their reasons, because how errors present is data. The trail so far:
 
 1. **The layer-escape O(1) constant** — the measured prefactor is 2.73 ±
    0.16 times the crude balance; a proper derivation is open theory work.
-2. **Bifurcating geometry** — the first case beyond the straight pipe.
+2. **Bifurcating geometry** — pre-registered 2026-08-26
+   (`docs/bifurcation-preregistration.md`: geometry, seven gates, four
+   physics expectations with named alternatives). Next concrete step: the
+   blocked-daughter control against the straight coupled record (gate G4).
 3. **Paper loose ends needing the author:** §1 exemplar citations, the
    Rhie & Chow reference, the author block; BPM120's outlier.
