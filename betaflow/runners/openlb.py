@@ -89,12 +89,15 @@ def run(case, **params):
     selects the momentum mode — the SAME pipe_poiseuille_steady.yaml that
     examines OpenFOAM examines OpenLB's fluid solver here.
     """
+    if "bend_angle_deg" in params:
+        return _run_bent(case, **params)
     if "receiver" in case:
         return _run_cir(case, **params)
     if case.get("geometry", {}).get("type") == "pipe":
         return _run_pipe_momentum(case, **params)
-    raise ValueError("openlb runner serves the CIR case (receiver block) "
-                     "and the pipe momentum case (geometry.type == pipe)")
+    raise ValueError("openlb runner serves the CIR case (receiver block), "
+                     "the pipe momentum case (geometry.type == pipe), and "
+                     "the bent-pipe G4 control (bend_angle_deg param)")
 
 
 # Momentum lattice: D3Q19, c_s^2 = 1/3.
@@ -186,6 +189,131 @@ def _run_pipe_momentum(case, resolution=41, tau=0.53, wall="bb",
             "u_lat_char": u_lat,
             "max_phys_t": float(max_phys_t),
             "provenance_from_app": prov,
+        },
+    }
+
+
+def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
+              time_horizon_over_t2=6.5, outputs=400, workdir=None,
+              dynamics="trt", magic_lambda=0.25):
+    """Gate G4 of the bifurcation pre-registration: the bent-pipe control.
+
+    openlb_cases/bentPipe3d rebuilds the mc_channel scalar transport
+    through the junction machinery (composite arc geometry, region-wise
+    analytic velocity, path-based windows, capped ends). At angle 0 the
+    straight record is the known answer, so deviations are machinery; at
+    the pre-registered 30 degrees the deviation FROM THE CONTROL is the
+    bend. Prescribed-field leg only — the solved bent flow is a later
+    rung, the same staging order the straight case used.
+
+    dynamics defaults to TRT at magic Lambda = 1/4 because stock BGK is
+    UNSTABLE for oblique advection past the bounce-back staircase at the
+    stability-pinned tau (measured 2026-08-26; the full discriminating
+    ladder is in the G4 record and the app header). The TRT's odd rate
+    carries the diffusivity, so Lambda touches stability only, never D.
+    """
+    from betaflow.analytic import channel_impulse as ci
+
+    binary = _build("bentPipe3d")
+    tau, dt, predictions = scope_parameters(case, resolution, u_lat_target)
+
+    tau_even = magic_lambda / (tau - 0.5) + 0.5
+
+    outdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
+    outdir = (outdir / f"bent_pipe_res{resolution}"
+                       f"_a{bend_angle_deg:g}_u{u_lat_target:g}_{dynamics}")
+    outdir.mkdir(parents=True, exist_ok=True)
+
+    # Deterministic reuse (the wall-sweep tool's pattern): the app is a pure
+    # function of its CLI, so a complete cir.csv plus its provenance line is
+    # the run. Lets the G4 test's three legs resume across invocations.
+    prov_file = outdir / "provenance.txt"
+    reused = (prov_file.is_file() and (outdir / "cir.csv").is_file()
+              and sum(1 for _ in open(outdir / "cir.csv")) >= outputs)
+    if reused:
+        stdout = prov_file.read_text()
+    else:
+        proc = subprocess.run(
+            [str(binary),
+             "--resolution", str(resolution),
+             "--tau", repr(tau),
+             "--horizon", repr(float(time_horizon_over_t2)),
+             "--outputs", str(outputs),
+             "--angle", repr(float(bend_angle_deg)),
+             "--dynamics", dynamics,
+             "--taueven", repr(tau_even),
+             "--outdir", str(outdir) + "/"],
+            cwd=binary.parent, capture_output=True, text=True)
+        if proc.returncode != 0 or "betaflow-done" not in proc.stdout:
+            raise RuntimeError(
+                f"bentPipe3d run failed (rc {proc.returncode}):\n"
+                f"{proc.stdout[-2000:]}\n{proc.stderr[-2000:]}")
+        stdout = proc.stdout
+        prov_file.write_text("\n".join(
+            ln for ln in stdout.splitlines() if "betaflow-" in ln) + "\n")
+
+    prov = {}
+    for line in stdout.splitlines():
+        if "betaflow-provenance" in line:
+            for tok in line.split():
+                if "=" in tok:
+                    k, v = tok.split("=", 1)
+                    try:
+                        prov[k] = float(v)
+                    except ValueError:
+                        prov[k] = v
+    omega = float(prov.get("omega", 0.0))
+    tau_realised = 1.0 / omega if omega else float("nan")
+    if abs(tau_realised - tau) > 1e-6:
+        raise RuntimeError(
+            f"unit converter realised tau {tau_realised!r} against "
+            f"requested {tau!r}")
+
+    data = np.loadtxt(outdir / "cir.csv", delimiter=",", skiprows=1)
+    t = data[:, 0]
+    mass = data[:, 4]
+
+    phys = case["physical"]
+    u_mean = float(phys["mean_velocity"])
+    c_x = float(case["receiver"]["axial_length"])
+    slug_w = float(prov.get("slugW", 0.0))
+
+    receivers = []
+    for k, d in enumerate([float(x) for x in case["receiver"]["distances"]]):
+        ss = np.linspace(-slug_w / 2.0, slug_w / 2.0, 21)
+        ref = np.mean([ci.cir(t, u_mean, d + s, c_x) for s in ss], axis=0)
+        receivers.append({
+            "dbar": d,
+            "t": t,
+            "cir_measured": data[:, 1 + k],
+            "cir_reference_straight": ref,
+            "t2": ci.peak_time(u_mean, d, c_x),
+        })
+
+    return {
+        "receivers": receivers,
+        "mass_over_initial": mass / mass[0],
+        "meta": {
+            "solver": "openlb",
+            "app": str(_REPO / "openlb_cases" / "bentPipe3d"
+                       / "bentPipe3d.cpp"),
+            "openlb_version": "1.9.0",
+            "mode": "bent-pipe G4 control: Eulerian slug, piecewise "
+                    "prescribed Poiseuille (mitred), bounce-back walls, "
+                    "capped ends, path-based windows, bulk-only accounting",
+            "bend_angle_deg": float(bend_angle_deg),
+            "dynamics": dynamics,
+            "magic_lambda": float(magic_lambda) if dynamics == "trt" else None,
+            "tau_even": float(tau_even) if dynamics == "trt" else None,
+            "u_lat_target": float(u_lat_target),
+            "reused_existing_output": bool(reused),
+            "resolution_cells_per_radius": int(resolution),
+            "predictions_before_run": predictions,
+            "provenance_from_app": prov,
+            "tau_realised": tau_realised,
+            "dt": dt,
+            "outputs": int(outputs),
+            "time_horizon_over_t2": float(time_horizon_over_t2),
         },
     }
 

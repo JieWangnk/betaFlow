@@ -1,0 +1,221 @@
+{
+  "case": "mc_channel through the bent-pipe G4 control",
+  "preregistration": "docs/bifurcation-preregistration.md, gate G4 and the oblique-wall addendum",
+  "oblique_wall_instability": {
+    "finding": "stock BGK ADE at the stability-pinned tau is unstable for advection oblique to the lattice; a straight pipe tilted 30 degrees diverges with no bend present",
+    "ladder": [
+      "mitre BGK tau=0.5048: mass -1.9e51",
+      "mitre BGK tau=0.5096: mass -5.8e46 (damping not the knob)",
+      "smooth-arc BGK: diverges (kink not the mechanism)",
+      "straight oblique BGK: diverges (wall IS the mechanism)",
+      "straight oblique BGK 2nd-order eq: diverges",
+      "oblique TRT tau_even=1: diverges (even sector not the knob)",
+      "oblique TRT Lambda=1/4, res 6: no blowup over the horizon (mass 0.67)",
+      "oblique TRT Lambda=1/4, res 12: mass crosses ZERO at 3.27 s of 3.44 - the gain is reduced by orders, the loop persists; res 6 apparent stability was a rate effect"
+    ],
+    "plane_wave_max_lambda_at_pin": 0.9996631690033537,
+    "resolution_chosen": "TRT, magic Lambda = 1/4 (Ginzburg's bounce-back stability optimum); D rides the odd rate, checked above, so the physics is untouched",
+    "bend_leg_status": "BLOCKED pending a no-flux interpolated ADE wall: stock OpenLB 1.9 ships only Bouzidi-ADE-Dirichlet (absorbing), and impermeable walls are the channel's physics. The wall scheme is the named next rung; no bend number is quoted before it lands."
+  },
+  "legs": {
+    "A0": {
+      "angle_deg": 0.0,
+      "dynamics": "bgk",
+      "receivers": [
+        {
+          "dbar_um": 150.0,
+          "peak_measured": 0.547950419942,
+          "peak_lag_relative": 0.03999999999949999,
+          "ringing_min": -0.00994369821469,
+          "tail_ratio_3_to_6_t2": 1.286485426274533
+        },
+        {
+          "dbar_um": 750.0,
+          "peak_measured": 0.142084090435,
+          "peak_lag_relative": 0.039999999998749924,
+          "ringing_min": -0.00143916896582,
+          "tail_ratio_3_to_6_t2": 1.5799164251620312
+        },
+        {
+          "dbar_um": 1550.0,
+          "peak_measured": 0.0642322115481,
+          "peak_lag_relative": 0.04000000000062509,
+          "ringing_min": -0.000807476195969,
+          "tail_ratio_3_to_6_t2": 1.3447279122497753
+        }
+      ],
+      "mass_final_over_initial": 0.9725773054669704
+    },
+    "A1": {
+      "angle_deg": 0.0,
+      "dynamics": "trt",
+      "receivers": [
+        {
+          "dbar_um": 150.0,
+          "peak_measured": 0.549944318445,
+          "peak_lag_relative": 0.03999999999949999,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 1.2723274764876304
+        },
+        {
+          "dbar_um": 750.0,
+          "peak_measured": 0.150826847265,
+          "peak_lag_relative": 0.07250000000000001,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 1.5550358575737917
+        },
+        {
+          "dbar_um": 1550.0,
+          "peak_measured": 0.0674582490364,
+          "peak_lag_relative": 0.07250000000000001,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 1.3306062057621588
+        }
+      ],
+      "mass_final_over_initial": 0.9725836090736523
+    }
+  },
+  "machinery_gate_bgk_vs_straight_record": [
+    {
+      "dbar_um": 150.0,
+      "peak_relative_to_straight_record": 7.324719201018404e-05,
+      "tail_ratio_minus_straight_record": -3.0427669368782162e-05
+    },
+    {
+      "dbar_um": 750.0,
+      "peak_relative_to_straight_record": -8.241579655177134e-06,
+      "tail_ratio_minus_straight_record": -4.88525656816563e-06
+    },
+    {
+      "dbar_um": 1550.0,
+      "peak_relative_to_straight_record": 2.1668639841987414e-05,
+      "tail_ratio_minus_straight_record": -2.4743222679646237e-06
+    }
+  ],
+  "collision_change_trt_vs_straight_record": {
+    "receivers": [
+      {
+        "dbar_um": 150.0,
+        "peak_relative_to_straight_record": 0.0037123438655333185,
+        "tail_ratio_minus_straight_record": -0.01418837745627144
+      },
+      {
+        "dbar_um": 750.0,
+        "peak_relative_to_straight_record": 0.06152352280794693,
+        "tail_ratio_minus_straight_record": -0.0248854528448077
+      },
+      {
+        "dbar_um": 1550.0,
+        "peak_relative_to_straight_record": 0.0502473624839439,
+        "tail_ratio_minus_straight_record": -0.014124180809884423
+      }
+    ],
+    "mechanism": "finite-k diffusivity separation, re-derived in-test: D_eff(k=1) TRT/BGK = 0.830 with identical k->0 values; BGK smooths high-k content harder, so TRT resolves sharper peaks at 12 cells/radius (the BGK record itself sits ~+15% over the slug-averaged analytic reference at the peak)"
+  },
+  "control_envelope": {
+    "peak": 0.004,
+    "tail": 0.04,
+    "origin": "the straight case's coupled-vs-prescribed cost envelope, as pre-registered"
+  },
+  "slug_flakiness_found_by_this_gate": {
+    "finding": "the straight app's slug boundary |x-x0| <= dx falls exactly on cell centres; rounding includes 3 slices there (initial total 1317) where this app's different x0 arithmetic included 2 (878) - a 50% release-width difference that surfaced as a +1.5-4% peak discrepancy in the first machinery comparison",
+    "fix_here": "deterministic 3-slice slug (half-width 1.01 dx), realised width printed as slugW",
+    "flag_for_straight_record": "its provenance slugW = 2 dx but the realised slug is 3 slices (50 um); its slug-averaged reference is therefore computed slightly narrow - refresh on the record's next regeneration"
+  },
+  "mass_final_over_initial": {
+    "A0": 0.9725773054669704,
+    "A1": 0.9725836090736523
+  },
+  "meta": {
+    "A0": {
+      "solver": "openlb",
+      "app": "/home/mchi4jw4/GitHub/betaFlow/openlb_cases/bentPipe3d/bentPipe3d.cpp",
+      "openlb_version": "1.9.0",
+      "mode": "bent-pipe G4 control: Eulerian slug, piecewise prescribed Poiseuille (mitred), bounce-back walls, capped ends, path-based windows, bulk-only accounting",
+      "bend_angle_deg": 0.0,
+      "dynamics": "bgk",
+      "magic_lambda": null,
+      "tau_even": null,
+      "u_lat_target": 0.04,
+      "reused_existing_output": false,
+      "resolution_cells_per_radius": 12,
+      "predictions_before_run": {
+        "peclet_cell": 33.333333333333336,
+        "u_lat_centreline": 0.04,
+        "tau": 0.5048,
+        "naive_over_exact_D_factor": 105.16666666666609,
+        "depletion_relative_centreline": 0.0064,
+        "d_lattice_exact": 0.0012000000000000066
+      },
+      "provenance_from_app": {
+        "dynamics": "bgk",
+        "taueven": 0.5048,
+        "velocity_source": "regionwise-analytic-arc",
+        "angle_deg": 0.0,
+        "rbend": 0.0004,
+        "sbend": 0.000245,
+        "arclen": 0.0,
+        "tau_requested": 0.5048,
+        "omega": 1.98098,
+        "dx": 1.66667e-05,
+        "dt": 0.000222222,
+        "uLatCentre": 0.04,
+        "iTmax": 15600.0,
+        "statIter": 39.0,
+        "pathLen": 0.0109746,
+        "x0": 0.000166667,
+        "slugW": 5e-05
+      },
+      "tau_realised": 0.5048006542216479,
+      "dt": 0.00022222222222222223,
+      "outputs": 400,
+      "time_horizon_over_t2": 6.5
+    },
+    "A1": {
+      "solver": "openlb",
+      "app": "/home/mchi4jw4/GitHub/betaFlow/openlb_cases/bentPipe3d/bentPipe3d.cpp",
+      "openlb_version": "1.9.0",
+      "mode": "bent-pipe G4 control: Eulerian slug, piecewise prescribed Poiseuille (mitred), bounce-back walls, capped ends, path-based windows, bulk-only accounting",
+      "bend_angle_deg": 0.0,
+      "dynamics": "trt",
+      "magic_lambda": 0.25,
+      "tau_even": 52.583333333333044,
+      "u_lat_target": 0.04,
+      "reused_existing_output": false,
+      "resolution_cells_per_radius": 12,
+      "predictions_before_run": {
+        "peclet_cell": 33.333333333333336,
+        "u_lat_centreline": 0.04,
+        "tau": 0.5048,
+        "naive_over_exact_D_factor": 105.16666666666609,
+        "depletion_relative_centreline": 0.0064,
+        "d_lattice_exact": 0.0012000000000000066
+      },
+      "provenance_from_app": {
+        "dynamics": "trt",
+        "taueven": 52.5833,
+        "velocity_source": "regionwise-analytic-arc",
+        "angle_deg": 0.0,
+        "rbend": 0.0004,
+        "sbend": 0.000245,
+        "arclen": 0.0,
+        "tau_requested": 0.5048,
+        "omega": 1.98098,
+        "dx": 1.66667e-05,
+        "dt": 0.000222222,
+        "uLatCentre": 0.04,
+        "iTmax": 15600.0,
+        "statIter": 39.0,
+        "pathLen": 0.0109746,
+        "x0": 0.000166667,
+        "slugW": 5e-05
+      },
+      "tau_realised": 0.5048006542216479,
+      "dt": 0.00022222222222222223,
+      "outputs": 400,
+      "time_horizon_over_t2": 6.5
+    }
+  },
+  "git_sha": "1efa382d32c8-dirty",
+  "timestamp": "2026-08-26T10:48:43+00:00"
+}

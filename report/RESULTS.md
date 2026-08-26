@@ -128,6 +128,36 @@ parked in bounce-back walls bounded at −2.7% with the mechanism named,
 and three instrumentation traps recorded (no density read-out on
 bounce-back cells is mass accounting). `results/mc_channel_openlb.json`.
 
+**The oblique-wall instability, and the G4 machinery gate (new).** The
+bifurcation programme's first gate (the bent-pipe control,
+`docs/bifurcation-preregistration.md`) caught a solver limitation before
+any junction run: stock BGK ADE at the stability-pinned τ is **unstable
+whenever advection runs oblique to the lattice** — a straight pipe tilted
+30° diverges with no bend present (bulk mass −1.9e51). The
+discriminating ladder (mitre, smooth arc, oblique straight; doubled
+damping margin; second-order equilibrium; TRT with even-sector damping;
+TRT at magic Λ) excluded, in turn, the elbow construction, the damping
+margin, the equilibrium order, and the even sector; the uniform scheme is
+plane-wave stable at every operating point (full 3-D wavevector scan,
+re-derived in-test), which localises the mechanism to the wall: oblique
+flow drives advective flux through the staircase's bounce-back faces —
+exactly zero in the axis-aligned case, which is why the straight
+programme never saw it. TRT at Ginzburg's Λ = 1/4 reduces the gain by
+orders yet the loop persists at production resolution, and stock
+OpenLB 1.9's only interpolated ADE wall is absorbing, so **stable
+oblique scalar transport awaits a no-flux interpolated ADE wall — the
+named next rung; no bend number is quoted before it lands.** What DID
+pass: the machinery gate — the junction code path (composite arc
+geometry, region-wise velocity, path windows, capped ends) reproduces
+the straight record to 0.007% on peaks once a release-slug edge-rounding
+flakiness the gate itself surfaced was fixed (the straight app's slug
+boundary sits exactly on cell centres; 3 slices there against 2 in the
+new app was a 50% release-width difference wearing a +4% peak
+discrepancy). The TRT collision change is measured, mechanism named
+(finite-k diffusivity separation, ratio 0.83 at k = 1): peaks
++0.4/+6.2/+5.0%, tails within the envelope.
+`results/bifurcation_g4_control.json`.
+
 **OpenLB, momentum (D3Q19) — the wall-position measurement.** The same
 pipe case that examined OpenFOAM, run through OpenLB's fluid solver with
 the wall treatment as the variable. Bounce-back: the effective radius sits
@@ -255,9 +285,10 @@ their reasons, because how errors present is data. The trail so far:
 
 1. **The layer-escape O(1) constant** — the measured prefactor is 2.73 ±
    0.16 times the crude balance; a proper derivation is open theory work.
-2. **Bifurcating geometry** — pre-registered 2026-08-26
-   (`docs/bifurcation-preregistration.md`: geometry, seven gates, four
-   physics expectations with named alternatives). Next concrete step: the
-   blocked-daughter control against the straight coupled record (gate G4).
+2. **Bifurcating geometry** — pre-registered 2026-08-26; gate G4's
+   machinery control PASSED (0.007% peaks) and surfaced the oblique-wall
+   instability (see Tier 1). Next concrete step: a no-flux interpolated
+   ADE wall scheme, verified on the same G4 control before any bend or
+   junction measurement.
 3. **Paper loose ends needing the author:** §1 exemplar citations, the
    Rhie & Chow reference, the author block; BPM120's outlier.

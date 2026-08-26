@@ -137,6 +137,52 @@ at matched (Pe_d, d̄) even after the 1/2 scaling. No magnitude is
 pre-registered — there is no committed law to compute one from, and
 inventing one here would be the eigentime mistake again.
 
+## Addendum 2026-08-26 — the oblique wall instability, and the bend numerics
+
+This document deferred numerics to "the stability pin at the realised
+daughter velocity". The G4 control forced the decision on its first day,
+and the diagnosis went through four wrong-or-partial hypotheses before the
+discriminating experiment isolated it — all kept here.
+
+**The finding.** Stock BGK ADE (first-order equilibrium, D3Q7, bounce-back
+walls) at the stability-pinned τ is UNSTABLE whenever the advection runs
+oblique to the lattice. The discriminating ladder, all at Pe = 200:
+
+| configuration | outcome |
+|---|---|
+| straight, axis-aligned, BGK τ = 0.5048 | stable (the committed record) |
+| mitred 30° elbow, BGK τ = 0.5048 | diverges (mass −1.9e51) |
+| mitred 30° elbow, BGK τ = 0.5096 (doubled margin) | diverges (−5.8e46) — damping is the wrong knob |
+| smooth-arc 30° elbow, BGK | diverges — the kink was not the mechanism |
+| straight OBLIQUE pipe (no bend at all), BGK | **diverges** — the wall is the mechanism |
+| straight oblique, BGK second-order equilibrium | diverges |
+| straight oblique, TRT τ_even = 1 | diverges — even-sector damping is not the knob |
+| oblique, TRT Λ = 3/16 or 1/4, 6 cells/radius | no blowup over the horizon (mass 0.67) |
+| oblique, TRT Λ = 1/4, **12 cells/radius** | bulk mass crosses **zero** at 3.27 s of 3.44 — the gain is orders lower, the loop persists; the res-6 "stability" was a rate effect (fewer steps per physical time) |
+
+Plane-wave stability of the uniform scheme is clean at every operating
+point tested (max |λ| < 1, full 3-D wavevector scan; re-derived inside the
+G4 test), so the instability lives in the wall interaction: oblique flow
+puts nonzero advective flux through the staircase's bounce-back faces —
+exactly zero in the axis-aligned case, which is why the straight programme
+never saw it — and the barely-relaxed odd sector (ω_odd → 2 at the pin)
+feeds the reflected populations back with near-unit gain.
+
+**Decision.** The angle-0 control runs TRT at magic Λ = 1/4 (Ginzburg's
+bounce-back stability optimum; the diffusivity rides the TRT's ODD rate —
+measured on the exact dispersion relation — so Λ touches stability only)
+and is gated on the pre-registered envelope against the straight BGK
+record, covering the machinery and the collision change together. The
+BEND leg is **blocked**, and that is gate G4's result: no wall treatment
+available in stock OpenLB 1.9 gives stable impermeable-wall scalar
+transport oblique to the lattice at these parameters — bounce-back feeds
+the loop, TRT at magic Λ only slows it, and the shipped interpolated ADE
+wall (`setBouzidiAdeDirichlet`) is absorbing, which is the wrong physics
+for this channel. The named next rung, before any bend or junction
+number: a no-flux interpolated ADE wall (a Bouzidi-class reflection that
+respects the true surface), verified on this same control before use. No
+bend measurement is quoted until then.
+
 ## Order of work (when the rung starts)
 
 1. G4 first: the bent-pipe / blocked-daughter control against the straight
