@@ -1,6 +1,6 @@
 # betaFlow results report
 
-**Date:** 2026-08-24 · **State:** all results committed through `3e370a9` · **Suite:** 56 tests (27 analytic-tier, ~3 s; 45 default; 11 slow) ·
+**Date:** 2026-08-26 · **State:** all results committed through `89d8b71` · **Suite:** 58 tests (27 analytic-tier, ~5 s; 46 default; 12 slow) ·
 **CI:** analytic and solver jobs green on the pushed state.
 
 Every number below traces to a committed record in `results/`, named in
@@ -143,9 +143,12 @@ re-derived in-test), which localises the mechanism to the wall: oblique
 flow drives advective flux through the staircase's bounce-back faces —
 exactly zero in the axis-aligned case, which is why the straight
 programme never saw it. TRT at Ginzburg's Λ = 1/4 reduces the gain by
-orders yet the loop persists at production resolution, and stock
-OpenLB 1.9's only interpolated ADE wall is absorbing, so **stable
-oblique scalar transport awaits a no-flux interpolated ADE wall — the
+orders yet the loop persists at production resolution; stock
+OpenLB 1.9's only interpolated ADE wall is absorbing; and plain Bouzidi
+reflection is refuted by direct probe (stable axis-aligned but retains
+0.25 of the scalar — the interpolation is not conservative, and a scalar
+has no pressure field to self-correct). So **stable oblique scalar
+transport awaits a mass-conserving interpolated no-flux ADE wall — the
 named next rung; no bend number is quoted before it lands.** What DID
 pass: the machinery gate — the junction code path (composite arc
 geometry, region-wise velocity, path windows, capped ends) reproduces
@@ -287,8 +290,9 @@ their reasons, because how errors present is data. The trail so far:
    0.16 times the crude balance; a proper derivation is open theory work.
 2. **Bifurcating geometry** — pre-registered 2026-08-26; gate G4's
    machinery control PASSED (0.007% peaks) and surfaced the oblique-wall
-   instability (see Tier 1). Next concrete step: a no-flux interpolated
-   ADE wall scheme, verified on the same G4 control before any bend or
-   junction measurement.
+   instability (see Tier 1); the naive interpolated candidate is refuted
+   by probe. Next concrete step: design a mass-conserving interpolated
+   no-flux ADE wall scheme, verified on the same G4 control before any
+   bend or junction measurement.
 3. **Paper loose ends needing the author:** §1 exemplar citations, the
    Rhie & Chow reference, the author block; BPM120's outlier.

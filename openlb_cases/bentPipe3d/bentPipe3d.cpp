@@ -186,6 +186,14 @@ int main(int argc, char* argv[]) {
   // the reason this switch exists.
   const std::string dyn = argStr(argc, argv, "--dynamics", "bgk");
   const T    tauEven = argOpt(argc, argv, "--taueven", 1.0);
+  // --wall bouzidi: interpolated no-flux reflection at the TRUE surface.
+  // Plain (zero-wall-velocity) Bouzidi applied to the scalar populations
+  // IS a no-flux wall: the reflection point sits where the prescribed
+  // velocity actually vanishes, so oblique staircase faces stop receiving
+  // the advective flux that feeds the bounce-back wall loop (the G4
+  // instability finding). The fluid rung measured this scheme's wall
+  // placement: shift ~ dx^2, order 2.1.
+  const std::string wall = argStr(argc, argv, "--wall", "bb");
   const std::string outdir = argStr(argc, argv, "--outdir", "./tmp/");
   singleton::directories().setOutputDir(outdir);
 
@@ -277,7 +285,37 @@ int main(int argc, char* argv[]) {
     dynamics::set<AdvectionDiffusionBGKdynamics>(
       lattice, geometry.getMaterialIndicator({1}));
   }
-  boundary::set<boundary::BounceBack>(lattice, geometry, 2);
+  if (wall == "bouzidi") {
+    // The TRUE surface: the same composite the geometry staircase
+    // approximates, extended half a cell at both ends so cap links get
+    // distances (the pipeFlow3d pattern).
+    std::shared_ptr<IndicatorF3D<T>> surf(
+      new IndicatorCylinder3D<T>(
+        Vector<T,3>(2.0*dx - 0.5*dx, T(0), T(0)),
+        Vector<T,3>(f.xb, T(0), T(0)), RADIUS));
+    if (angle > T(0)) {
+      constexpr int NSEG = 8;
+      for (int k = 0; k < NSEG; ++k) {
+        const T p0 = angle * T(k) / NSEG, p1 = angle * T(k + 1) / NSEG;
+        const Vector<T,3> a0 = f.C
+          + Vector<T,3>(rBend*std::sin(p0), -rBend*std::cos(p0), T(0));
+        const Vector<T,3> a1 = f.C
+          + Vector<T,3>(rBend*std::sin(p1), -rBend*std::cos(p1), T(0));
+        surf = surf + std::shared_ptr<IndicatorF3D<T>>(
+          new IndicatorCylinder3D<T>(a0, a1, RADIUS));
+      }
+      surf = surf + std::shared_ptr<IndicatorF3D<T>>(
+        new IndicatorCylinder3D<T>(f.B1, pEnd + f.d2 * (0.5*dx), RADIUS));
+    } else {
+      surf = surf + std::shared_ptr<IndicatorF3D<T>>(
+        new IndicatorCylinder3D<T>(Vector<T,3>(f.xb, T(0), T(0)),
+                                   pEnd + f.d2 * (0.5*dx), RADIUS));
+    }
+    setBouzidiBoundary<T, DESCRIPTOR, BouzidiPostProcessor>(
+      lattice, geometry, 2, *surf);
+  } else {
+    boundary::set<boundary::BounceBack>(lattice, geometry, 2);
+  }
 
   BentPoiseuilleVelocity uF(converter.getConversionFactorVelocity(), f);
   SlugInit slugF(x0, 2.0 * slugHalf);
@@ -300,6 +338,7 @@ int main(int argc, char* argv[]) {
   lattice.initialize();
 
   clout << "betaflow-provenance"
+        << " wall=" << wall
         << " dynamics=" << dyn
         << " taueven=" << (dyn == "trt" ? tauEven : tau)
         << " velocity_source=regionwise-analytic-arc"

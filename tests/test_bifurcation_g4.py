@@ -33,10 +33,13 @@ the record's finding, not a gap: TRT Lambda = 1/4 reduces the wall-loop
 gain by orders yet the drain persists at production resolution (res 12,
 angle 30: bulk mass crosses ZERO at 3.27 s with clean-looking peaks —
 res 6's apparent stability was a rate effect, fewer steps per physical
-time). Stable oblique scalar transport needs a NO-FLUX interpolated wall
-for the ADE lattice; stock OpenLB 1.9 ships only a Bouzidi-ADE-Dirichlet
-(absorbing) wall, so that scheme is the named next rung before any bend
-or junction measurement.
+time). Stable oblique scalar transport needs a MASS-CONSERVING no-flux
+interpolated wall for the ADE lattice: stock OpenLB 1.9 ships only a
+Bouzidi-ADE-Dirichlet (absorbing) wall, and plain Bouzidi reflection is
+refuted by measurement (stable axis-aligned but retains only 0.25 of the
+scalar — the interpolation is not conservative and a scalar has no
+pressure field to self-correct). Designing that scheme is the named next
+rung before any bend or junction measurement.
 """
 
 import itertools
@@ -249,19 +252,26 @@ def test_bifurcation_g4_control():
                 "oblique TRT Lambda=1/4, res 12: mass crosses ZERO at "
                 "3.27 s of 3.44 - the gain is reduced by orders, the loop "
                 "persists; res 6 apparent stability was a rate effect",
+                "plain Bouzidi as scalar wall, AXIS-aligned: stable but "
+                "retains only 0.25 of the scalar - the interpolation does "
+                "not return the full outgoing population and a passive "
+                "scalar has no pressure to self-correct; NOT mass-"
+                "conserving, refuted as the no-flux candidate",
+                "plain Bouzidi, oblique: leaks to 0.24 then diverges",
             ],
             "plane_wave_max_lambda_at_pin": rho,
             "resolution_chosen": "TRT, magic Lambda = 1/4 (Ginzburg's "
                                  "bounce-back stability optimum); D rides "
                                  "the odd rate, checked above, so the "
                                  "physics is untouched",
-            "bend_leg_status": "BLOCKED pending a no-flux interpolated "
-                               "ADE wall: stock OpenLB 1.9 ships only "
-                               "Bouzidi-ADE-Dirichlet (absorbing), and "
-                               "impermeable walls are the channel's "
-                               "physics. The wall scheme is the named "
-                               "next rung; no bend number is quoted "
-                               "before it lands.",
+            "bend_leg_status": "BLOCKED pending a MASS-CONSERVING "
+                               "interpolated no-flux ADE wall. Stock "
+                               "OpenLB 1.9 ships only Bouzidi-ADE-"
+                               "Dirichlet (absorbing); plain Bouzidi "
+                               "reflection is refuted by the ladder "
+                               "(not mass-conserving for a scalar). The "
+                               "wall scheme is the named next rung; no "
+                               "bend number is quoted before it lands.",
         },
         "legs": {k: {kk: vv for kk, vv in v.items() if kk != "meta"}
                  for k, v in legs.items()},

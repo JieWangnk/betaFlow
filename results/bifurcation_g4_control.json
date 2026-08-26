@@ -11,11 +11,13 @@
       "straight oblique BGK 2nd-order eq: diverges",
       "oblique TRT tau_even=1: diverges (even sector not the knob)",
       "oblique TRT Lambda=1/4, res 6: no blowup over the horizon (mass 0.67)",
-      "oblique TRT Lambda=1/4, res 12: mass crosses ZERO at 3.27 s of 3.44 - the gain is reduced by orders, the loop persists; res 6 apparent stability was a rate effect"
+      "oblique TRT Lambda=1/4, res 12: mass crosses ZERO at 3.27 s of 3.44 - the gain is reduced by orders, the loop persists; res 6 apparent stability was a rate effect",
+      "plain Bouzidi as scalar wall, AXIS-aligned: stable but retains only 0.25 of the scalar - the interpolation does not return the full outgoing population and a passive scalar has no pressure to self-correct; NOT mass-conserving, refuted as the no-flux candidate",
+      "plain Bouzidi, oblique: leaks to 0.24 then diverges"
     ],
     "plane_wave_max_lambda_at_pin": 0.9996631690033537,
     "resolution_chosen": "TRT, magic Lambda = 1/4 (Ginzburg's bounce-back stability optimum); D rides the odd rate, checked above, so the physics is untouched",
-    "bend_leg_status": "BLOCKED pending a no-flux interpolated ADE wall: stock OpenLB 1.9 ships only Bouzidi-ADE-Dirichlet (absorbing), and impermeable walls are the channel's physics. The wall scheme is the named next rung; no bend number is quoted before it lands."
+    "bend_leg_status": "BLOCKED pending a MASS-CONSERVING interpolated no-flux ADE wall. Stock OpenLB 1.9 ships only Bouzidi-ADE-Dirichlet (absorbing); plain Bouzidi reflection is refuted by the ladder (not mass-conserving for a scalar). The wall scheme is the named next rung; no bend number is quoted before it lands."
   },
   "legs": {
     "A0": {
@@ -137,7 +139,7 @@
       "magic_lambda": null,
       "tau_even": null,
       "u_lat_target": 0.04,
-      "reused_existing_output": false,
+      "reused_existing_output": true,
       "resolution_cells_per_radius": 12,
       "predictions_before_run": {
         "peclet_cell": 33.333333333333336,
@@ -181,7 +183,7 @@
       "magic_lambda": 0.25,
       "tau_even": 52.583333333333044,
       "u_lat_target": 0.04,
-      "reused_existing_output": false,
+      "reused_existing_output": true,
       "resolution_cells_per_radius": 12,
       "predictions_before_run": {
         "peclet_cell": 33.333333333333336,
@@ -216,6 +218,6 @@
       "time_horizon_over_t2": 6.5
     }
   },
-  "git_sha": "1efa382d32c8-dirty",
-  "timestamp": "2026-08-26T10:48:43+00:00"
+  "git_sha": "89d8b719d338-dirty",
+  "timestamp": "2026-08-26T10:57:35+00:00"
 }

@@ -159,6 +159,8 @@ oblique to the lattice. The discriminating ladder, all at Pe = 200:
 | straight oblique, TRT τ_even = 1 | diverges — even-sector damping is not the knob |
 | oblique, TRT Λ = 3/16 or 1/4, 6 cells/radius | no blowup over the horizon (mass 0.67) |
 | oblique, TRT Λ = 1/4, **12 cells/radius** | bulk mass crosses **zero** at 3.27 s of 3.44 — the gain is orders lower, the loop persists; the res-6 "stability" was a rate effect (fewer steps per physical time) |
+| plain Bouzidi reflection as the scalar wall, axis-aligned | stable but retains 0.25 of the scalar — the interpolation is not mass-conserving for a scalar (no pressure field to self-correct); **refuted** as the no-flux candidate |
+| plain Bouzidi, oblique | leaks to 0.24, then diverges |
 
 Plane-wave stability of the uniform scheme is clean at every operating
 point tested (max |λ| < 1, full 3-D wavevector scan; re-derived inside the
@@ -179,9 +181,11 @@ transport oblique to the lattice at these parameters — bounce-back feeds
 the loop, TRT at magic Λ only slows it, and the shipped interpolated ADE
 wall (`setBouzidiAdeDirichlet`) is absorbing, which is the wrong physics
 for this channel. The named next rung, before any bend or junction
-number: a no-flux interpolated ADE wall (a Bouzidi-class reflection that
-respects the true surface), verified on this same control before use. No
-bend measurement is quoted until then.
+number: a **mass-conserving** interpolated no-flux ADE wall — plain
+Bouzidi reflection is refuted by measurement (the ladder's last rows), so
+the scheme needs a conservation-correcting construction, designed and
+verified on this same control before use. No bend measurement is quoted
+until then.
 
 ## Order of work (when the rung starts)
 
