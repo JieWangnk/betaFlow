@@ -1,0 +1,79 @@
+{
+  "case": "lbm_offaxis",
+  "runner": "lbm",
+  "law": "D_ab = (tau - 1/2)(Pi_eq_ab/C - u_a u_b), lattice_boltzmann.diffusion_tensor (docstring section 7)",
+  "runs": [
+    {
+      "tag": "o1_oblique",
+      "tau": 1.0,
+      "u": [
+        0.15,
+        0.1
+      ],
+      "equilibrium_order": 1,
+      "d_measured": {
+        "xx": 0.15541666117240752,
+        "yy": 0.1616666561755122,
+        "xy": -0.007499988000043165
+      },
+      "d_tensor_predicted": {
+        "xx": 0.15541666666666668,
+        "yy": 0.16166666666666668,
+        "xy": -0.0075
+      },
+      "d_isotropic_naive": 0.16666666666666666,
+      "worst_component_relative": 7.721151850700917e-08,
+      "mass_drift": 0.0
+    },
+    {
+      "tag": "o2_oblique",
+      "tau": 1.0,
+      "u": [
+        0.15,
+        0.1
+      ],
+      "equilibrium_order": 2,
+      "d_measured": {
+        "xx": 0.16416665359098923,
+        "yy": 0.16104165676275028,
+        "xy": -0.007499984598102651
+      },
+      "d_tensor_predicted": {
+        "xx": 0.16416666666666666,
+        "yy": 0.1610416666666667,
+        "xy": -0.0075
+      },
+      "d_isotropic_naive": 0.16666666666666666,
+      "worst_component_relative": 9.38186640526599e-08,
+      "mass_drift": 0.0
+    },
+    {
+      "tag": "o1_axis",
+      "tau": 0.8,
+      "u": [
+        0.2,
+        0.0
+      ],
+      "equilibrium_order": 1,
+      "d_measured": {
+        "xx": 0.08800000000340565,
+        "yy": 0.09999999999632066,
+        "xy": 3.2348592750431916e-14
+      },
+      "d_tensor_predicted": {
+        "xx": 0.08800000000000001,
+        "yy": 0.10000000000000002,
+        "xy": 0.0
+      },
+      "d_isotropic_naive": 0.1,
+      "worst_component_relative": 4.181093602652972e-11,
+      "mass_drift": 2.220446049250313e-16
+    }
+  ],
+  "named_alternatives_excluded": {
+    "isotropic_depletion": "o1_axis measures D_yy undepleted at the gate while D_xx is depleted by exactly u^2(tau-1/2)",
+    "second_order_fix_suffices": "o2_oblique measures the cross component at full size with the second-order equilibrium applied"
+  },
+  "git_sha": "6908df11774c-dirty",
+  "timestamp": "2026-08-26T09:43:30+00:00"
+}

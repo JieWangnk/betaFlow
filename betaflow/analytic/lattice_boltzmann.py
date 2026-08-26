@@ -180,16 +180,36 @@ velocity set alone and is cited; its CONSEQUENCES are then checked here.
      story was pasted onto a bookkeeping bug, and only the named-alternative
      test caught it.
 
-WHAT THIS MODULE STILL DOES NOT CLAIM. The Ma^2 result above is exact for
-flow along a lattice axis on D1Q3 and the D2Q5(omega) family with BGK; other
-sets and diagonal flow directions are conjectured to follow the same law and
-are NOT derived here. No published statement of the -1 coefficient was
-located even by a 24-source search, so the derivation above is its own
-anchor — flagged as this-repo-derived rather than literature-backed. The
-tau-dependent wall position of MOMENTUM bounce-back remains open: the one
-claim tying it to a readable source failed adversarial verification (0-3),
-so this module still cites the anchors as NOT READ and states no
-coefficient.
+  7. THE OFF-AXIS TENSOR (2026-08-26), closing the diagonal-flow conjecture
+     that section 6 left open. For ANY flow direction the exact k -> 0
+     diffusion tensor of the BGK ADE scheme is
+
+         D_ab = (tau - 1/2) (Pi^eq_ab / C  -  u_a u_b),
+
+     with Pi^eq the equilibrium's second moment — parity kills the weights'
+     third moment on every tabulated set, so nothing else enters. First
+     order: Pi^eq/C = c_s^2 I exactly, so the depletion is RANK-ONE along
+     the flow — the axis law along u, NO depletion transverse, and a
+     NEGATIVE cross term D_xy = -(tau - 1/2) u_x u_y for flow oblique to
+     the lattice. Second order cancels all of it on the isotropic-fourth-
+     moment sets (D2Q9, D3Q19) but on the reduced sets (D2Q5, D3Q7 —
+     OpenLB's ADE lattices) M4_xxyy = 0 leaves the cross depletion at FULL
+     SIZE with the equilibrium fix applied: no polynomial equilibrium on
+     those sets can supply a moment their velocities cannot carry. Verified
+     against the exact amplification matrix at 50-digit precision, 80
+     cases, worst 5.6e-17 (`diffusion_tensor`; fast subset in
+     verify_limits section 13).
+
+WHAT THIS MODULE STILL DOES NOT CLAIM. No published statement of the -1
+Ma^2 coefficient or of the off-axis tensor above was located, so the
+derivations are their own anchor — flagged as this-repo-derived rather than
+literature-backed. The tensor is the k -> 0 coefficient only: the large-tau
+wavenumber caveat of UNRESOLVED["ma_squared_off_axis"] applies to it
+unchanged, and the THIRD-order (dispersive) error's direction dependence is
+untested. The tau-dependent wall position of MOMENTUM bounce-back remains
+open: the one claim tying it to a readable source failed adversarial
+verification (0-3), so this module still cites the anchors as NOT READ and
+states no coefficient.
 
 CITATIONS
   arXiv:1603.09577 (MRT for nonlinear convection-diffusion; Eqs. 26, 30b,
@@ -293,18 +313,21 @@ NAVIER_STOKES_CAPABLE = ("D2Q9", "D3Q19", "D3Q27")
 
 UNRESOLVED = {
     "ma_squared_off_axis": (
-        "The Ma^2 result D_eff = (c_s^2 - u^2)(tau - 1/2) is DERIVED and "
-        "lattice-verified for flow along a lattice axis on D1Q3 and the "
-        "D2Q5(omega) family (see diffusivity_first_order_eq). Diagonal flow "
-        "directions and the 3-D sets are conjectured to follow the same law "
-        "and are NOT derived; anisotropy of the error tensor is untested. "
-        "SCOPE AT LARGE TAU: the law is the k -> 0 coefficient, and the "
-        "k-expansion saturates slowly when tau is large. At tau = 5, "
-        "u = 0.4 (OpenLB's shipped ADE benchmark), the k -> 0 law gives "
-        "0.78 while the exact conserved eigenvalue at the benchmark's own "
-        "k = 2 pi/51 gives 0.9031 -- and OpenLB's field data measures "
-        "0.908 (tools/openlb_first_contact.py). Quote the eigenvalue at "
-        "the actual wavenumber when tau is large, not the limit law."
+        "RESOLVED for the k -> 0 tensor (2026-08-26, docstring section 7, "
+        "diffusion_tensor): D_ab = (tau - 1/2)(Pi^eq_ab/C - u_a u_b) for "
+        "every tabulated set, both equilibrium orders, any flow direction "
+        "— verified against the exact amplification matrix at 50 digits, "
+        "80 cases, worst 5.6e-17. The entry STAYS for what remains open: "
+        "(a) the third-order dispersive error's direction dependence is "
+        "untested (the axis-aligned E3 and its Lambda = 1/12 zero are not "
+        "generalised); (b) SCOPE AT LARGE TAU, unchanged: the tensor is "
+        "the k -> 0 coefficient, and the k-expansion saturates slowly when "
+        "tau is large. At tau = 5, u = 0.4 (OpenLB's shipped ADE "
+        "benchmark), the k -> 0 law gives 0.78 while the exact conserved "
+        "eigenvalue at the benchmark's own k = 2 pi/51 gives 0.9031 -- "
+        "and OpenLB's field data measures 0.908 "
+        "(tools/openlb_first_contact.py). Quote the eigenvalue at the "
+        "actual wavenumber when tau is large, not the limit law."
     ),
     "bounce_back_wall_position": (
         "MOMENTUM lattice, now MEASURED for the staircase-cylinder "
@@ -573,6 +596,84 @@ def advection_magic_lambda():
     return 1.0 / 12.0
 
 
+def equilibrium_second_moment(u, velocity_set="D3Q19", equilibrium_order=1,
+                              weights=None):
+    """Pi^eq_ab / C = sum_i f_i^eq c_ia c_ib / C, computed from the weights.
+
+    The closure quantity of the off-axis law: parity kills the weights'
+    third moment on every tabulated set, so the k^2 coefficient of the
+    conserved eigenvalue is governed by this tensor alone (see
+    `diffusion_tensor`). First-order equilibrium: Pi^eq/C = c_s^2 I exactly,
+    for every set and every flow direction. Second-order: the (c.u)^2 term
+    routes through the FOURTH moment, so full sets give c_s^2 I + u u while
+    the reduced sets (D2Q5, D3Q7 — no diagonal velocities, M4_xxyy = 0)
+    give a direction-dependent tensor with Pi^eq_xy = 0 always.
+
+    `weights` overrides the tabulated weights (same velocity order) so the
+    omega-families are covered; c_s^2 is then derived from the weights in
+    use, per the module's own rule.
+    """
+    _check_set(velocity_set)
+    c = np.asarray(VELOCITY_SETS[velocity_set][0], dtype=float)
+    w = np.asarray(VELOCITY_SETS[velocity_set][1] if weights is None
+                   else weights, dtype=float)
+    if len(w) != len(c):
+        raise ValueError("weights length does not match the velocity set")
+    w = w / w.sum()
+    u = np.atleast_1d(np.asarray(u, dtype=float))
+    if u.shape != (c.shape[1],):
+        raise ValueError(f"u must have dimension {c.shape[1]}, got {u.shape}")
+    cs2 = float(np.einsum("i,ia,ia->", w, c, c) / c.shape[1])
+    cu = c @ u
+    feq = w * (1.0 + cu / cs2)
+    if equilibrium_order == 2:
+        feq = feq + w * (cu**2 / (2.0 * cs2**2) - (u @ u) / (2.0 * cs2))
+    elif equilibrium_order != 1:
+        raise ValueError(f"equilibrium_order must be 1 or 2, got {equilibrium_order}")
+    return np.einsum("i,ia,ib->ab", feq, c, c)
+
+
+def diffusion_tensor(tau, u, velocity_set="D3Q19", equilibrium_order=1,
+                     dt=1.0, weights=None):
+    """D_ab = (tau - 1/2) (Pi^eq_ab / C - u_a u_b) dt — the BGK ADE scheme's
+    exact effective diffusion tensor at k -> 0, for ANY flow direction.
+
+    The off-axis generalisation of `diffusivity_first_order_eq`, closing
+    what UNRESOLVED["ma_squared_off_axis"] held open. Derivation: the update
+    is linear in the distributions, so the conserved eigenvalue of the exact
+    amplification matrix G(k) expands as
+    ln lambda = -i k (u . n) - k^2 (n^T D n) + O(k^3) along k = k n; second
+    -order perturbation theory in k gives the stated D with Pi^eq the
+    equilibrium's second moment, the weights' vanishing third moment (parity)
+    removing every other contribution. Verified against G(k) at 50-digit
+    precision across D2Q5(omega), D2Q9, D3Q7, D3Q19, both equilibrium
+    orders, axis/diagonal/oblique flow and probe directions: worst
+    |probe - formula| = 5.6e-17 over 80 cases (verify_limits section 13
+    keeps a fast subset).
+
+    Consequences, each a self-check:
+      * first order: D = (tau - 1/2)(c_s^2 I - u u) — the depletion is
+        RANK-ONE along the flow. Along the flow it is the axis law
+        (c_s^2 - |u|^2)(tau - 1/2); transverse to the flow there is no
+        depletion at all; and the cross term D_xy = -(tau - 1/2) u_x u_y
+        is NEGATIVE — advection at an angle to the lattice generates
+        anticorrelated spreading.
+      * second order, full sets (isotropic fourth moment): Pi^eq/C =
+        c_s^2 I + u u and the tensor collapses to isotropic
+        (tau - 1/2) c_s^2 I — the familiar cancellation, now off-axis too.
+      * second order, reduced sets (D2Q5, D3Q7 — OpenLB's ADE lattices):
+        M4_xxyy = 0 means Pi^eq_xy = 0, so the cross depletion
+        -(tau - 1/2) u_x u_y SURVIVES the second-order fix at full size,
+        and the diagonal picks up the direction-dependent residual whose
+        axis-aligned trace is `d2q5_second_order_residual`. No equilibrium
+        polynomial on these sets can supply the missing moment; only a
+        richer set (or MRT with corrected stencils) can.
+    """
+    pi = equilibrium_second_moment(u, velocity_set, equilibrium_order, weights)
+    u = np.atleast_1d(np.asarray(u, dtype=float))
+    return (float(tau) - 0.5) * (pi - np.outer(u, u)) * float(dt)
+
+
 def _dispersion_numeric(tau, u, weights, velocities_1d, order2, cs2, k=1e-10):
     """ln(conserved eigenvalue) coefficients from the EXACT amplification
     matrix at 50-digit precision — the independent route the closed forms are
@@ -616,6 +717,51 @@ def _dispersion_numeric(tau, u, weights, velocities_1d, order2, cs2, k=1e-10):
     u_eff = float(-lnl.imag / kk)
     d_eff = float(-lnl.real / kk**2)
     return u_eff, d_eff
+
+
+def _dispersion_numeric_vec(tau, u, velocity_set, n_hat, order2,
+                            weights=None, k=1e-10):
+    """Vector generalisation of `_dispersion_numeric`: ln(conserved
+    eigenvalue) coefficients along the wavevector k * n_hat, for vector flow
+    u, from the EXACT amplification matrix at 50-digit precision. Returns
+    (u_eff . n_hat, n_hat^T D_eff n_hat). Same precision discipline as the
+    1-D probe: weights renormalised in mpf, c_s^2 derived from them."""
+    from mpmath import mp, matrix, exp as mexp, log as mlog, mpc, eig
+
+    mp.dps = 50
+    _check_set(velocity_set)
+    velocities = VELOCITY_SETS[velocity_set][0]
+    if weights is None:
+        weights = VELOCITY_SETS[velocity_set][1]
+    n = len(weights)
+    kk = mp.mpf(k)
+    w_mp = [mp.mpf(wi) for wi in weights]
+    total = sum(w_mp)
+    w_mp = [wi / total for wi in w_mp]
+    d = len(velocities[0])
+    cs2_mp = sum(wi * sum(ci**2 for ci in c) for wi, c in
+                 zip(w_mp, velocities)) / d
+    u_mp = [mp.mpf(ui) for ui in u]
+    u2 = sum(ui**2 for ui in u_mp)
+    q = []
+    for wi, c in zip(w_mp, velocities):
+        cu = sum(ci * ui for ci, ui in zip(c, u_mp))
+        coeff = 1 + cu / cs2_mp
+        if order2:
+            coeff += cu**2 / (2 * cs2_mp**2) - u2 / (2 * cs2_mp)
+        q.append(wi * coeff)
+    G = matrix(n, n)
+    for i in range(n):
+        kc = kk * sum(mp.mpf(na) * ca for na, ca in zip(n_hat, velocities[i]))
+        ph = mexp(mpc(0, -1) * kc)
+        for j in range(n):
+            G[i, j] = ph * (
+                (1 - 1 / mp.mpf(tau)) * (1 if i == j else 0) + q[i] / mp.mpf(tau)
+            )
+    vals = eig(G, left=False, right=False)
+    lam = max(vals, key=lambda z: abs(z))
+    lnl = mlog(lam)
+    return float(-lnl.imag / kk), float(-lnl.real / kk**2)
 
 
 def verify_limits(rtol=1e-13):
@@ -794,7 +940,67 @@ def verify_limits(rtol=1e-13):
     if abs(advection_magic_lambda() - 3.0 / 16.0) < 0.05:
         raise AssertionError("advection and wall magic values should differ")
 
-    # 13. The unresolved items are DECLARED, not silently absent.
+    # 13. THE OFF-AXIS TENSOR LAW, against the exact amplification matrix.
+    #     D_ab = (tau - 1/2)(Pi^eq_ab/C - u_a u_b) probed along oblique
+    #     wavevectors with oblique flow — the generalisation that resolved
+    #     UNRESOLVED["ma_squared_off_axis"] for the k -> 0 coefficient.
+    r2 = 1.0 / np.sqrt(2.0)
+    probes = [
+        # (set, weights, tau, u, n_hat, order2)
+        ("D2Q5", d2q5_weights(2.0 / 3.0), 1.0, (0.15, 0.10), (r2, r2), False),
+        ("D2Q5", d2q5_weights(2.0 / 3.0), 0.6, (0.15, 0.15), (r2, -r2), False),
+        ("D2Q5", d2q5_weights(2.0 / 5.0), 1.0, (0.15, 0.15), (r2, r2), True),
+        ("D3Q7", None, 1.0, (0.15, 0.15, 0.0), (r2, r2, 0.0), False),
+        ("D3Q7", None, 1.0, (0.15, 0.15, 0.0), (r2, r2, 0.0), True),
+        ("D3Q19", None, 1.0, (0.12, 0.08, 0.05), (0.0, r2, -r2), False),
+    ]
+    for vs, wts, tau, u, nh, o2 in probes:
+        u_eff, d_eff = _dispersion_numeric_vec(tau, u, vs, nh, o2, weights=wts)
+        d_pred = float(np.asarray(nh) @ diffusion_tensor(
+            tau, u, vs, 2 if o2 else 1, weights=wts) @ np.asarray(nh))
+        tag = f"tensor_{vs}_o{2 if o2 else 1}_t{tau}"
+        errors[f"{tag}_d"] = abs(d_eff / d_pred - 1.0)
+        errors[f"{tag}_u"] = abs(u_eff - float(np.asarray(u) @ np.asarray(nh)))
+    # Closed-form consequences, checked against the tensor function itself:
+    # first order is rank-one depletion (c_s^2 I - u u) on every set ...
+    for vs in ("D2Q5", "D2Q9", "D3Q7", "D3Q19"):
+        c = np.asarray(VELOCITY_SETS[vs][0], float)
+        uvec = np.array([0.12, 0.07, 0.05][: c.shape[1]])
+        d_t = diffusion_tensor(1.0, uvec, vs, 1)
+        cs2 = sound_speed_squared(vs)
+        errors[f"tensor_rank_one_{vs}"] = float(np.max(np.abs(
+            d_t - 0.5 * (cs2 * np.eye(c.shape[1]) - np.outer(uvec, uvec)))))
+    # ... its flow-parallel component is the established axis law ...
+    uvec = np.array([0.2, 0.15])
+    uhat = uvec / np.linalg.norm(uvec)
+    d_t = diffusion_tensor(0.8, uvec, "D2Q5", 1)
+    errors["tensor_parallel_is_axis_law"] = abs(
+        float(uhat @ d_t @ uhat)
+        / ((1.0 / 3.0 - float(uvec @ uvec)) * 0.3) - 1.0)
+    # ... the D2Q5(omega) family residual is the tensor's axis-aligned trace ...
+    om, uu = 0.4, 0.2
+    d_t = diffusion_tensor(1.0, (uu, 0.0), "D2Q5", 2, weights=d2q5_weights(om))
+    errors["tensor_reproduces_family_residual"] = abs(
+        d_t[0, 0] / ((om / 2.0) * 0.5
+                     * (1.0 + d2q5_second_order_residual(uu, om))) - 1.0)
+    # ... the second order is isotropic exactly on the momentum-capable sets ...
+    for vs in ("D2Q9", "D3Q19"):
+        c = np.asarray(VELOCITY_SETS[vs][0], float)
+        uvec = np.array([0.15, 0.1, 0.08][: c.shape[1]])
+        d_t = diffusion_tensor(1.0, uvec, vs, 2)
+        errors[f"tensor_o2_isotropic_{vs}"] = float(np.max(np.abs(
+            d_t - 0.5 * sound_speed_squared(vs) * np.eye(c.shape[1]))))
+    # ... and on the reduced sets the CROSS depletion survives order 2 at
+    # full size (M4_xxyy = 0: no diagonal velocity carries the moment).
+    for vs in ("D2Q5", "D3Q7"):
+        c = np.asarray(VELOCITY_SETS[vs][0], float)
+        uvec = np.array([0.15, 0.12, 0.0][: c.shape[1]])
+        for order in (1, 2):
+            d_t = diffusion_tensor(1.0, uvec, vs, order)
+            errors[f"tensor_cross_survives_{vs}_o{order}"] = abs(
+                d_t[0, 1] - (-0.5 * uvec[0] * uvec[1]))
+
+    # 14. The unresolved items are DECLARED, not silently absent.
     if not UNRESOLVED.get("bounce_back_wall_position"):
         raise AssertionError(
             "the tau-dependent wall-position gap must stay declared until it "

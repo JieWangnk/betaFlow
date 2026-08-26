@@ -1,0 +1,51 @@
+# The off-axis Ma^2 tensor, measured on an actual lattice.
+#
+# The analytic reference derives (docstring section 7, diffusion_tensor)
+# that the BGK ADE scheme's k -> 0 diffusion tensor is
+#     D_ab = (tau - 1/2)(Pi^eq_ab/C - u_a u_b)
+# — rank-one depletion along the flow at first order, with a NEGATIVE cross
+# component D_xy = -(tau - 1/2) u_x u_y for flow oblique to the lattice, and
+# on the reduced sets that cross component SURVIVES the second-order
+# equilibrium fix (no diagonal velocity carries M4_xxyy). The derivation is
+# 50-digit algebra; this case confronts it with a collide-and-stream lattice:
+# a 2-D Gaussian blob advected obliquely on D2Q5, the growth rate of its
+# second-moment tensor read as 2 D_ab.
+#
+# Three runs, each a distinct claim:
+#   o1_oblique   first order, u = (0.15, 0.10): the full tensor, including
+#                the negative cross term no 1-D experiment can see.
+#   o2_oblique   second order, same u, omega = 2/3: the cross term survives
+#                the fix that cancels the axis-aligned depletion.
+#   o1_axis      first order, u = (0.20, 0): the rank-one statement at its
+#                sharpest — D_xx depleted, D_yy exactly undepleted.
+name: lbm_offaxis
+reference: lattice_boltzmann
+experiment: dispersion2d
+
+numerics:
+  n_cells: 256      # box side; blob (sigma_final ~ 22) stays clear of wrap
+  steps: 1200
+  sigma0: 10.0
+
+study:
+  runs:
+    - {tag: o1_oblique, tau: 1.0, u: [0.15, 0.10], equilibrium_order: 1}
+    - {tag: o2_oblique, tau: 1.0, u: [0.15, 0.10], equilibrium_order: 2}
+    - {tag: o1_axis,    tau: 0.8, u: [0.20, 0.00], equilibrium_order: 1}
+
+metrics:
+  # Every measured component against the tensor prediction, normalised by
+  # D_xx. ORIGIN: the variance-slope instrument's floor — the k^2-expansion
+  # truncation of a finite-width blob. The 1-D leg of this instrument
+  # measured 3.7e-9 at sigma0 = 30; at sigma0 = 10 the first run of this
+  # case sat at 3.5e-8 to 7.7e-8 across all components, and the gate is one
+  # order above that floor. The alternatives this discriminates against
+  # (name-the-alternative rule): the naive isotropic reading D = cs2(tau-1/2)
+  # errs by u_x^2/cs2 = 6.8e-2 on D_xx and by the WHOLE cross term
+  # (4.5e-2 of D_xx) on D_xy — four orders above the gate.
+  - name: tensor_component_relative
+    tol: 1.0e-6
+  # Mass conservation on the periodic box is exact bookkeeping (roll moves,
+  # nothing leaves); anything above round-off is a bug, not physics.
+  - name: mass_drift
+    tol: 1.0e-12

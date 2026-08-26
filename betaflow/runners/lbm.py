@@ -151,6 +151,97 @@ def _run_dispersion(lattice, tau, u, equilibrium_order, n_cells, steps, sigma0, 
     }
 
 
+_D2Q5_VECTORS = [(0, 0), (1, 0), (-1, 0), (0, 1), (0, -1)]
+
+
+def _equilibrium_2d(rho, u, cs2, weights, order):
+    """f_i^eq = w_i rho (1 + c.u/cs2 [+ (c.u)^2/2cs2^2 - u^2/2cs2]) for the
+    full 2-D D2Q5 set. u is a 2-vector; rho a 2-D field."""
+    ux, uy = u
+    u2 = ux * ux + uy * uy
+    out = np.empty((len(weights),) + rho.shape)
+    for i, (wi, (cx, cy)) in enumerate(zip(weights, _D2Q5_VECTORS)):
+        cu = cx * ux + cy * uy
+        c = 1.0 + cu / cs2
+        if order == 2:
+            c += cu * cu / (2.0 * cs2 * cs2) - u2 / (2.0 * cs2)
+        out[i] = wi * rho * c
+    return out
+
+
+def _circular_moment_tensor(rho, nx, ny):
+    """Second-moment tensor about the circular mean, on a periodic box.
+
+    Circular means per axis (the 1-D trick of `_circular_variance`, per
+    axis), then minimum-image displacements; the cross moment needs both
+    displacement fields at once, which is why this is not two calls to the
+    1-D version."""
+    x = np.arange(nx, dtype=float)[None, :]
+    y = np.arange(ny, dtype=float)[:, None]
+    total = rho.sum()
+    mx = np.angle((rho * np.exp(2j * np.pi * x / nx)).sum()) / (2.0 * np.pi) * nx % nx
+    my = np.angle((rho * np.exp(2j * np.pi * y / ny)).sum()) / (2.0 * np.pi) * ny % ny
+    dx = (x - mx + nx / 2.0) % nx - nx / 2.0
+    dy = (y - my + ny / 2.0) % ny - ny / 2.0
+    sxx = float((rho * dx**2).sum() / total)
+    syy = float((rho * dy**2).sum() / total)
+    sxy = float((rho * dx * dy).sum() / total)
+    return sxx, syy, sxy
+
+
+def _run_dispersion_2d(tau, u, equilibrium_order, n_cells, steps, sigma0,
+                       omega):
+    """The off-axis experiment: a 2-D Gaussian blob advected obliquely on
+    D2Q5. The growth rate of the second-moment TENSOR is 2 D_ab — the
+    measurement leg of `lattice_boltzmann.diffusion_tensor`, including the
+    negative cross component D_xy = -(tau - 1/2) u_x u_y that no 1-D
+    experiment can see. Same halfway-mark bookkeeping as the 1-D run (the
+    749/750 lesson)."""
+    weights = _weights("D2Q5", omega)
+    cs2 = _cs2("D2Q5", weights)
+    nx = ny = n_cells
+    x = np.arange(nx, dtype=float)[None, :]
+    y = np.arange(ny, dtype=float)[:, None]
+    rho = np.exp(-((x - nx / 2.0) ** 2 + (y - ny / 2.0) ** 2)
+                 / (2.0 * sigma0**2))
+    g = _equilibrium_2d(rho, u, cs2, weights, equilibrium_order)
+
+    mark = steps // 2
+    halfway = completed_at_mark = None
+    for t in range(steps):
+        rho = g.sum(axis=0)
+        g += -(g - _equilibrium_2d(rho, u, cs2, weights,
+                                   equilibrium_order)) / tau
+        for i, (cx, cy) in enumerate(_D2Q5_VECTORS):
+            if cx:
+                g[i] = np.roll(g[i], cx, axis=1)
+            if cy:
+                g[i] = np.roll(g[i], cy, axis=0)
+        if t == mark:
+            halfway = _circular_moment_tensor(g.sum(axis=0), nx, ny)
+            completed_at_mark = t + 1
+    final = _circular_moment_tensor(g.sum(axis=0), nx, ny)
+    span = 2.0 * (steps - completed_at_mark)
+    d_measured = {
+        "xx": (final[0] - halfway[0]) / span,
+        "yy": (final[1] - halfway[1]) / span,
+        "xy": (final[2] - halfway[2]) / span,
+    }
+    # Both predictions from the analytic reference, so the test never
+    # re-derives either: the tensor law and the naive isotropic reading.
+    d_t = lb.diffusion_tensor(tau, u, "D2Q5",
+                              equilibrium_order, weights=weights)
+    return {
+        "d_measured": d_measured,
+        "d_tensor_predicted": {"xx": float(d_t[0, 0]),
+                               "yy": float(d_t[1, 1]),
+                               "xy": float(d_t[0, 1])},
+        "d_isotropic_naive": cs2 * (tau - 0.5),
+        "cs2": cs2,
+        "mass_drift": float(abs(g.sum() / rho.sum() - 1.0)),
+    }
+
+
 def _run_dirichlet_slip(tau, n_cells, source, phi_wall, tol, max_steps,
                         source_scheme="corrected"):
     """Steady diffusion + uniform source between anti-bounce-back walls.
@@ -255,6 +346,30 @@ def run(case, **params):
             "tau": tau,
             "u": u,
             "mach": u / np.sqrt(out["cs2"]),
+            "equilibrium_order": order,
+            "omega": omega,
+            "n_cells": n_cells,
+            "steps": steps,
+            "sigma0": sigma0,
+        }
+    elif experiment == "dispersion2d":
+        tau = float(numerics["tau"])
+        u = tuple(float(v) for v in numerics.get("u", (0.0, 0.0)))
+        if len(u) != 2:
+            raise ValueError(f"dispersion2d needs a 2-vector u, got {u}")
+        order = int(numerics.get("equilibrium_order", 1))
+        omega = numerics.get("omega")
+        n_cells = int(numerics.get("n_cells", 256))
+        steps = int(numerics.get("steps", 1200))
+        sigma0 = float(numerics.get("sigma0", 10.0))
+        out = _run_dispersion_2d(tau, u, order, n_cells, steps, sigma0, omega)
+        meta = {
+            "solver": "lbm",
+            "experiment": experiment,
+            "lattice": "D2Q5",
+            "tau": tau,
+            "u": list(u),
+            "mach": float(np.hypot(*u) / np.sqrt(out["cs2"])),
             "equilibrium_order": order,
             "omega": omega,
             "n_cells": n_cells,
