@@ -1,0 +1,62 @@
+{
+  "question": "is there a stable wall closure with a smaller layer than bounce-back's",
+  "model": "x-invariant D2Q5 half-space, uniform drift, closure family g+ = g-* + alpha 2 w v C(j_src)/cs2; tau=0.5048, u0=0.08, direction slope 1/2, J=150",
+  "spectral_radius": {
+    "into_wall_jsrc_0": {
+      "0.0": 1.0000000000017923,
+      "0.25": 1.0154768316836125,
+      "0.5": 1.0296176949405556,
+      "1.0": 1.0557890175320108
+    },
+    "into_wall_jsrc_1": {
+      "0.0": 1.0000000000017923,
+      "0.25": 0.9960378282932892,
+      "0.5": 0.9959141487896707,
+      "1.0": 0.9958239302140698
+    },
+    "into_wall_jsrc_2": {
+      "0.0": 1.0000000000017923,
+      "0.25": 1.0093550100784674,
+      "0.5": 1.0162586696100382,
+      "1.0": 1.0267534034806152
+    },
+    "into_wall_jsrc_3": {
+      "0.0": 1.0000000000017923,
+      "0.25": 0.9961042854769473,
+      "0.5": 0.995962644948245,
+      "1.0": 0.9958604990967714
+    },
+    "out_of_wall_local": {
+      "0.0": 0.994300658052149,
+      "0.5": 0.9944892866525246,
+      "1.0": 0.9945742592779658
+    }
+  },
+  "steady_wall_values": {
+    "bb": [
+      -0.9969063443145286,
+      -0.9903220632991944,
+      -0.9835759864728316,
+      -0.9769651387421993,
+      -0.9702412664022382,
+      -0.9636118601403402
+    ],
+    "odd_sourced_alpha1": [
+      2.392914190140122,
+      -2.0000000000651204,
+      1.6716019392867176,
+      -1.3971265214489756,
+      1.1677197013394855,
+      -0.9759812584302103
+    ]
+  },
+  "findings": [
+    "single-point closure family exhausted: spectral radius grows monotonically with alpha under into-wall drift; bounce-back is exactly marginal, nothing above it is stable",
+    "the wall mode has checkerboard parity: odd-neighbour sourcing (j_src = 1, 3) is stable at every alpha (~0.996) while local and even sourcing are unstable - a design clue for corrected schemes",
+    "odd sourcing trades the instability for an O(1) checkerboard steady layer: stability bought, accuracy not",
+    "drift OUT of the wall: every closure stable - the instability lives on into-flow faces only",
+    "MODEL LIMIT: x-invariant drift into a no-flux wall is the physical accumulation problem, not the oblique-staircase artifact; the next rung is the staircase-periodic half-space (Bloch modes along the wall, (2,1) unit cell)"
+  ],
+  "git_sha": "aed20ca3b128-dirty",
+  "timestamp": "2026-08-27T08:28:27+00:00"
+}

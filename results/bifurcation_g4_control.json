@@ -23,6 +23,7 @@
     "A0": {
       "angle_deg": 0.0,
       "dynamics": "bgk",
+      "wall": "bb",
       "receivers": [
         {
           "dbar_um": 150.0,
@@ -51,6 +52,7 @@
     "A1": {
       "angle_deg": 0.0,
       "dynamics": "trt",
+      "wall": "bb",
       "receivers": [
         {
           "dbar_um": 150.0,
@@ -75,6 +77,64 @@
         }
       ],
       "mass_final_over_initial": 0.9725836090736523
+    },
+    "N0": {
+      "angle_deg": 0.0,
+      "dynamics": "trt",
+      "wall": "nt",
+      "receivers": [
+        {
+          "dbar_um": 150.0,
+          "peak_measured": 0.565342371591,
+          "peak_lag_relative": 0.03999999999949999,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 0.9998371530722027
+        },
+        {
+          "dbar_um": 750.0,
+          "peak_measured": 0.160429330486,
+          "peak_lag_relative": 0.07250000000000001,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 1.2382799516241112
+        },
+        {
+          "dbar_um": 1550.0,
+          "peak_measured": 0.0727922794089,
+          "peak_lag_relative": 0.07250000000000001,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 1.2358778298020603
+        }
+      ],
+      "mass_final_over_initial": 0.8825512675246773
+    },
+    "N30": {
+      "angle_deg": 30.0,
+      "dynamics": "trt",
+      "wall": "nt",
+      "receivers": [
+        {
+          "dbar_um": 150.0,
+          "peak_measured": 0.565389829262,
+          "peak_lag_relative": 0.03999999999949999,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 1.0334501082767618
+        },
+        {
+          "dbar_um": 750.0,
+          "peak_measured": 0.147154720479,
+          "peak_lag_relative": 0.07250000000000001,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 1.064176117622068
+        },
+        {
+          "dbar_um": 1550.0,
+          "peak_measured": 0.0769738589216,
+          "peak_lag_relative": 0.07250000000000001,
+          "ringing_min": 0.0,
+          "tail_ratio_3_to_6_t2": 1.2309369829571692
+        }
+      ],
+      "mass_final_over_initial": 0.8790603464312832
     }
   },
   "machinery_gate_bgk_vs_straight_record": [
@@ -124,9 +184,36 @@
     "fix_here": "deterministic 3-slice slug (half-width 1.01 dx), realised width printed as slugW",
     "flag_for_straight_record": "its provenance slugW = 2 dx but the realised slug is 3 slices (50 um); its slug-averaged reference is therefore computed slightly narrow - refresh on the record's next regeneration"
   },
+  "nt_wall": {
+    "scheme": "Noble-Torczynski partially-saturated cells (pairwise-antisymmetric solid operator, exactly conservative) + TRT bulk at magic Lambda = 1/4; either alone fails (NT-BGK diverges obliquely, TRT+bounce-back drains to zero)",
+    "instrument_calibration_N0_vs_straight_record": "peaks read high (TRT finite-k sharpening) and tail ratios read low (near-wall tail content sits partly in cut cells under bulk-only material accounting); these deltas are the readout shift of the new instrument, which is why the bend is quoted against N0, never against the record",
+    "wall_layer_budget": "reference-lattice study: amp ~ 5 u_lat = 0.2 over 2-3 cells at this resolution, shrinking ~ res^0.7 (results/oblique_wall_scheme_study.json)"
+  },
+  "bend_N30_vs_N0": [
+    {
+      "dbar_um": 150.0,
+      "peak_relative_to_control": 8.3945009935249e-05,
+      "peak_lag_minus_control": 0.0,
+      "tail_ratio_minus_control": 0.03361295520455909
+    },
+    {
+      "dbar_um": 750.0,
+      "peak_relative_to_control": -0.08274428352213581,
+      "peak_lag_minus_control": 0.0,
+      "tail_ratio_minus_control": -0.1741038340020431
+    },
+    {
+      "dbar_um": 1550.0,
+      "peak_relative_to_control": 0.0574453712214531,
+      "peak_lag_minus_control": 0.0,
+      "tail_ratio_minus_control": -0.004940846844891045
+    }
+  ],
   "mass_final_over_initial": {
     "A0": 0.9725773054669704,
-    "A1": 0.9725836090736523
+    "A1": 0.9725836090736523,
+    "N0": 0.8825512675246773,
+    "N30": 0.8790603464312832
   },
   "meta": {
     "A0": {
@@ -135,6 +222,7 @@
       "openlb_version": "1.9.0",
       "mode": "bent-pipe G4 control: Eulerian slug, piecewise prescribed Poiseuille (mitred), bounce-back walls, capped ends, path-based windows, bulk-only accounting",
       "bend_angle_deg": 0.0,
+      "wall": "bb",
       "dynamics": "bgk",
       "magic_lambda": null,
       "tau_even": null,
@@ -179,6 +267,7 @@
       "openlb_version": "1.9.0",
       "mode": "bent-pipe G4 control: Eulerian slug, piecewise prescribed Poiseuille (mitred), bounce-back walls, capped ends, path-based windows, bulk-only accounting",
       "bend_angle_deg": 0.0,
+      "wall": "bb",
       "dynamics": "trt",
       "magic_lambda": 0.25,
       "tau_even": 52.583333333333044,
@@ -216,8 +305,100 @@
       "dt": 0.00022222222222222223,
       "outputs": 400,
       "time_horizon_over_t2": 6.5
+    },
+    "N0": {
+      "solver": "openlb",
+      "app": "/home/mchi4jw4/GitHub/betaFlow/openlb_cases/bentPipe3d/bentPipe3d.cpp",
+      "openlb_version": "1.9.0",
+      "mode": "bent-pipe G4 control: Eulerian slug, piecewise prescribed Poiseuille (mitred), bounce-back walls, capped ends, path-based windows, bulk-only accounting",
+      "bend_angle_deg": 0.0,
+      "wall": "nt",
+      "dynamics": "trt",
+      "magic_lambda": 0.25,
+      "tau_even": 52.583333333333044,
+      "u_lat_target": 0.04,
+      "reused_existing_output": true,
+      "resolution_cells_per_radius": 12,
+      "predictions_before_run": {
+        "peclet_cell": 33.333333333333336,
+        "u_lat_centreline": 0.04,
+        "tau": 0.5048,
+        "naive_over_exact_D_factor": 105.16666666666609,
+        "depletion_relative_centreline": 0.0064,
+        "d_lattice_exact": 0.0012000000000000066
+      },
+      "provenance_from_app": {
+        "wall": "nt",
+        "dynamics": "trt",
+        "taueven": 52.5833,
+        "velocity_source": "regionwise-analytic-arc",
+        "angle_deg": 0.0,
+        "rbend": 0.0004,
+        "sbend": 0.000245,
+        "arclen": 0.0,
+        "tau_requested": 0.5048,
+        "omega": 1.98098,
+        "dx": 1.66667e-05,
+        "dt": 0.000222222,
+        "uLatCentre": 0.04,
+        "iTmax": 15600.0,
+        "statIter": 39.0,
+        "pathLen": 0.0109746,
+        "x0": 0.000166667,
+        "slugW": 5e-05
+      },
+      "tau_realised": 0.5048006542216479,
+      "dt": 0.00022222222222222223,
+      "outputs": 400,
+      "time_horizon_over_t2": 6.5
+    },
+    "N30": {
+      "solver": "openlb",
+      "app": "/home/mchi4jw4/GitHub/betaFlow/openlb_cases/bentPipe3d/bentPipe3d.cpp",
+      "openlb_version": "1.9.0",
+      "mode": "bent-pipe G4 control: Eulerian slug, piecewise prescribed Poiseuille (mitred), bounce-back walls, capped ends, path-based windows, bulk-only accounting",
+      "bend_angle_deg": 30.0,
+      "wall": "nt",
+      "dynamics": "trt",
+      "magic_lambda": 0.25,
+      "tau_even": 52.583333333333044,
+      "u_lat_target": 0.04,
+      "reused_existing_output": true,
+      "resolution_cells_per_radius": 12,
+      "predictions_before_run": {
+        "peclet_cell": 33.333333333333336,
+        "u_lat_centreline": 0.04,
+        "tau": 0.5048,
+        "naive_over_exact_D_factor": 105.16666666666609,
+        "depletion_relative_centreline": 0.0064,
+        "d_lattice_exact": 0.0012000000000000066
+      },
+      "provenance_from_app": {
+        "wall": "nt",
+        "dynamics": "trt",
+        "taueven": 52.5833,
+        "velocity_source": "regionwise-analytic-arc",
+        "angle_deg": 30.0,
+        "rbend": 0.0004,
+        "sbend": 0.000245,
+        "arclen": 0.00020944,
+        "tau_requested": 0.5048,
+        "omega": 1.98098,
+        "dx": 1.66667e-05,
+        "dt": 0.000222222,
+        "uLatCentre": 0.04,
+        "iTmax": 15600.0,
+        "statIter": 39.0,
+        "pathLen": 0.0109746,
+        "x0": 0.000166667,
+        "slugW": 5e-05
+      },
+      "tau_realised": 0.5048006542216479,
+      "dt": 0.00022222222222222223,
+      "outputs": 400,
+      "time_horizon_over_t2": 6.5
     }
   },
-  "git_sha": "89d8b719d338-dirty",
-  "timestamp": "2026-08-26T10:57:35+00:00"
+  "git_sha": "aed20ca3b128-dirty",
+  "timestamp": "2026-08-27T11:03:00+00:00"
 }

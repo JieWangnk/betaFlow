@@ -289,17 +289,24 @@ their reasons, because how errors present is data. The trail so far:
 1. **The layer-escape O(1) constant** — the measured prefactor is 2.73 ±
    0.16 times the crude balance; a proper derivation is open theory work.
 2. **Bifurcating geometry** — pre-registered 2026-08-26; gate G4's
-   machinery control PASSED (0.007% peaks) and surfaced the oblique-wall
-   instability (see Tier 1). The wall-scheme study on the reference
-   lattice (`results/oblique_wall_scheme_study.json`) characterised the
-   problem: four schemes measured, two refuted (non-equilibrium
-   reflection is a C-proportional feedback pump; Bouzidi reflection is
-   not conservative for scalars), Noble–Torczynski partially-saturated
-   cells the best conservative candidate (exact mass, stable, positive,
-   true-wall geometry), and the residual wall layer's scaling law
-   measured (≈5 u_lat, shrinking ≈ res^0.7 at the pin — ~1% window bias
-   at ~48 cells/radius). Next concrete step: port the NT ADE operator to
-   OpenLB and run the oblique ladder at HPC resolution, layer budgeted
-   by the measured law.
+   machinery control PASSED (0.007% peaks); the oblique-wall
+   instability was surfaced, characterised on the reference lattice
+   (`results/oblique_wall_scheme_study.json`: two schemes refuted with
+   mechanisms, the layer's scaling law measured), and RESOLVED at the
+   practical level: Noble–Torczynski partially-saturated cells + TRT at
+   magic Λ = 1/4, ported to OpenLB (`bentPipe3d --wall nt`), stable at
+   the pinned τ and production resolution where every other combination
+   fails — either ingredient alone diverges. The FIRST BEND MEASUREMENT
+   is on record (prescribed-field leg, N30 vs its same-instrument
+   control N0): upstream in-run control unmoved, post-bend peak −8.2%,
+   far peak +5.8%, wall-layer budget riding with the numbers. The
+   closure theory (path b) has its first rung committed
+   (`results/halfspace_closure_study.json`: the single-point closure
+   family is exhausted — bounce-back is exactly marginal; the wall mode
+   has checkerboard parity, odd-neighbour sourcing damps it; the
+   correctly posed next object is the staircase-periodic half-space).
+   Next: the solved-flow bend (fluid stage through the elbow), then the
+   junction; HPC resolution shrinks the wall layer per the measured
+   law.
 3. **Paper loose ends needing the author:** §1 exemplar citations, the
    Rhie & Chow reference, the author block; BPM120's outlier.

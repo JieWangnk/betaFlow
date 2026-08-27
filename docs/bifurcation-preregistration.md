@@ -161,6 +161,8 @@ oblique to the lattice. The discriminating ladder, all at Pe = 200:
 | oblique, TRT Λ = 1/4, **12 cells/radius** | bulk mass crosses **zero** at 3.27 s of 3.44 — the gain is orders lower, the loop persists; the res-6 "stability" was a rate effect (fewer steps per physical time) |
 | plain Bouzidi reflection as the scalar wall, axis-aligned | stable but retains 0.25 of the scalar — the interpolation is not mass-conserving for a scalar (no pressure field to self-correct); **refuted** as the no-flux candidate |
 | plain Bouzidi, oblique | leaks to 0.24, then diverges |
+| Noble–Torczynski walls + BGK, oblique | diverges — the solid operator alone is not the cure |
+| **Noble–Torczynski walls + TRT Λ = 1/4**, oblique, 12 cells/radius | **stable**: mass settles at ~0.88 (cut-cell transit share, decelerating — the opposite signature of the TRT+bounce-back drain), peaks physical |
 
 Plane-wave stability of the uniform scheme is clean at every operating
 point tested (max |λ| < 1, full 3-D wavevector scan; re-derived inside the
@@ -212,12 +214,20 @@ available in stock OpenLB 1.9 gives stable impermeable-wall scalar
 transport oblique to the lattice at these parameters — bounce-back feeds
 the loop, TRT at magic Λ only slows it, and the shipped interpolated ADE
 wall (`setBouzidiAdeDirichlet`) is absorbing, which is the wrong physics
-for this channel. The named next rung, before any bend or junction
-number: a **mass-conserving** interpolated no-flux ADE wall — plain
-Bouzidi reflection is refuted by measurement (the ladder's last rows), so
-the scheme needs a conservation-correcting construction, designed and
-verified on this same control before use. No bend measurement is quoted
-until then.
+for this channel. **Resolved 2026-08-27: the working wall is Noble–Torczynski
+partially-saturated cells (exactly conservative, true-surface geometry)
+with a TRT bulk at magic Λ = 1/4 — either ingredient alone fails.** The
+G4 record carries the four-leg design: A0 (BGK machinery gate, 0.007%),
+A1 (TRT collision calibration), N0 (the NT instrument's own calibration
+against the record — TRT-sharpened peaks, tail ratios reading low because
+near-wall tail content sits partly in cut cells under bulk-only
+accounting), and N30 — **the first bend measurement**, quoted against N0
+on the same instrument: the upstream in-run control window is unmoved
+(gated), the post-bend window's peak −8.2%, the far window's +5.8%, with
+the reference-lattice wall-layer budget (amp ≈ 5 u_lat over 2–3 cells,
+shrinking ≈ res^0.7) riding with the numbers. Path (b) — the theory of a
+layer-free closure — continues in
+`results/halfspace_closure_study.json`.
 
 ## Order of work (when the rung starts)
 

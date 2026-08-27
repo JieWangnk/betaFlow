@@ -56,8 +56,13 @@
 using namespace olb;
 using namespace olb::names;
 
+// Per-cell solid fraction for the Noble-Torczynski wall (path (a) of the
+// oblique-wall programme, results/oblique_wall_scheme_study.json).
+struct SOLID_FRACTION : public descriptors::FIELD_BASE<1> { };
+
 using MyCase = Case<
-  AdvectionDiffusion, Lattice<double, descriptors::D3Q7<descriptors::VELOCITY>>
+  AdvectionDiffusion,
+  Lattice<double, descriptors::D3Q7<descriptors::VELOCITY, SOLID_FRACTION>>
 >;
 using T = MyCase::value_t;
 using DESCRIPTOR = MyCase::descriptor_t_of<AdvectionDiffusion>;
@@ -80,6 +85,70 @@ static constexpr T CX          = 100e-6;
 static constexpr T DBAR[3]     = {150e-6, 750e-6, 1550e-6};
 static constexpr T CS2_D3Q7    = 0.25;
 
+// Noble-Torczynski partially-saturated ADE dynamics: collision blends BGK
+// with a pairwise-antisymmetric solid operator by B(eps, tau). On D3Q7 the
+// opposite-direction weights are equal, so the u_w = 0 solid operator
+// reduces to Omega_s_i = g_ibar - g_i exactly (the u_w = local variant
+// diverges under plug flow - measured in the reference-lattice study).
+// Exactly mass-conserving: Omega_s sums to zero pairwise.
+template<typename T_, typename DESCRIPTOR_,
+         typename MOMENTA=momenta::AdvectionDiffusionBulkTuple>
+struct NTAdeBGKdynamics final
+  : public dynamics::CustomCollision<T_,DESCRIPTOR_,MOMENTA> {
+  using MomentaF = typename MOMENTA::template type<DESCRIPTOR_>;
+  using EquilibriumF =
+    typename equilibria::FirstOrder::template type<DESCRIPTOR_,MOMENTA>;
+  using parameters = meta::list<descriptors::OMEGA, collision::TRT::MAGIC>;
+  template <typename NEW_T>
+  using exchange_value_type = NTAdeBGKdynamics<NEW_T,DESCRIPTOR_,MOMENTA>;
+  template<typename M>
+  using exchange_momenta = NTAdeBGKdynamics<T_,DESCRIPTOR_,M>;
+  std::type_index id() override { return typeid(NTAdeBGKdynamics); }
+  AbstractParameters<T_,DESCRIPTOR_>& getParameters(
+      BlockLattice<T_,DESCRIPTOR_>& block) override {
+    return block.template getData<OperatorParameters<NTAdeBGKdynamics>>();
+  }
+  template <typename CELL, typename PARAMETERS,
+            typename V=typename CELL::value_t>
+  CellStatistic<V> collide(CELL& cell, PARAMETERS& parameters) any_platform {
+    // The bulk part is TRT (OMEGA relaxes the EVEN sector, MAGIC places
+    // the ODD rate that carries D — the convention of the plain TRT
+    // path); BGK is the MAGIC = (tau-1/2)^2 member. The solid part uses
+    // the ODD rate's tau in B, since that is the transport clock.
+    const auto u = cell.template getField<descriptors::VELOCITY>();
+    const V C = MomentaF().computeRho(cell);
+    const V omE = parameters.template get<descriptors::OMEGA>();
+    const V magic = parameters.template get<collision::TRT::MAGIC>();
+    const V omO = V{1} / (magic / (V{1}/omE - V{0.5}) + V{0.5});
+    const V tauO = V{1} / omO;
+    const V eps = cell.template getField<SOLID_FRACTION>();
+    const V B = eps * (tauO - V{0.5}) / ((V{1} - eps) + (tauO - V{0.5}));
+    V g0[DESCRIPTOR_::q];
+    for (int i = 0; i < DESCRIPTOR_::q; ++i) { g0[i] = cell[i]; }
+    for (int i = 0; i < DESCRIPTOR_::q; ++i) {
+      const int io = descriptors::opposite<DESCRIPTOR_>(i);
+      const V fEq  = equilibrium<DESCRIPTOR_>::firstOrder(i, C, u);
+      const V fEqO = equilibrium<DESCRIPTOR_>::firstOrder(io, C, u);
+      const V gP = V{0.5}*(g0[i] + g0[io]), gM = V{0.5}*(g0[i] - g0[io]);
+      const V eP = V{0.5}*(fEq + fEqO),    eM = V{0.5}*(fEq - fEqO);
+      cell[i] = g0[i]
+              + (V{1} - B) * (-omE*(gP - eP) - omO*(gM - eM))
+              + B * (g0[io] - g0[i]);
+    }
+    return {C, V{0}};
+  };
+  void computeEquilibrium(ConstCell<T_,DESCRIPTOR_>& cell, T_ rho,
+                          const T_ u[DESCRIPTOR_::d],
+                          T_ fEq[DESCRIPTOR_::q]) const override {
+    for (int iPop = 0; iPop < DESCRIPTOR_::q; ++iPop) {
+      fEq[iPop] = equilibrium<DESCRIPTOR_>::firstOrder(iPop, rho, u);
+    }
+  };
+  std::string getName() const override {
+    return "NTAdeBGKdynamics<" + MomentaF().getName() + ">";
+  };
+};
+
 // The bend frame: mother along +x to B0 = (xb, 0, 0); arc of radius R
 // about C = (xb, R, 0) turning by `angle` toward +y; daughter straight
 // from B1 along d2. Centreline point at arc angle phi:
@@ -97,6 +166,34 @@ struct BendFrame {
   T phiOf(const T in[]) const {
     return std::atan2(in[0] - C[0], -(in[1] - C[1]));
   }
+  // squared distance from the region-wise centreline — the ONE geometry
+  // definition shared by the velocity field and the NT solid fraction.
+  T radial2(const T in[]) const {
+    const T phi = (angle > T(0)) ? phiOf(in) : T(-1);
+    if (angle <= T(0) || phi <= T(0) || in[0] <= xb) {
+      return in[1]*in[1] + in[2]*in[2];
+    } else if (phi < angle) {
+      const T wx = in[0] - C[0], wy = in[1] - C[1];
+      const T dR = std::sqrt(wx*wx + wy*wy) - R;
+      return dR*dR + in[2]*in[2];
+    }
+    const Vector<T,3> q(in[0] - B1[0], in[1] - B1[1], in[2]);
+    const T sd = q * d2;
+    const Vector<T,3> rad = q - d2 * sd;
+    return rad * rad;
+  }
+  // path coordinate along the centreline (from the mother start), for the
+  // axial caps of the NT solid fraction.
+  T pathOf(const T in[]) const {
+    const T phi = (angle > T(0)) ? phiOf(in) : T(-1);
+    if (angle <= T(0) || phi <= T(0) || in[0] <= xb) {
+      return in[0];
+    } else if (phi < angle) {
+      return xb + R * phi;
+    }
+    const Vector<T,3> q(in[0] - B1[0], in[1] - B1[1], in[2]);
+    return xb + R * angle + q * d2;
+  }
 };
 
 // Region-wise analytic Poiseuille in LATTICE units, direction continuous
@@ -108,34 +205,54 @@ public:
   BentPoiseuilleVelocity(T convVel, BendFrame f)
     : AnalyticalF3D<T,T>(3), _convVel(convVel), _f(f) {}
   bool operator()(T out[], const T in[]) override {
-    T r2, tx, ty;
+    T tx, ty;
     const T phi = (_f.angle > T(0)) ? _f.phiOf(in) : T(-1);
     if (_f.angle <= T(0) || phi <= T(0) || in[0] <= _f.xb) {
-      // mother frame (also the whole domain at angle 0)
-      if (_f.angle > T(0) && phi > T(0) && in[0] > _f.xb) {
-        // unreachable guard; kept for clarity
-      }
-      r2 = in[1]*in[1] + in[2]*in[2];
-      tx = T(1); ty = T(0);
+      tx = T(1); ty = T(0);                       // mother frame
     } else if (phi < _f.angle) {
-      // bend: radial distance from the arc centreline
-      const T wx = in[0] - _f.C[0], wy = in[1] - _f.C[1];
-      const T dR = std::sqrt(wx*wx + wy*wy) - _f.R;
-      r2 = dR*dR + in[2]*in[2];
-      tx = std::cos(phi); ty = std::sin(phi);
+      tx = std::cos(phi); ty = std::sin(phi);     // bend tangent
     } else {
-      // daughter frame
-      const Vector<T,3> q(in[0] - _f.B1[0], in[1] - _f.B1[1], in[2]);
-      const T s = q * _f.d2;
-      const Vector<T,3> rad = q - _f.d2 * s;
-      r2 = rad * rad;
-      tx = _f.d2[0]; ty = _f.d2[1];
+      tx = _f.d2[0]; ty = _f.d2[1];               // daughter frame
     }
+    const T r2 = _f.radial2(in);
     const T u = 2.0 * U_MEAN
                 * util::max(T(0), T(1) - r2 / (RADIUS*RADIUS)) / _convVel;
     out[0] = u * tx;
     out[1] = u * ty;
     out[2] = T(0);
+    return true;
+  }
+};
+
+// Solid fraction for the Noble-Torczynski wall: 4^3 supersampling of the
+// true surface (the same radial2/path definitions as the velocity field,
+// so wall and flow can never disagree on where the bore is). Axial caps at
+// the mother start and daughter end count as solid.
+class SolidFraction : public AnalyticalF3D<T,T> {
+  BendFrame _f;
+  T _dx, _pathMin, _pathMax;
+public:
+  SolidFraction(BendFrame f, T dx, T pathMin, T pathMax)
+    : AnalyticalF3D<T,T>(1), _f(f), _dx(dx),
+      _pathMin(pathMin), _pathMax(pathMax) {}
+  bool operator()(T out[], const T in[]) override {
+    int solid = 0;
+    for (int a = 0; a < 4; ++a) {
+      for (int b = 0; b < 4; ++b) {
+        for (int c = 0; c < 4; ++c) {
+          const T off[3] = {(T(a) - 1.5) / 4.0 * _dx,
+                            (T(b) - 1.5) / 4.0 * _dx,
+                            (T(c) - 1.5) / 4.0 * _dx};
+          const T pp[3] = {in[0] + off[0], in[1] + off[1], in[2] + off[2]};
+          const T sPath = _f.pathOf(pp);
+          if (_f.radial2(pp) > RADIUS*RADIUS
+              || sPath < _pathMin || sPath > _pathMax) {
+            ++solid;
+          }
+        }
+      }
+    }
+    out[0] = T(solid) / T(64);
     return true;
   }
 };
@@ -266,6 +383,25 @@ int main(int argc, char* argv[]) {
                                 pEnd, RADIUS);
     geometry.rename(2, 1, rest);
   }
+  // Receiver windows as their own BULK materials (11, 12, 13), carved
+  // out of material 1: every readout below is then a material sum, which
+  // is bulk-only BY CONSTRUCTION. The geometric-cylinder windows of the
+  // straight app were only accidentally bulk-only (wall cells held zero
+  // under bounce-back); under the NT wall, cut and solid cells carry
+  // rattling in-transit scalar that a geometric window would alias.
+  for (int w = 0; w < 3; ++w) {
+    Vector<T,3> w0, w1;
+    if (DBAR[w] + CX/2.0 <= sBend) {
+      w0 = Vector<T,3>(x0 + DBAR[w] - CX/2.0, T(0), T(0));
+      w1 = Vector<T,3>(x0 + DBAR[w] + CX/2.0, T(0), T(0));
+    } else {
+      const T sOut = DBAR[w] - sBend - arcLen;
+      w0 = f.B1 + f.d2 * (sOut - CX/2.0);
+      w1 = f.B1 + f.d2 * (sOut + CX/2.0);
+    }
+    IndicatorCylinder3D<T> win(w0, w1, RADIUS);
+    geometry.rename(1, 11 + w, win);
+  }
   geometry.communicate();
   geometry.print();
 
@@ -277,15 +413,25 @@ int main(int argc, char* argv[]) {
 
   if (dyn == "trt") {
     dynamics::set<AdvectionDiffusionTRTdynamics>(
-      lattice, geometry.getMaterialIndicator({1}));
+      lattice, geometry.getMaterialIndicator({1, 11, 12, 13}));
   } else if (dyn == "bgk2") {
     dynamics::set<AdeSecondOrderBGKdynamics>(
-      lattice, geometry.getMaterialIndicator({1}));
+      lattice, geometry.getMaterialIndicator({1, 11, 12, 13}));
   } else {
     dynamics::set<AdvectionDiffusionBGKdynamics>(
-      lattice, geometry.getMaterialIndicator({1}));
+      lattice, geometry.getMaterialIndicator({1, 11, 12, 13}));
   }
-  if (wall == "bouzidi") {
+  if (wall == "nt") {
+    // Noble-Torczynski: NO link boundary at all — the wall IS the
+    // solid-fraction field, and every cell (bulk, cut, deep solid) runs
+    // the blended dynamics. eps = 0 recovers pure BGK in the bulk;
+    // eps = 1 is a pure pairwise reflection that rattles in place.
+    dynamics::set<NTAdeBGKdynamics>(
+      lattice, geometry.getMaterialIndicator({1, 2, 11, 12, 13}));
+    SolidFraction epsF(f, dx, 2.0*dx, f.xb + rBend*angle + daughterLen);
+    fields::set<SOLID_FRACTION>(
+      lattice, geometry.getMaterialIndicator({1, 2, 11, 12, 13}), epsF);
+  } else if (wall == "bouzidi") {
     // The TRUE surface: the same composite the geometry staircase
     // approximates, extended half a cell at both ends so cap links get
     // distances (the pipeFlow3d pattern).
@@ -319,18 +465,20 @@ int main(int argc, char* argv[]) {
 
   BentPoiseuilleVelocity uF(converter.getConversionFactorVelocity(), f);
   SlugInit slugF(x0, 2.0 * slugHalf);
-  auto everything = geometry.getMaterialIndicator({1, 2});
+  auto everything = geometry.getMaterialIndicator({1, 2, 11, 12, 13});
   fields::set<descriptors::VELOCITY>(lattice, everything, uF);
   AnalyticalConst3D<T,T> zeroRho(T(0));
   AnalyticalConst3D<T,T> zeroU(T(0), T(0), T(0));
-  lattice.iniEquilibrium(geometry.getMaterialIndicator({1}), slugF, uF);
+  lattice.iniEquilibrium(geometry.getMaterialIndicator({1, 11, 12, 13}), slugF, uF);
   lattice.iniEquilibrium(geometry.getMaterialIndicator({2}), zeroRho, zeroU);
-  if (dyn == "trt") {
+  if (dyn == "trt" || wall == "nt") {
     // OMEGA relaxes the EVEN sector (free choice); MAGIC places the ODD
     // rate, which carries D: Lambda = (tau_even - 1/2)(tau_ade - 1/2).
-    lattice.setParameter<descriptors::OMEGA>(T(1) / tauEven);
+    // For NT with dyn=bgk the BGK-equivalent member is tau_even = tau.
+    const T tE = (dyn == "trt") ? tauEven : tau;
+    lattice.setParameter<descriptors::OMEGA>(T(1) / tE);
     lattice.setParameter<collision::TRT::MAGIC>(
-      (tauEven - 0.5) * (tau - 0.5));
+      (tE - 0.5) * (tau - 0.5));
   } else {
     lattice.setParameter<descriptors::OMEGA>(
       converter.getLatticeAdeRelaxationFrequency());
@@ -367,32 +515,23 @@ int main(int argc, char* argv[]) {
       SuperLatticeDensity3D<T,DESCRIPTOR> rho(lattice);
       T total[1] = {T(0)};
       int tmp[1] = {0};
-      SuperSum3D<T,T> totalSum(rho, geometry, 1);
-      totalSum(total, tmp);
+      // Bulk-only by construction: material sums over {1, 11, 12, 13}.
+      total[0] = T(0);
+      for (int mat : {1, 11, 12, 13}) {
+        T part[1] = {T(0)};
+        SuperSum3D<T,T> matSum(rho, geometry, mat);
+        matSum(part, tmp);
+        total[0] += part[0];
+      }
 
       T cir[3];
       for (int w = 0; w < 3; ++w) {
-        // Window at PATH distance DBAR[w] from the slug centre. Window 1
-        // lies in the straight mother (path < sbend) — the in-run
-        // control; windows 2 and 3 lie in the outgoing straight section
-        // (path > sbend + arclen). No window intersects the bend.
-        Vector<T,3> w0, w1;
-        if (DBAR[w] + CX/2.0 <= sBend) {
-          w0 = Vector<T,3>(x0 + DBAR[w] - CX/2.0, T(0), T(0));
-          w1 = Vector<T,3>(x0 + DBAR[w] + CX/2.0, T(0), T(0));
-        } else {
-          const T sOut = DBAR[w] - sBend - arcLen;   // path past bend exit
-          w0 = f.B1 + f.d2 * (sOut - CX/2.0);
-          w1 = f.B1 + f.d2 * (sOut + CX/2.0);
-        }
         SuperSum3D<T,T> winSum(
           std::unique_ptr<SuperF3D<T,T>>(
             new SuperLatticeDensity3D<T,DESCRIPTOR>(lattice)),
           std::unique_ptr<SuperIndicatorF3D<T>>(
-            new SuperIndicatorFfromIndicatorF3D<T>(
-              std::unique_ptr<IndicatorF3D<T>>(
-                new IndicatorCylinder3D<T>(w0, w1, RADIUS)),
-              geometry)));
+            new SuperIndicatorMaterial3D<T>(geometry,
+                std::vector<int>{11 + w})));
         T out[1] = {T(0)};
         winSum(out, tmp);
         cir[w] = (total[0] > T(0)) ? out[0] / total[0] : T(0);

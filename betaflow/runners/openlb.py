@@ -195,7 +195,7 @@ def _run_pipe_momentum(case, resolution=41, tau=0.53, wall="bb",
 
 def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
               time_horizon_over_t2=6.5, outputs=400, workdir=None,
-              dynamics="trt", magic_lambda=0.25):
+              dynamics="trt", magic_lambda=0.25, wall="bb"):
     """Gate G4 of the bifurcation pre-registration: the bent-pipe control.
 
     openlb_cases/bentPipe3d rebuilds the mc_channel scalar transport
@@ -220,8 +220,11 @@ def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
     tau_even = magic_lambda / (tau - 0.5) + 0.5
 
     outdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
-    outdir = (outdir / f"bent_pipe_res{resolution}"
-                       f"_a{bend_angle_deg:g}_u{u_lat_target:g}_{dynamics}")
+    name = (f"bent_pipe_res{resolution}"
+            f"_a{bend_angle_deg:g}_u{u_lat_target:g}_{dynamics}")
+    if wall != "bb":
+        name += f"_{wall}"
+    outdir = outdir / name
     outdir.mkdir(parents=True, exist_ok=True)
 
     # Deterministic reuse (the wall-sweep tool's pattern): the app is a pure
@@ -242,6 +245,7 @@ def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
              "--angle", repr(float(bend_angle_deg)),
              "--dynamics", dynamics,
              "--taueven", repr(tau_even),
+             "--wall", wall,
              "--outdir", str(outdir) + "/"],
             cwd=binary.parent, capture_output=True, text=True)
         if proc.returncode != 0 or "betaflow-done" not in proc.stdout:
@@ -302,6 +306,7 @@ def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
                     "prescribed Poiseuille (mitred), bounce-back walls, "
                     "capped ends, path-based windows, bulk-only accounting",
             "bend_angle_deg": float(bend_angle_deg),
+            "wall": wall,
             "dynamics": dynamics,
             "magic_lambda": float(magic_lambda) if dynamics == "trt" else None,
             "tau_even": float(tau_even) if dynamics == "trt" else None,

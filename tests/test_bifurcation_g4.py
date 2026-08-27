@@ -28,18 +28,22 @@ What this test runs TODAY: the two angle-0 legs.
       separate (BGK grows with k, TRT shrinks — ratio 0.83 at k = 1),
       so TRT resolves sharper peaks; its k -> 0 physics is identical
       (structural fact 2). Tails and mass must still hold the envelope.
-The bend leg is BLOCKED, and that is
-the record's finding, not a gap: TRT Lambda = 1/4 reduces the wall-loop
-gain by orders yet the drain persists at production resolution (res 12,
-angle 30: bulk mass crosses ZERO at 3.27 s with clean-looking peaks —
-res 6's apparent stability was a rate effect, fewer steps per physical
-time). Stable oblique scalar transport needs a MASS-CONSERVING no-flux
-interpolated wall for the ADE lattice: stock OpenLB 1.9 ships only a
-Bouzidi-ADE-Dirichlet (absorbing) wall, and plain Bouzidi reflection is
-refuted by measurement (stable axis-aligned but retains only 0.25 of the
-scalar — the interpolation is not conservative and a scalar has no
-pressure field to self-correct). Designing that scheme is the named next
-rung before any bend or junction measurement.
+THE WALL THAT WORKS (2026-08-27): Noble-Torczynski partially-saturated
+cells (solid fraction from the true surface, pairwise-antisymmetric solid
+operator — exactly conservative) with a TRT bulk at magic Lambda = 1/4.
+Either ingredient alone fails: NT-BGK diverges obliquely, TRT+bounce-back
+drains to zero. Together they are stable at the pinned tau, production
+resolution, oblique flow. Two more legs run on that scheme:
+  N0   angle 0,  NT+TRT — the scheme's own control: its deltas against
+       the straight record ARE the new instrument's calibration (TRT
+       sharpens peaks; the near-wall tail content sits partly in cut
+       cells under bulk-only accounting, so tail ratios read low). No
+       envelope gate — the envelope belongs to A0, same-instrument.
+  N30  angle 30, NT+TRT — THE FIRST BEND MEASUREMENT, reported against
+       N0 (same instrument, one variable). Gated only on its in-run
+       control: window 1 lies upstream of the bend and must match N0.
+       The wall-layer budget of the reference-lattice study (amp ~
+       5 u_lat over 2-3 cells) rides with the numbers.
 """
 
 import itertools
@@ -176,19 +180,28 @@ def test_bifurcation_g4_control():
         f"explains a TRT peak elevation — re-diagnose before quoting one")
 
     legs = {}
-    for tag, dyn in (("A0", "bgk"), ("A1", "trt")):
-        res = run_case(case, runner="openlb", bend_angle_deg=0.0,
-                       dynamics=dyn, magic_lambda=0.25)
+    for tag, angle, dyn, wall in (("A0", 0.0, "bgk", "bb"),
+                                  ("A1", 0.0, "trt", "bb"),
+                                  ("N0", 0.0, "trt", "nt"),
+                                  ("N30", 30.0, "trt", "nt")):
+        res = run_case(case, runner="openlb", bend_angle_deg=angle,
+                       dynamics=dyn, magic_lambda=0.25, wall=wall)
         m = res["mass_over_initial"]
         assert m[0] == pytest.approx(1.0)
-        # G1 bookkeeping: parking only, bounded, never growth.
-        assert m[-1] > 0.94, (
-            f"leg {tag}: bulk mass fell to {m[-1]:.4f} of initial")
+        # G1 bookkeeping: parking only, bounded, never growth. Floors by
+        # wall: bounce-back parks -2.7% (straight record envelope); the
+        # NT wall's cut-cell transit parks ~12% at this resolution
+        # (measured, settling not draining - the drain signature was the
+        # TRT+bounce-back failure).
+        floor = 0.94 if wall == "bb" else 0.85
+        assert m[-1] > floor, (
+            f"leg {tag}: bulk mass fell to {m[-1]:.4f} (floor {floor})")
         assert m[-1] < 1.005, (
             f"leg {tag}: bulk mass GREW to {m[-1]:.4f} — a leak inward")
         legs[tag] = {
-            "angle_deg": 0.0,
+            "angle_deg": angle,
             "dynamics": dyn,
+            "wall": wall,
             "receivers": _receiver_metrics(res),
             "mass_final_over_initial": float(m[-1]),
             "meta": res["meta"],
@@ -230,6 +243,32 @@ def test_bifurcation_g4_control():
                 ctrl["peak_measured"] / ref["peak_measured"] - 1.0,
             "tail_ratio_minus_straight_record": dtail,
         })
+
+    # THE IN-RUN CONTROL GATE (N30 window 1 vs N0 window 1): the first
+    # window lies wholly upstream of the bend, so on the SAME instrument
+    # the bend must not move it. Origins: output-sampling granularity on
+    # the peak; the tail envelope.
+    w1_bend = legs["N30"]["receivers"][0]
+    w1_ctrl = legs["N0"]["receivers"][0]
+    dpeak_w1 = w1_bend["peak_measured"]/w1_ctrl["peak_measured"] - 1.0
+    dtail_w1 = (w1_bend["tail_ratio_3_to_6_t2"]
+                - w1_ctrl["tail_ratio_3_to_6_t2"])
+    assert abs(dpeak_w1) < 0.01, (
+        f"in-run control: upstream window peak moved {dpeak_w1:+.2%} "
+        f"under the bend — instrument, diagnose")
+    assert abs(dtail_w1) < 0.05, (
+        f"in-run control: upstream window tail moved {dtail_w1:+.3f}")
+
+    # THE BEND MEASUREMENT (N30 vs N0, windows 2 and 3): reported.
+    bend_vs_control = [{
+        "dbar_um": b["dbar_um"],
+        "peak_relative_to_control":
+            b["peak_measured"]/c["peak_measured"] - 1.0,
+        "peak_lag_minus_control":
+            b["peak_lag_relative"] - c["peak_lag_relative"],
+        "tail_ratio_minus_control":
+            b["tail_ratio_3_to_6_t2"] - c["tail_ratio_3_to_6_t2"],
+    } for b, c in zip(legs["N30"]["receivers"], legs["N0"]["receivers"])]
 
     record = {
         "case": "mc_channel through the bent-pipe G4 control",
@@ -307,6 +346,26 @@ def test_bifurcation_g4_control():
                                         "slightly narrow - refresh on the "
                                         "record's next regeneration",
         },
+        "nt_wall": {
+            "scheme": "Noble-Torczynski partially-saturated cells "
+                      "(pairwise-antisymmetric solid operator, exactly "
+                      "conservative) + TRT bulk at magic Lambda = 1/4; "
+                      "either alone fails (NT-BGK diverges obliquely, "
+                      "TRT+bounce-back drains to zero)",
+            "instrument_calibration_N0_vs_straight_record":
+                "peaks read high (TRT finite-k sharpening) and tail "
+                "ratios read low (near-wall tail content sits partly in "
+                "cut cells under bulk-only material accounting); these "
+                "deltas are the readout shift of the new instrument, "
+                "which is why the bend is quoted against N0, never "
+                "against the record",
+            "wall_layer_budget": "reference-lattice study: amp ~ "
+                                 "5 u_lat = 0.2 over 2-3 cells at this "
+                                 "resolution, shrinking ~ res^0.7 "
+                                 "(results/oblique_wall_scheme_study"
+                                 ".json)",
+        },
+        "bend_N30_vs_N0": bend_vs_control,
         "mass_final_over_initial": {
             k: v["mass_final_over_initial"] for k, v in legs.items()},
         "meta": {k: v["meta"] for k, v in legs.items()},
