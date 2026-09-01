@@ -112,6 +112,15 @@ equivalent straight-pipe peak (symmetric advective split). Alternative
 that mimics it: mass parked at the junction apex plus tail enhancement
 could depress peaks below 1/2 while conserving mass — distinguished by G1
 plus the tail integral.
+*Measured 2026-09-01 (`results/bifurcation_junction.json`): the naive
+half is WRONG by the velocity factor — daughter peaks run 1.23×/1.28×
+half the same-instrument straight peak at 750/1550 µm. The corrected
+prediction is 1/(2·2^{−1/3}) = 0.63 of the straight peak (the slower
+Murray daughters concentrate the pulse in space by 1/V), which lands
+within 3%; the peak arrival times likewise match the two-segment
+kinematics (path/V stretched by the daughter speed, times the known +4%
+lattice lag) at both receivers. The naive picture is kept beside its
+correction per policy.*
 
 **P2 — no recirculation.** At Re = 0.378 the junction flow is
 Stokes-like; no recirculation bubble and no secondary-flow redistribution
@@ -214,7 +223,20 @@ available in stock OpenLB 1.9 gives stable impermeable-wall scalar
 transport oblique to the lattice at these parameters — bounce-back feeds
 the loop, TRT at magic Λ only slows it, and the shipped interpolated ADE
 wall (`setBouzidiAdeDirichlet`) is absorbing, which is the wrong physics
-for this channel. **Resolved 2026-08-27: the working wall is Noble–Torczynski
+for this channel. **The junction itself (2026-09-01, `results/bifurcation_junction.json`).**
+All gates green at production resolution: G2 flux balance +0.14%;
+G5/G7 profiles redeveloped (mother 3.8e-3, daughters ~1e-2); P2
+confirmed — no recirculation, daughter centrelines at 99.2% of full
+speed; scalar mirror windows within 0.3% relative. G3's bring-up
+finding matured into a structural fact: the antisymmetric flux-split
+mode is FLAT under refinement (0.72% at res 6 → 0.78% at res 12 —
+the identity-vs-discretisation doctrine reads flat as structural, and
+the leading candidate is the oblique outlet discs' boundary-normal
+classification; bounded by gates, tracked, not absorbed). P3 awaits its
+receiver-distance sweep. P4's inputs (tail metrics per window) are in
+the record.
+
+**Resolved 2026-08-27: the working wall is Noble–Torczynski
 partially-saturated cells (exactly conservative, true-surface geometry)
 with a TRT bulk at magic Λ = 1/4 — either ingredient alone fails.** The
 G4 record carries the four-leg design: A0 (BGK machinery gate, 0.007%),

@@ -70,16 +70,19 @@ def scope_parameters(case, resolution, u_lat_target):
     }
 
 
-def _build(app="mcChannel3d"):
+def _build(app="mcChannel3d", binary=None):
+    """Build (if absent) and return the app binary. `binary` covers the
+    directories whose binary name differs from the directory name."""
     app_dir = _REPO / "openlb_cases" / app
-    if not (app_dir / app).is_file():
+    binary = binary or app
+    if not (app_dir / binary).is_file():
         proc = subprocess.run(["make"], cwd=app_dir, capture_output=True,
                               text=True)
         if proc.returncode != 0:
             raise RuntimeError(
                 f"OpenLB app build failed:\n{proc.stdout[-2000:]}"
                 f"\n{proc.stderr[-2000:]}")
-    return app_dir / app
+    return app_dir / binary
 
 
 def run(case, **params):
@@ -89,6 +92,8 @@ def run(case, **params):
     selects the momentum mode — the SAME pipe_poiseuille_steady.yaml that
     examines OpenFOAM examines OpenLB's fluid solver here.
     """
+    if params.pop("junction", False):
+        return _run_junction(case, **params)
     if "bend_angle_deg" in params:
         return _run_bent(case, **params)
     if "receiver" in case:
@@ -189,6 +194,136 @@ def _run_pipe_momentum(case, resolution=41, tau=0.53, wall="bb",
             "u_lat_char": u_lat,
             "max_phys_t": float(max_phys_t),
             "provenance_from_app": prov,
+        },
+    }
+
+
+def _run_junction(case, resolution=12, u_lat_target=0.04,
+                  time_horizon_over_t2=6.5, outputs=400, workdir=None,
+                  magic_lambda=0.25, fluid_maxt=3.0):
+    """The pre-registered Y-junction: solved flow (junctionFlow3d), then
+    the NT+TRT scalar (junctionPipe3d) on the frozen field. Five windows:
+    the mother in-run control and a mirror pair per daughter — gate G3
+    compares the pairs on the same deterministic solve. There is no
+    prescribed-velocity mode: no analytic junction field exists.
+    """
+    from betaflow.analytic import channel_impulse as ci
+
+    fluid_bin = _build("junction3d", "junctionFlow3d")
+    scalar_bin = _build("junctionScalar3d", "junctionPipe3d")
+    tau, dt, predictions = scope_parameters(case, resolution, u_lat_target)
+    tau_even = magic_lambda / (tau - 0.5) + 0.5
+
+    base = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
+    fdir = base / f"junction_flow_res{resolution}_t{fluid_maxt:g}"
+    fdir.mkdir(parents=True, exist_ok=True)
+    fprov = fdir / "provenance.txt"
+    if not (fprov.is_file() and (fdir / "ufield.csv").is_file()):
+        proc = subprocess.run(
+            [str(fluid_bin),
+             "--resolution", str(resolution),
+             "--horizon", repr(float(time_horizon_over_t2)),
+             "--maxt", repr(float(fluid_maxt)),
+             "--outdir", str(fdir) + "/"],
+            cwd=fluid_bin.parent, capture_output=True, text=True)
+        if proc.returncode != 0 or "betaflow-done" not in proc.stdout:
+            raise RuntimeError(
+                f"junctionFlow3d failed:\n{proc.stdout[-2000:]}"
+                f"\n{proc.stderr[-2000:]}")
+        fprov.write_text("\n".join(
+            ln for ln in proc.stdout.splitlines()
+            if "betaflow-" in ln) + "\n")
+    gates = {}
+    for line in fprov.read_text().splitlines():
+        for tok in line.split():
+            if "=" in tok:
+                k, v = tok.split("=", 1)
+                try:
+                    gates[k] = float(v)
+                except ValueError:
+                    gates[k] = v
+    prof = np.genfromtxt(fdir / "profiles.csv", delimiter=",",
+                         skip_header=1, dtype=None, encoding="utf8")
+    u_mean = float(case["physical"]["mean_velocity"])
+    murray = 2.0 ** (-1.0 / 3.0)
+    fluid_meta = {"gates": gates}
+    for st, umax in (("mother", 2.0 * u_mean),
+                     ("daughter_plus", 2.0 * u_mean * murray),
+                     ("daughter_minus", 2.0 * u_mean * murray)):
+        y = np.array([r[1] for r in prof if r[0].strip() == st])
+        u = np.array([r[2] for r in prof if r[0].strip() == st])
+        fluid_meta[f"{st}_L2_vs_parabola"] = float(np.sqrt(np.mean(
+            (u / umax - (1.0 - y**2))**2)))
+    qm = gates.get("flux_mother")
+    qp = gates.get("flux_daughter_plus")
+    qn = gates.get("flux_daughter_minus")
+    if qm:
+        fluid_meta["flux_balance"] = (qp + qn) / qm - 1.0
+        fluid_meta["flux_split_asymmetry"] = qp / qn - 1.0
+
+    sdir = base / f"junction_scalar_res{resolution}_u{u_lat_target:g}"
+    sdir.mkdir(parents=True, exist_ok=True)
+    sprov = sdir / "provenance.txt"
+    reused = (sprov.is_file() and (sdir / "cir.csv").is_file()
+              and sum(1 for _ in open(sdir / "cir.csv")) >= outputs)
+    if not reused:
+        proc = subprocess.run(
+            [str(scalar_bin),
+             "--resolution", str(resolution),
+             "--tau", repr(tau),
+             "--taueven", repr(tau_even),
+             "--horizon", repr(float(time_horizon_over_t2)),
+             "--outputs", str(outputs),
+             "--ufield", str(fdir / "ufield.csv"),
+             "--outdir", str(sdir) + "/"],
+            cwd=scalar_bin.parent, capture_output=True, text=True)
+        if proc.returncode != 0 or "betaflow-done" not in proc.stdout:
+            raise RuntimeError(
+                f"junctionPipe3d failed:\n{proc.stdout[-2000:]}"
+                f"\n{proc.stderr[-2000:]}")
+        sprov.write_text("\n".join(
+            ln for ln in proc.stdout.splitlines()
+            if "betaflow-" in ln) + "\n")
+
+    data = np.loadtxt(sdir / "cir.csv", delimiter=",", skiprows=1)
+    t = data[:, 0]
+    mass = data[:, 6]
+    c_x = float(case["receiver"]["axial_length"])
+    dists = [float(d) for d in case["receiver"]["distances"]]
+
+    def straight_ref(d):
+        return ci.cir(t, u_mean, d, c_x)
+
+    windows = {
+        "mother_150": {"cir": data[:, 1], "dbar": dists[0],
+                       "t2": ci.peak_time(u_mean, dists[0], c_x),
+                       "ref_straight": straight_ref(dists[0])},
+    }
+    for kk, (col_p, col_m, d) in {
+            "750": (2, 4, dists[1]), "1550": (3, 5, dists[2])}.items():
+        for tag, col in (("plus", col_p), ("minus", col_m)):
+            windows[f"daughter_{tag}_{kk}"] = {
+                "cir": data[:, col], "dbar": d,
+                "t2": ci.peak_time(u_mean, d, c_x),
+                "ref_straight": straight_ref(d),
+            }
+
+    return {
+        "windows": windows,
+        "t": t,
+        "mass_over_initial": mass / mass[0],
+        "meta": {
+            "solver": "openlb",
+            "apps": [str(fluid_bin) + ".cpp", str(scalar_bin) + ".cpp"],
+            "mode": "Y-junction: solved D3Q19 flow (Bouzidi) -> frozen "
+                    "field -> D3Q7 NT+TRT scalar; five bulk-material "
+                    "windows",
+            "resolution_cells_per_radius": int(resolution),
+            "predictions_before_run": predictions,
+            "fluid_stage": fluid_meta,
+            "magic_lambda": float(magic_lambda),
+            "outputs": int(outputs),
+            "time_horizon_over_t2": float(time_horizon_over_t2),
         },
     }
 

@@ -1,0 +1,138 @@
+{
+  "case": "mc_channel through the pre-registered Y-junction",
+  "preregistration": "docs/bifurcation-preregistration.md",
+  "geometry": {
+    "murray_radius_um": 158.74010519681997,
+    "half_angle_deg": 30.0,
+    "s_junction_um": 350.0
+  },
+  "fluid_stage": {
+    "gates": {
+      "angle_deg": 30.0,
+      "sjunction": 0.00035,
+      "radius_d": 0.00015874,
+      "tau": 0.8,
+      "dx": 1.66667e-05,
+      "dt": 2.77778e-05,
+      "iTmax": 108000.0,
+      "rho_ref_mother": 1.05187,
+      "steps_run": 108000.0,
+      "flux_mother": 1.87561e-10,
+      "flux_daughter_plus": 9.42738e-11,
+      "flux_daughter_minus": 9.35449e-11,
+      "u_min_daughter_centreline": 0.00236286
+    },
+    "mother_L2_vs_parabola": 0.0037648810687389254,
+    "daughter_plus_L2_vs_parabola": 0.011971859707195075,
+    "daughter_minus_L2_vs_parabola": 0.00642172714400527,
+    "flux_balance": 0.0013739530072882644,
+    "flux_split_asymmetry": 0.0077919801079480155
+  },
+  "windows": {
+    "mother_150": {
+      "dbar_um": 150.0,
+      "peak": 0.564299482248,
+      "t_peak_over_straight_t2": 1.0399999999995,
+      "tail_ratio_3_to_6_t2_vs_straight_model": 0.9945420352186631,
+      "min": 0.0
+    },
+    "daughter_plus_750": {
+      "dbar_um": 750.0,
+      "peak": 0.0982684333111,
+      "t_peak_over_straight_t2": 1.17,
+      "tail_ratio_3_to_6_t2_vs_straight_model": 0.6402954553063532,
+      "min": 0.0
+    },
+    "daughter_minus_750": {
+      "dbar_um": 750.0,
+      "peak": 0.0979647001646,
+      "t_peak_over_straight_t2": 1.17,
+      "tail_ratio_3_to_6_t2_vs_straight_model": 0.6371493401964521,
+      "min": 0.0
+    },
+    "daughter_plus_1550": {
+      "dbar_um": 1550.0,
+      "peak": 0.0464581556992,
+      "t_peak_over_straight_t2": 1.2675,
+      "tail_ratio_3_to_6_t2_vs_straight_model": 0.7843490501502003,
+      "min": 0.0
+    },
+    "daughter_minus_1550": {
+      "dbar_um": 1550.0,
+      "peak": 0.0462854989236,
+      "t_peak_over_straight_t2": 1.2675,
+      "tail_ratio_3_to_6_t2_vs_straight_model": 0.7819750035904341,
+      "min": 0.0
+    }
+  },
+  "mirror_window_max_abs_delta": {
+    "750": 0.0020404759738999884,
+    "1550": 0.002889303843799998
+  },
+  "P1_peak_split": {
+    "values": {
+      "750": {
+        "daughter_peak": 0.0982684333111,
+        "straight_peak_same_instrument": 0.160429330486,
+        "ratio_to_half_straight": 1.2250681719285175
+      },
+      "1550": {
+        "daughter_peak": 0.0464581556992,
+        "straight_peak_same_instrument": 0.0727922794089,
+        "ratio_to_half_straight": 1.276458329824461
+      }
+    },
+    "reading": "quoted against half the same-instrument straight peak (G4 N0); departures from 1.0 are junction physics plus the stated wall-layer and readout budgets \u2014 the named alternatives of the pre-registration apply"
+  },
+  "P2_no_recirculation": {
+    "u_min_daughter_centreline": 0.00236286,
+    "confirmed": true
+  },
+  "P3_status": "NOT extracted: needs the receiver-distance sweep within one daughter per the pre-registration; the tail metrics above are its inputs",
+  "g3_bringup_finding": "antisymmetric bulk mode seeded near the branch: 0.19% of u_max (bounce-back) / 0.5% (Bouzidi) at res 6 with EXACTLY mirror cell sets - alignment excluded; candidates: oblique outlet disc normal classification, wall-scheme interaction",
+  "mass_final_over_initial": 0.8768838454593774,
+  "meta": {
+    "solver": "openlb",
+    "apps": [
+      "/home/mchi4jw4/GitHub/betaFlow/openlb_cases/junction3d/junctionFlow3d.cpp",
+      "/home/mchi4jw4/GitHub/betaFlow/openlb_cases/junctionScalar3d/junctionPipe3d.cpp"
+    ],
+    "mode": "Y-junction: solved D3Q19 flow (Bouzidi) -> frozen field -> D3Q7 NT+TRT scalar; five bulk-material windows",
+    "resolution_cells_per_radius": 12,
+    "predictions_before_run": {
+      "peclet_cell": 33.333333333333336,
+      "u_lat_centreline": 0.04,
+      "tau": 0.5048,
+      "naive_over_exact_D_factor": 105.16666666666609,
+      "depletion_relative_centreline": 0.0064,
+      "d_lattice_exact": 0.0012000000000000066
+    },
+    "fluid_stage": {
+      "gates": {
+        "angle_deg": 30.0,
+        "sjunction": 0.00035,
+        "radius_d": 0.00015874,
+        "tau": 0.8,
+        "dx": 1.66667e-05,
+        "dt": 2.77778e-05,
+        "iTmax": 108000.0,
+        "rho_ref_mother": 1.05187,
+        "steps_run": 108000.0,
+        "flux_mother": 1.87561e-10,
+        "flux_daughter_plus": 9.42738e-11,
+        "flux_daughter_minus": 9.35449e-11,
+        "u_min_daughter_centreline": 0.00236286
+      },
+      "mother_L2_vs_parabola": 0.0037648810687389254,
+      "daughter_plus_L2_vs_parabola": 0.011971859707195075,
+      "daughter_minus_L2_vs_parabola": 0.00642172714400527,
+      "flux_balance": 0.0013739530072882644,
+      "flux_split_asymmetry": 0.0077919801079480155
+    },
+    "magic_lambda": 0.25,
+    "outputs": 400,
+    "time_horizon_over_t2": 6.5
+  },
+  "git_sha": "f794e88194d4-dirty",
+  "timestamp": "2026-09-01T17:58:31+00:00"
+}

@@ -501,12 +501,14 @@ int main(int argc, char* argv[]) {
     if (iT % statIter == 0) {
       lattice.setProcessingContext(ProcessingContext::Evaluation);
       SuperLatticeDensity3D<T,DESCRIPTOR> rho(lattice);
-      T total[1] = {T(0)};
+      T total[2] = {T(0), T(0)};
       int tmp[1] = {0};
       // Bulk-only by construction: material sums over {1, 11, 12, 13}.
       total[0] = T(0);
       for (int mat : {1, 11, 12, 13}) {
-        T part[1] = {T(0)};
+        // SuperSum3D writes the sum AND the cell count: two outputs
+        // (a one-element array here smashed the junction app's stack).
+        T part[2] = {T(0), T(0)};
         SuperSum3D<T,T> matSum(rho, geometry, mat);
         matSum(part, tmp);
         total[0] += part[0];
@@ -520,7 +522,7 @@ int main(int argc, char* argv[]) {
           std::unique_ptr<SuperIndicatorF3D<T>>(
             new SuperIndicatorMaterial3D<T>(geometry,
                 std::vector<int>{11 + w})));
-        T out[1] = {T(0)};
+        T out[2] = {T(0), T(0)};
         winSum(out, tmp);
         cir[w] = (total[0] > T(0)) ? out[0] / total[0] : T(0);
       }

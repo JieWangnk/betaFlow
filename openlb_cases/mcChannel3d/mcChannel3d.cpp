@@ -261,7 +261,8 @@ int main(int argc, char* argv[]) {
     if (iT % statIter == 0) {
       lattice.setProcessingContext(ProcessingContext::Evaluation);
       SuperLatticeDensity3D<T,DESCRIPTOR> rho(lattice);
-      T total[1] = {T(0)};
+      // SuperSum3D writes the sum AND the cell count: two outputs.
+      T total[2] = {T(0), T(0)};
       int tmp[1] = {0};
       // Bulk-only total (see the wall-instrumentation note above): the
       // window sums are also bulk-only, so the CIR is the fraction of the
@@ -283,7 +284,7 @@ int main(int argc, char* argv[]) {
                   Vector<T,3>(x0 + DBAR[w] + CX/2.0, T(0), T(0)),
                   RADIUS)),  // bulk-only, consistent with the total
               geometry)));
-        T out[1] = {T(0)};
+        T out[2] = {T(0), T(0)};
         winSum(out, tmp);
         cir[w] = (total[0] > T(0)) ? out[0] / total[0] : T(0);
       }
