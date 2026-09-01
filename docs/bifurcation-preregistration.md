@@ -229,6 +229,23 @@ shrinking ≈ res^0.7) riding with the numbers. Path (b) — the theory of a
 layer-free closure — continues in
 `results/halfspace_closure_study.json`.
 
+**The solved-flow bend (2026-09-01).** The fluid stage runs through the
+same elbow (bentFlow3d: D3Q19, Bouzidi walls on the shared bore surface,
+inlet Poiseuille, outlet pressure, warm-started from the analytic field)
+and passes its pre-registered gates at production resolution: flux
+imbalance 7.8e-4 (G2's 5e-3 with a 6× margin), profile L2 ≈ 5e-3 at both
+stations, and **P2 confirmed — the bend centreline holds 0.998 of the
+full speed, no recirculation**. Two instrumentation findings joined the
+trail: the steady LB pipe carries an O(10%) compressibility density
+head at diffusive scaling (measured 1.048 at res 12, matching Δp/c_s²),
+so the physical field is ρu normalised by the measured inlet-section
+density; and a half-cell grid-convention mismatch in the field hand-off
+once fed the scalar a silently-zero field (lag +51 t₂) — the scalar app
+now aborts unless the loaded field carries the centreline speed at the
+slug. The solved-vs-prescribed cost on the bend: peaks within 0.9%,
+tails within 0.032, at all three receivers — the bend measurements
+stand on the real flow.
+
 ## Order of work (when the rung starts)
 
 1. G4 first: the bent-pipe / blocked-daughter control against the straight

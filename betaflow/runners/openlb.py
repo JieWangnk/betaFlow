@@ -195,7 +195,8 @@ def _run_pipe_momentum(case, resolution=41, tau=0.53, wall="bb",
 
 def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
               time_horizon_over_t2=6.5, outputs=400, workdir=None,
-              dynamics="trt", magic_lambda=0.25, wall="bb"):
+              dynamics="trt", magic_lambda=0.25, wall="bb",
+              velocity="analytic", fluid_maxt=3.0):
     """Gate G4 of the bifurcation pre-registration: the bent-pipe control.
 
     openlb_cases/bentPipe3d rebuilds the mc_channel scalar transport
@@ -217,6 +218,61 @@ def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
     binary = _build("bentPipe3d")
     tau, dt, predictions = scope_parameters(case, resolution, u_lat_target)
 
+    # velocity="solved": run the D3Q19 fluid stage (bentFlow3d) through the
+    # SAME layout first — Bouzidi walls, inlet Poiseuille, outlet pressure,
+    # warm-started from the analytic field — then advect the scalar on the
+    # frozen solved field. Same staging as the straight coupled model.
+    fluid_meta = None
+    ufield_arg = []
+    if velocity == "solved":
+        fluid_bin = _build("bentFlow3d")
+        fdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
+        fdir = fdir / (f"bent_flow_res{resolution}_a{bend_angle_deg:g}"
+                       f"_t{fluid_maxt:g}")
+        fdir.mkdir(parents=True, exist_ok=True)
+        fprov = fdir / "provenance.txt"
+        if not (fprov.is_file() and (fdir / "ufield.csv").is_file()):
+            proc = subprocess.run(
+                [str(fluid_bin),
+                 "--resolution", str(resolution),
+                 "--angle", repr(float(bend_angle_deg)),
+                 "--horizon", repr(float(time_horizon_over_t2)),
+                 "--maxt", repr(float(fluid_maxt)),
+                 "--outdir", str(fdir) + "/"],
+                cwd=fluid_bin.parent, capture_output=True, text=True)
+            if proc.returncode != 0 or "betaflow-done" not in proc.stdout:
+                raise RuntimeError(
+                    f"bentFlow3d failed:\n{proc.stdout[-2000:]}"
+                    f"\n{proc.stderr[-2000:]}")
+            fprov.write_text("\n".join(
+                ln for ln in proc.stdout.splitlines()
+                if "betaflow-" in ln) + "\n")
+        gates = {}
+        for line in fprov.read_text().splitlines():
+            if "betaflow-gates" in line or "betaflow-provenance" in line:
+                for tok in line.split():
+                    if "=" in tok:
+                        k, v = tok.split("=", 1)
+                        try:
+                            gates[k] = float(v)
+                        except ValueError:
+                            gates[k] = v
+        prof = np.genfromtxt(fdir / "profiles.csv", delimiter=",",
+                             skip_header=1, dtype=None, encoding="utf8")
+        u_max = 2.0 * float(case["physical"]["mean_velocity"])
+        fluid_meta = {"gates": gates}
+        for st in ("mother", "daughter"):
+            y = np.array([r[1] for r in prof if r[0].strip() == st])
+            u = np.array([r[2] for r in prof if r[0].strip() == st])
+            fluid_meta[f"{st}_L2_vs_parabola"] = float(np.sqrt(np.mean(
+                (u / u_max - (1.0 - y**2))**2)))
+        q = [gates.get("flux_mother"), gates.get("flux_daughter_near"),
+             gates.get("flux_daughter_far")]
+        if all(v is not None for v in q) and q[0]:
+            fluid_meta["flux_imbalance_near"] = q[1]/q[0] - 1.0
+            fluid_meta["flux_imbalance_far"] = q[2]/q[0] - 1.0
+        ufield_arg = ["--ufield", str(fdir / "ufield.csv")]
+
     tau_even = magic_lambda / (tau - 0.5) + 0.5
 
     outdir = Path(workdir) if workdir is not None else Path.cwd() / "_runs"
@@ -224,6 +280,8 @@ def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
             f"_a{bend_angle_deg:g}_u{u_lat_target:g}_{dynamics}")
     if wall != "bb":
         name += f"_{wall}"
+    if velocity == "solved":
+        name += "_solved"
     outdir = outdir / name
     outdir.mkdir(parents=True, exist_ok=True)
 
@@ -246,7 +304,7 @@ def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
              "--dynamics", dynamics,
              "--taueven", repr(tau_even),
              "--wall", wall,
-             "--outdir", str(outdir) + "/"],
+             "--outdir", str(outdir) + "/"] + ufield_arg,
             cwd=binary.parent, capture_output=True, text=True)
         if proc.returncode != 0 or "betaflow-done" not in proc.stdout:
             raise RuntimeError(
@@ -307,6 +365,8 @@ def _run_bent(case, bend_angle_deg=0.0, resolution=12, u_lat_target=0.04,
                     "capped ends, path-based windows, bulk-only accounting",
             "bend_angle_deg": float(bend_angle_deg),
             "wall": wall,
+            "velocity_source": velocity,
+            "fluid_stage": fluid_meta,
             "dynamics": dynamics,
             "magic_lambda": float(magic_lambda) if dynamics == "trt" else None,
             "tau_even": float(tau_even) if dynamics == "trt" else None,

@@ -305,8 +305,17 @@ their reasons, because how errors present is data. The trail so far:
    family is exhausted — bounce-back is exactly marginal; the wall mode
    has checkerboard parity, odd-neighbour sourcing damps it; the
    correctly posed next object is the staircase-periodic half-space).
-   Next: the solved-flow bend (fluid stage through the elbow), then the
-   junction; HPC resolution shrinks the wall layer per the measured
-   law.
+   The SOLVED-FLOW BEND is done (2026-09-01): bentFlow3d drives D3Q19
+   through the elbow (Bouzidi walls on the shared bore surface, inlet
+   Poiseuille, outlet pressure), passing G2 with a 6× margin (flux
+   imbalance 7.8e-4), profiles at 5e-3, and P2 confirmed — no
+   recirculation, the bend centreline holds 0.998 of full speed. The
+   solved-vs-prescribed cost on the bend: peaks within 0.9%, tails
+   within 0.032 — the bend measurements stand on the real flow. Two
+   instrumentation findings recorded: the compressibility density head
+   of the long LB pipe (measured 1.048, matching Δp/c_s²; the field is
+   ρu inlet-normalised) and the half-cell hand-off trap (now guarded in
+   the app). Next: the junction itself — every gate is written; HPC
+   resolution shrinks the wall layer per the measured law.
 3. **Paper loose ends needing the author:** §1 exemplar citations, the
    Rhie & Chow reference, the author block; BPM120's outlier.

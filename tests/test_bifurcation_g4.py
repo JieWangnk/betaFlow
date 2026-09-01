@@ -44,6 +44,21 @@ resolution, oblique flow. Two more legs run on that scheme:
        control: window 1 lies upstream of the bend and must match N0.
        The wall-layer budget of the reference-lattice study (amp ~
        5 u_lat over 2-3 cells) rides with the numbers.
+
+THE SOLVED-FLOW LEG (2026-09-01): S30 — the same bend with the flow
+SOLVED by bentFlow3d (D3Q19, Bouzidi walls, inlet Poiseuille, outlet
+pressure, warm-started from the analytic field) instead of prescribed,
+the same staging order the straight coupled model used. The fluid stage
+is gated on the pre-registered G2/G7 values (flux imbalance 5e-3 —
+measured 7.8e-4; profile L2 2e-2 at both stations — measured ~5e-3) and
+on P2 (no recirculation: the bend-centreline minimum tangential velocity
+must exceed half the centreline speed — measured 0.998 of it). The
+field hand-off carries a hard guard in the scalar app: a half-cell
+grid-convention mismatch once made every lookup miss and the scalar
+crawled on a silently-zero field (lag +51 t2); the guard now aborts
+unless the loaded field carries the centreline speed at the slug.
+S30 vs N30 is the solved-vs-prescribed cost ON THE BEND, the analogue
+of the straight coupled model's 0.1-0.3% peak cost.
 """
 
 import itertools
@@ -180,12 +195,31 @@ def test_bifurcation_g4_control():
         f"explains a TRT peak elevation — re-diagnose before quoting one")
 
     legs = {}
-    for tag, angle, dyn, wall in (("A0", 0.0, "bgk", "bb"),
-                                  ("A1", 0.0, "trt", "bb"),
-                                  ("N0", 0.0, "trt", "nt"),
-                                  ("N30", 30.0, "trt", "nt")):
+    fluid_stage = None
+    for tag, angle, dyn, wall, vel in (
+            ("A0", 0.0, "bgk", "bb", "analytic"),
+            ("A1", 0.0, "trt", "bb", "analytic"),
+            ("N0", 0.0, "trt", "nt", "analytic"),
+            ("N30", 30.0, "trt", "nt", "analytic"),
+            ("S30", 30.0, "trt", "nt", "solved")):
         res = run_case(case, runner="openlb", bend_angle_deg=angle,
-                       dynamics=dyn, magic_lambda=0.25, wall=wall)
+                       dynamics=dyn, magic_lambda=0.25, wall=wall,
+                       velocity=vel)
+        if vel == "solved":
+            fluid_stage = res["meta"]["fluid_stage"]
+            # Pre-registered fluid gates (G2, G7, P2), origins in the
+            # pre-registration: flux imbalance at the convergence floor;
+            # profile L2 an order above the measured level; recirculation
+            # excluded with a wide margin.
+            assert abs(fluid_stage["flux_imbalance_near"]) < 5e-3
+            assert abs(fluid_stage["flux_imbalance_far"]) < 5e-3
+            assert fluid_stage["mother_L2_vs_parabola"] < 2e-2
+            assert fluid_stage["daughter_L2_vs_parabola"] < 2e-2
+            u_min = float(fluid_stage["gates"]["u_min_bend_centreline"])
+            assert u_min > 0.5 * 2.0 * float(
+                case["physical"]["mean_velocity"]), (
+                f"P2: bend centreline velocity fell to {u_min} — "
+                f"recirculation or separation; a finding, report it")
         m = res["mass_over_initial"]
         assert m[0] == pytest.approx(1.0)
         # G1 bookkeeping: parking only, bounded, never growth. Floors by
@@ -258,6 +292,16 @@ def test_bifurcation_g4_control():
         f"under the bend — instrument, diagnose")
     assert abs(dtail_w1) < 0.05, (
         f"in-run control: upstream window tail moved {dtail_w1:+.3f}")
+
+    # THE SOLVED-FLOW COST ON THE BEND (S30 vs N30): reported — the
+    # analogue of the straight coupled model's 0.1-0.3% peak cost.
+    solved_vs_prescribed = [{
+        "dbar_um": sv["dbar_um"],
+        "peak_relative": sv["peak_measured"]/pr["peak_measured"] - 1.0,
+        "peak_lag_minus": sv["peak_lag_relative"] - pr["peak_lag_relative"],
+        "tail_ratio_minus": (sv["tail_ratio_3_to_6_t2"]
+                             - pr["tail_ratio_3_to_6_t2"]),
+    } for sv, pr in zip(legs["S30"]["receivers"], legs["N30"]["receivers"])]
 
     # THE BEND MEASUREMENT (N30 vs N0, windows 2 and 3): reported.
     bend_vs_control = [{
@@ -366,6 +410,10 @@ def test_bifurcation_g4_control():
                                  ".json)",
         },
         "bend_N30_vs_N0": bend_vs_control,
+        "solved_flow": {
+            "fluid_stage": fluid_stage,
+            "S30_vs_N30": solved_vs_prescribed,
+        },
         "mass_final_over_initial": {
             k: v["mass_final_over_initial"] for k, v in legs.items()},
         "meta": {k: v["meta"] for k, v in legs.items()},

@@ -49,12 +49,22 @@
 #include <olb.h>
 
 #include <algorithm>
+#include <array>
 #include <cmath>
 #include <cstring>
 #include <fstream>
+#include <unordered_map>
 
 using namespace olb;
 using namespace olb::names;
+
+#include "bentGeometry.h"
+using bent::RADIUS;
+using bent::U_MEAN;
+using bent::DIFFUSIVITY;
+using bent::CX;
+using bent::DBAR;
+using BendFrame = bent::BendFrame;
 
 // Per-cell solid fraction for the Noble-Torczynski wall (path (a) of the
 // oblique-wall programme, results/oblique_wall_scheme_study.json).
@@ -78,11 +88,6 @@ using AdeSecondOrderBGKdynamics = dynamics::Tuple<
   AdvectionDiffusionExternalVelocityCollision
 >;
 
-static constexpr T RADIUS      = 200e-6;
-static constexpr T U_MEAN      = 1.5e-3;
-static constexpr T DIFFUSIVITY = 1.5e-9;
-static constexpr T CX          = 100e-6;
-static constexpr T DBAR[3]     = {150e-6, 750e-6, 1550e-6};
 static constexpr T CS2_D3Q7    = 0.25;
 
 // Noble-Torczynski partially-saturated ADE dynamics: collision blends BGK
@@ -149,53 +154,6 @@ struct NTAdeBGKdynamics final
   };
 };
 
-// The bend frame: mother along +x to B0 = (xb, 0, 0); arc of radius R
-// about C = (xb, R, 0) turning by `angle` toward +y; daughter straight
-// from B1 along d2. Centreline point at arc angle phi:
-//   B(phi) = C + R (sin phi, -cos phi, 0),  tangent t(phi) = (cos phi,
-//   sin phi, 0).
-struct BendFrame {
-  T xb, R, angle;
-  Vector<T,3> C, d2, B1;
-  BendFrame(T xb_, T R_, T angle_) : xb(xb_), R(R_), angle(angle_) {
-    C  = Vector<T,3>(xb, R, T(0));
-    d2 = Vector<T,3>(std::cos(angle), std::sin(angle), T(0));
-    B1 = C + Vector<T,3>(R * std::sin(angle), -R * std::cos(angle), T(0));
-  }
-  // arc angle of the point's azimuth about C (0 at bend entry)
-  T phiOf(const T in[]) const {
-    return std::atan2(in[0] - C[0], -(in[1] - C[1]));
-  }
-  // squared distance from the region-wise centreline — the ONE geometry
-  // definition shared by the velocity field and the NT solid fraction.
-  T radial2(const T in[]) const {
-    const T phi = (angle > T(0)) ? phiOf(in) : T(-1);
-    if (angle <= T(0) || phi <= T(0) || in[0] <= xb) {
-      return in[1]*in[1] + in[2]*in[2];
-    } else if (phi < angle) {
-      const T wx = in[0] - C[0], wy = in[1] - C[1];
-      const T dR = std::sqrt(wx*wx + wy*wy) - R;
-      return dR*dR + in[2]*in[2];
-    }
-    const Vector<T,3> q(in[0] - B1[0], in[1] - B1[1], in[2]);
-    const T sd = q * d2;
-    const Vector<T,3> rad = q - d2 * sd;
-    return rad * rad;
-  }
-  // path coordinate along the centreline (from the mother start), for the
-  // axial caps of the NT solid fraction.
-  T pathOf(const T in[]) const {
-    const T phi = (angle > T(0)) ? phiOf(in) : T(-1);
-    if (angle <= T(0) || phi <= T(0) || in[0] <= xb) {
-      return in[0];
-    } else if (phi < angle) {
-      return xb + R * phi;
-    }
-    const Vector<T,3> q(in[0] - B1[0], in[1] - B1[1], in[2]);
-    return xb + R * angle + q * d2;
-  }
-};
-
 // Region-wise analytic Poiseuille in LATTICE units, direction continuous
 // everywhere. Angle 0 reduces exactly to the straight analytic field.
 class BentPoiseuilleVelocity : public AnalyticalF3D<T,T> {
@@ -205,21 +163,56 @@ public:
   BentPoiseuilleVelocity(T convVel, BendFrame f)
     : AnalyticalF3D<T,T>(3), _convVel(convVel), _f(f) {}
   bool operator()(T out[], const T in[]) override {
-    T tx, ty;
-    const T phi = (_f.angle > T(0)) ? _f.phiOf(in) : T(-1);
-    if (_f.angle <= T(0) || phi <= T(0) || in[0] <= _f.xb) {
-      tx = T(1); ty = T(0);                       // mother frame
-    } else if (phi < _f.angle) {
-      tx = std::cos(phi); ty = std::sin(phi);     // bend tangent
-    } else {
-      tx = _f.d2[0]; ty = _f.d2[1];               // daughter frame
+    T uPhys[3];
+    _f.analyticU(in, uPhys);
+    out[0] = uPhys[0] / _convVel;
+    out[1] = uPhys[1] / _convVel;
+    out[2] = uPhys[2] / _convVel;
+    return true;
+  }
+};
+
+// Prescribed velocity from a SOLVED field (bentFlow3d's ufield.csv):
+// nearest-cell lookup keyed on round(2 x / dx) per axis — the two apps
+// share box, origin and dx, so the file's sample points are this app's
+// cell centres. Cells absent from the file (walls, beyond caps) get zero.
+class SolvedFieldVelocity : public AnalyticalF3D<T,T> {
+  T _convVel, _dx;
+  std::unordered_map<long long, std::array<T,3>> _u;
+  long long key(const T in[]) const {
+    const long long a = llround(2.0*in[0]/_dx) + 4096;
+    const long long b = llround(2.0*in[1]/_dx) + 4096;
+    const long long c = llround(2.0*in[2]/_dx) + 4096;
+    return (a << 28) | (b << 14) | c;
+  }
+public:
+  SolvedFieldVelocity(T convVel, T dx, const std::string& file)
+    : AnalyticalF3D<T,T>(3), _convVel(convVel), _dx(dx) {
+    std::ifstream fin(file);
+    std::string line;
+    while (std::getline(fin, line)) {
+      if (line.empty() || line[0] == '#') { continue; }
+      std::array<T,4+2> v{};
+      std::size_t pos = 0;
+      for (int k = 0; k < 6; ++k) {
+        const auto comma = line.find(',', pos);
+        v[k] = std::atof(line.substr(pos, comma - pos).c_str());
+        pos = (comma == std::string::npos) ? line.size() : comma + 1;
+      }
+      const T pt[3] = {v[0], v[1], v[2]};
+      _u[key(pt)] = {v[3], v[4], v[5]};
     }
-    const T r2 = _f.radial2(in);
-    const T u = 2.0 * U_MEAN
-                * util::max(T(0), T(1) - r2 / (RADIUS*RADIUS)) / _convVel;
-    out[0] = u * tx;
-    out[1] = u * ty;
-    out[2] = T(0);
+  }
+  std::size_t size() const { return _u.size(); }
+  bool operator()(T out[], const T in[]) override {
+    const auto it = _u.find(key(in));
+    if (it == _u.end()) {
+      out[0] = out[1] = out[2] = T(0);
+    } else {
+      out[0] = it->second[0] / _convVel;
+      out[1] = it->second[1] / _convVel;
+      out[2] = it->second[2] / _convVel;
+    }
     return true;
   }
 };
@@ -311,41 +304,34 @@ int main(int argc, char* argv[]) {
   // instability finding). The fluid rung measured this scheme's wall
   // placement: shift ~ dx^2, order 2.1.
   const std::string wall = argStr(argc, argv, "--wall", "bb");
+  // --ufield FILE: advect on the SOLVED flow (bentFlow3d output) instead
+  // of the region-wise analytic field — the solved-flow leg of the bend,
+  // staged exactly as the straight coupled model staged it.
+  const std::string ufield = argStr(argc, argv, "--ufield", "");
   const std::string outdir = argStr(argc, argv, "--outdir", "./tmp/");
   singleton::directories().setOutputDir(outdir);
 
-  const T dx = RADIUS / T(res);
+  // ALL geometry/layout from the shared header (bentGeometry.h) — the
+  // fluid app computes the identical layout from the same inputs, so the
+  // two lattices agree cell-for-cell. Slug half-width 1.01 dx: the
+  // deterministic 3-slice slug (the edge-rounding finding in the G4
+  // record).
+  const bent::BentLayout L(res, horizon, angleDeg, rBend, sBend);
+  const T dx = L.dx;
   const T dt = (tau - 0.5) * CS2_D3Q7 * dx * dx / DIFFUSIVITY;
-
-  const T t2max = (DBAR[2] + CX/2.0) / (2.0 * U_MEAN);
-  const T tMax  = horizon * t2max;
-  const int iTmax = int(std::ceil(tMax / dt));
+  const int iTmax = int(std::ceil(L.tMax / dt));
   const int statIter = util::max(1, iTmax / outputs);
-
-  // Slug half-width 1.01 dx: the straight app's |x - x0| <= dx puts the
-  // boundary EXACTLY on cell centres, and rounding included 3 slices
-  // there but 2 here (measured: initial totals 1317 vs 878, ratio 1.5 -
-  // the whole machinery-gate peak discrepancy). The 1% margin makes the
-  // 3-slice slug deterministic; slugW below is the REALISED extent.
   const T slugHalf = 1.01 * dx;
-  const T slugW = 3.0 * dx;
-  const T x0 = 10.0 * dx;
-  const T drift = 2.0 * U_MEAN * tMax;
-  const T spread = 4.0 * std::sqrt(2.0 * DIFFUSIVITY * tMax);
-  const T pathLen = util::max(drift + spread, DBAR[2] + CX) + 10.0 * dx;
+  const T slugW = L.slugW;
+  const T x0 = L.x0;
+  const T pathLen = L.pathLen;
+  const BendFrame& f = L.f;
+  const T arcLen = L.arcLen;
+  const T daughterLen = L.daughterLen;
+  const Vector<T,3> pEnd = L.pEnd;
 
-  const T angle = angleDeg * M_PI / 180.0;
-  const BendFrame f(x0 + sBend, rBend, angle);
-  const T arcLen = rBend * angle;
-  const T daughterLen = pathLen - sBend - arcLen;
-  const Vector<T,3> pEnd = f.B1 + f.d2 * daughterLen;
-
-  const T pad = 2.0 * dx;
-  const T xMax = util::max(f.B1[0], pEnd[0]) + RADIUS + pad;
-  const T yMin = -(RADIUS + pad);
-  const T yMax = util::max(RADIUS, pEnd[1] + RADIUS) + pad;
-  Vector<T,3> extent(xMax, yMax - yMin, 2.0*(RADIUS + pad));
-  Vector<T,3> origin(T(0), yMin, -(RADIUS + pad));
+  Vector<T,3> extent(L.xMax, L.yMax - L.yMin, 2.0*(RADIUS + L.pad));
+  Vector<T,3> origin(T(0), L.yMin, -(RADIUS + L.pad));
   IndicatorCuboid3D<T> box(extent, origin);
 
 #ifdef PARALLEL_MODE_MPI
@@ -365,10 +351,10 @@ int main(int argc, char* argv[]) {
   IndicatorCylinder3D<T> mother(Vector<T,3>(2.0*dx, T(0), T(0)),
                                 Vector<T,3>(f.xb, T(0), T(0)), RADIUS);
   geometry.rename(2, 1, mother);
-  if (angle > T(0)) {
+  if (f.angle > T(0)) {
     constexpr int NSEG = 8;
     for (int k = 0; k < NSEG; ++k) {
-      const T p0 = angle * T(k) / NSEG, p1 = angle * T(k + 1) / NSEG;
+      const T p0 = f.angle * T(k) / NSEG, p1 = f.angle * T(k + 1) / NSEG;
       const Vector<T,3> a0 = f.C
         + Vector<T,3>(rBend*std::sin(p0), -rBend*std::cos(p0), T(0));
       const Vector<T,3> a1 = f.C
@@ -428,42 +414,43 @@ int main(int argc, char* argv[]) {
     // eps = 1 is a pure pairwise reflection that rattles in place.
     dynamics::set<NTAdeBGKdynamics>(
       lattice, geometry.getMaterialIndicator({1, 2, 11, 12, 13}));
-    SolidFraction epsF(f, dx, 2.0*dx, f.xb + rBend*angle + daughterLen);
+    SolidFraction epsF(f, dx, 2.0*dx, f.xb + arcLen + daughterLen);
     fields::set<SOLID_FRACTION>(
       lattice, geometry.getMaterialIndicator({1, 2, 11, 12, 13}), epsF);
   } else if (wall == "bouzidi") {
-    // The TRUE surface: the same composite the geometry staircase
-    // approximates, extended half a cell at both ends so cap links get
-    // distances (the pipeFlow3d pattern).
-    std::shared_ptr<IndicatorF3D<T>> surf(
-      new IndicatorCylinder3D<T>(
-        Vector<T,3>(2.0*dx - 0.5*dx, T(0), T(0)),
-        Vector<T,3>(f.xb, T(0), T(0)), RADIUS));
-    if (angle > T(0)) {
-      constexpr int NSEG = 8;
-      for (int k = 0; k < NSEG; ++k) {
-        const T p0 = angle * T(k) / NSEG, p1 = angle * T(k + 1) / NSEG;
-        const Vector<T,3> a0 = f.C
-          + Vector<T,3>(rBend*std::sin(p0), -rBend*std::cos(p0), T(0));
-        const Vector<T,3> a1 = f.C
-          + Vector<T,3>(rBend*std::sin(p1), -rBend*std::cos(p1), T(0));
-        surf = surf + std::shared_ptr<IndicatorF3D<T>>(
-          new IndicatorCylinder3D<T>(a0, a1, RADIUS));
-      }
-      surf = surf + std::shared_ptr<IndicatorF3D<T>>(
-        new IndicatorCylinder3D<T>(f.B1, pEnd + f.d2 * (0.5*dx), RADIUS));
-    } else {
-      surf = surf + std::shared_ptr<IndicatorF3D<T>>(
-        new IndicatorCylinder3D<T>(Vector<T,3>(f.xb, T(0), T(0)),
-                                   pEnd + f.d2 * (0.5*dx), RADIUS));
-    }
+    auto surf = bent::boreSurface(L);
     setBouzidiBoundary<T, DESCRIPTOR, BouzidiPostProcessor>(
       lattice, geometry, 2, *surf);
   } else {
     boundary::set<boundary::BounceBack>(lattice, geometry, 2);
   }
 
-  BentPoiseuilleVelocity uF(converter.getConversionFactorVelocity(), f);
+  BentPoiseuilleVelocity uAnalytic(converter.getConversionFactorVelocity(), f);
+  std::unique_ptr<SolvedFieldVelocity> uSolved;
+  if (!ufield.empty()) {
+    uSolved.reset(new SolvedFieldVelocity(
+      converter.getConversionFactorVelocity(), dx, ufield));
+    // HARD GUARD against a silent grid-convention mismatch (measured
+    // once: every lookup missed, the field read zero, the scalar crawled
+    // at lag +51 t2 with nothing to flag it): the loaded field at the
+    // slug centre must carry roughly the centreline speed.
+    T probe[3] = {T(0), T(0), T(0)};
+    const T at[3] = {x0, T(0), T(0)};
+    (*uSolved)(probe, at);
+    const T expect = 2.0 * U_MEAN / converter.getConversionFactorVelocity();
+    if (std::fabs(probe[0]) < 0.3 * expect) {
+      clout << "FATAL: solved field reads " << probe[0]
+            << " lattice units at the slug centre against an expected ~"
+            << expect << " - grid-convention mismatch with " << ufield
+            << std::endl;
+      return 1;
+    }
+    clout << "solved field loaded: " << uSolved->size() << " cells from "
+          << ufield << " (centre u_lat=" << probe[0] << ")" << std::endl;
+  }
+  AnalyticalF3D<T,T>& uF = ufield.empty()
+    ? static_cast<AnalyticalF3D<T,T>&>(uAnalytic)
+    : static_cast<AnalyticalF3D<T,T>&>(*uSolved);
   SlugInit slugF(x0, 2.0 * slugHalf);
   auto everything = geometry.getMaterialIndicator({1, 2, 11, 12, 13});
   fields::set<descriptors::VELOCITY>(lattice, everything, uF);
@@ -489,7 +476,8 @@ int main(int argc, char* argv[]) {
         << " wall=" << wall
         << " dynamics=" << dyn
         << " taueven=" << (dyn == "trt" ? tauEven : tau)
-        << " velocity_source=regionwise-analytic-arc"
+        << " velocity_source="
+        << (ufield.empty() ? std::string("regionwise-analytic-arc") : ufield)
         << " angle_deg=" << angleDeg
         << " rbend=" << rBend
         << " sbend=" << sBend
