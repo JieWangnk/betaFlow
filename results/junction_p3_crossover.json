@@ -1,0 +1,146 @@
+{
+  "question": "does the crossover law transfer out-of-family to Murray daughters, and with which V-dependence",
+  "method": "v2: two-act-collapse-aligned cumulative-excess clock, both sides; v1 (amplitude-only normalisation) fired at the daughters' peak region from the timebase mismatch and is kept as the documented extractor failure; v2 instrument check on straight data: 0.964-0.992",
+  "pre_registered_outcomes": {
+    "tau_r_only": 0.87,
+    "crude_balance_with_V": 1.0,
+    "junction_mixing": "< 0.87"
+  },
+  "straight_baseline_langevin": {
+    "600": {
+      "t_cross_s": 1.443132332081769,
+      "censored": false
+    },
+    "750": {
+      "t_cross_s": 1.714972799332499,
+      "censored": false
+    },
+    "1000": {
+      "t_cross_s": 2.1097367542761787,
+      "censored": false
+    },
+    "1250": {
+      "t_cross_s": 2.5401501042970382,
+      "censored": false
+    },
+    "1550": {
+      "t_cross_s": 2.9697499374217773,
+      "censored": false
+    }
+  },
+  "daughter_plus": {
+    "600": {
+      "t_cross_s": 0.24532198581585757,
+      "censored": false
+    },
+    "750": {
+      "t_cross_s": 0.31377889027976225,
+      "censored": false
+    },
+    "1000": {
+      "t_cross_s": 0.4277623696291004,
+      "censored": false
+    },
+    "1250": {
+      "t_cross_s": 0.5405049645393788,
+      "censored": false
+    },
+    "1550": {
+      "t_cross_s": 0.6772408844394243,
+      "censored": false
+    }
+  },
+  "daughter_minus_mirror": {
+    "600": {
+      "t_cross_s": 0.24532198581585757,
+      "censored": false
+    },
+    "750": {
+      "t_cross_s": 0.3180395494370464,
+      "censored": false
+    },
+    "1000": {
+      "t_cross_s": 0.4277623696291004,
+      "censored": false
+    },
+    "1250": {
+      "t_cross_s": 0.5447092198585319,
+      "censored": false
+    },
+    "1550": {
+      "t_cross_s": 0.6772408844394243,
+      "censored": false
+    }
+  },
+  "mirror_clock_relative_delta": {
+    "600": 0.0,
+    "750": 0.013578539823011571,
+    "1000": 0.0,
+    "1250": 0.0077783842794784085,
+    "1550": 0.0
+  },
+  "ratios_daughter_over_straight": {
+    "600": 0.16999271678846803,
+    "750": 0.18296435395470478,
+    "1000": 0.2027562769440682,
+    "1250": 0.21278465537333208,
+    "1550": 0.22804643445076686
+  },
+  "mean_ratio_excluding_600": 0.20663793018071797,
+  "sd_ratio_excluding_600": 0.016367740595854004,
+  "note_600": "the 600 um window sits ~1.6 daughter radii past the branch plane and is entrance-affected; reported, excluded from the mean per the pre-registration",
+  "collapsed_tail_ratios_measured_over_model": {
+    "mother_150_same_instrument_control": {
+      "1.5": 1.066276291987569,
+      "2.0": 1.0567812610291696,
+      "3.0": 0.9680958544283348,
+      "4.0": 0.8448866634720437
+    },
+    "daughter_plus_600": {
+      "1.5": 0.7124240659557549,
+      "2.0": 0.6274205294721729,
+      "3.0": 0.5692563511664008,
+      "4.0": 0.5948328341082616
+    },
+    "daughter_plus_750": {
+      "1.5": 0.7926795474713112,
+      "2.0": 0.6976661215647353,
+      "3.0": 0.6781659941481074,
+      "4.0": 0.7175221052886619
+    },
+    "daughter_plus_1000": {
+      "1.5": 0.8025036802146795,
+      "2.0": 0.7121335607378154,
+      "3.0": 0.7598155595912688,
+      "4.0": 0.80255929988276
+    },
+    "daughter_plus_1250": {
+      "1.5": 0.7750495920172809,
+      "2.0": 0.708265047849281,
+      "3.0": 0.8145606866349462,
+      "4.0": 0.8453403067228824
+    },
+    "daughter_plus_1550": {
+      "1.5": 0.7561159244566106,
+      "2.0": 0.7103065956827739,
+      "3.0": 0.8538951979508517,
+      "4.0": 0.8501731123054458
+    },
+    "straight_langevin_750": {
+      "1.5": 0.9325007016559079,
+      "2.0": 0.9677238282346337,
+      "3.0": 1.3101319113106933,
+      "4.0": 1.5166994106090372
+    },
+    "straight_langevin_1550": {
+      "1.5": 1.0309859154929577,
+      "2.0": 1.0287323943661972,
+      "3.0": 1.5261971830985914,
+      "4.0": 1.5233802816901407
+    }
+  },
+  "outcome": "shorter than both predictions: junction-induced radial mixing (the named alternative)",
+  "outcome_strong_form": "the junction does not merely shorten the validity clock - it PREVENTS the enhancement act from forming: in collapsed units the daughter tails sit at 0.57-0.85 of the master curve with no above-1 phase anywhere, while the mother window (same instrument, same run, straight physics) shows the enhancement through the mid-tail and the straight Langevin baseline climbs to 1.3-1.7. Mechanism, the pre-registered alternative in strong form: the branch intercepts the mother's near-wall reservoir - the carrier of the enhancement - and redistributes it across the daughter cross-sections, so the late feeding never happens. CAVEAT carried with the magnitude: the NT-wall instrument reads tails low (the N0 calibration and the mother control's muted enhancement quantify the bias); the ABSENCE of any above-1 phase is robust against it, the 0.57-0.85 level is not bias-corrected. Comms consequence: past a junction the flow-dominated model overstates the tail everywhere post-peak, and channel memory is shorter than even the straight measured channel - branching improves inter-symbol interference.",
+  "git_sha": "da1f32384f27-dirty",
+  "timestamp": "2026-09-06T11:33:27+00:00"
+}

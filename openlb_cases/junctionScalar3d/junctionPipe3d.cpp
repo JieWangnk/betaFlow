@@ -261,7 +261,10 @@ int main(int argc, char* argv[]) {
   geometry.rename(2, 1, mother);
   geometry.rename(2, 1, daughterP);
   geometry.rename(2, 1, daughterM);
-  // Windows as bulk materials 11..15 (readout bulk-only by construction).
+  // Windows as bulk materials 11..21 (readout bulk-only by construction):
+  // 11 = mother control; 12..16 = daughter(+) at the P3 sweep distances
+  // {600, 750, 1000, 1250, 1550} um of path; 17..21 = daughter(-) mirrors.
+  static const T SWEEP[5] = {600e-6, 750e-6, 1000e-6, 1250e-6, 1550e-6};
   {
     Vector<T,3> w0, w1;
     L.windowEnds(DBAR[0], +1, w0, w1);
@@ -269,8 +272,8 @@ int main(int argc, char* argv[]) {
     geometry.rename(1, 11, win1);
     int mat = 12;
     for (int sgn : {+1, -1}) {
-      for (int k : {1, 2}) {
-        L.windowEnds(DBAR[k], sgn, w0, w1);
+      for (int k = 0; k < 5; ++k) {
+        L.windowEnds(SWEEP[k], sgn, w0, w1);
         IndicatorCylinder3D<T> win(w0, w1, RADIUS_D);
         geometry.rename(1, mat++, win);
       }
@@ -285,8 +288,8 @@ int main(int argc, char* argv[]) {
   const auto& converter = lattice.getUnitConverter();
   converter.print();
 
-  auto bulkAndWalls = geometry.getMaterialIndicator({1, 2, 11, 12, 13,
-                                                     14, 15});
+  auto bulkAndWalls = geometry.getMaterialIndicator({1, 2, 11, 12, 13, 14, 15,
+                                                 16, 17, 18, 19, 20, 21});
   dynamics::set<NTAdeBGKdynamics>(lattice, bulkAndWalls);
   SolidFraction epsF(f, dx, L.daughterLen);
   fields::set<SOLID_FRACTION>(lattice, bulkAndWalls, epsF);
@@ -311,8 +314,9 @@ int main(int argc, char* argv[]) {
   fields::set<descriptors::VELOCITY>(lattice, bulkAndWalls, uF);
   AnalyticalConst3D<T,T> zeroRho(T(0));
   AnalyticalConst3D<T,T> zeroU(T(0), T(0), T(0));
-  lattice.iniEquilibrium(geometry.getMaterialIndicator({1, 11, 12, 13,
-                                                        14, 15}),
+  lattice.iniEquilibrium(geometry.getMaterialIndicator({1, 11, 12, 13, 14,
+                                                        15, 16, 17, 18, 19,
+                                                        20, 21}),
                          slugF, uF);
   lattice.iniEquilibrium(geometry.getMaterialIndicator({2}), zeroRho,
                          zeroU);
@@ -336,7 +340,8 @@ int main(int argc, char* argv[]) {
   clout << "checkpoint A" << std::endl;
   std::ofstream csv(outdir + "cir.csv");
   csv.precision(12);
-  csv << "# t_phys, w_mother, wp_750, wp_1550, wm_750, wm_1550, total\n";
+  csv << "# t_phys, w_mother, wp_600, wp_750, wp_1000, wp_1250, wp_1550, "
+         "wm_600, wm_750, wm_1000, wm_1250, wm_1550, total\n";
 
   clout << "checkpoint B" << std::endl;
   util::Timer<T> timer(iTmax, geometry.getStatistics().getNvoxel());
@@ -351,8 +356,8 @@ int main(int argc, char* argv[]) {
       if (iT == 0) { clout << "checkpoint E" << std::endl; }
       int tmp[1] = {0};
       T total[2] = {T(0), T(0)};
-      T winSum[5] = {T(0), T(0), T(0), T(0), T(0)};
-      for (int mat : {1, 11, 12, 13, 14, 15}) {
+      T winSum[11] = {};
+      for (int mat : {1, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21}) {
         if (iT == 0) { clout << "sum mat " << mat << std::endl; }
         // SuperSum3D writes TWO outputs: the sum and the cell count.
         // A one-element array here is a stack smash (measured: the
@@ -366,7 +371,7 @@ int main(int argc, char* argv[]) {
         if (mat >= 11) { winSum[mat - 11] = part[0]; }
       }
       csv << converter.getPhysTime(iT);
-      for (int w = 0; w < 5; ++w) {
+      for (int w = 0; w < 11; ++w) {
         csv << ", " << ((total[0] > T(0)) ? winSum[w]/total[0] : T(0));
       }
       csv << ", " << total[0] << "\n";

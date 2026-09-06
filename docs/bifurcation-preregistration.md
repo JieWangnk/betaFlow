@@ -138,6 +138,47 @@ on straight pipes, and a junction daughter is a straight pipe only after
 an entrance length. Alternative: junction-induced radial mixing resets
 the near-wall reservoir, shortening t_cross beyond the 0.87× — the two are
 distinguished by sweeping receiver distance within one daughter.
+*Correction 2026-09-06, derived BEFORE the P3 extraction and kept beside
+the original per policy: the 0.87× above used the τ_r scaling alone and
+ignored that Murray daughters also slow the flow. The crude layer-escape
+balance is t³ ∝ τ_r·d̄²/V², and under Murray scaling (a_d = 2^(−1/3)a,
+V_d = 2^(−1/3)V) the a²/V² combination is exactly invariant — predicted
+ratio 1.00 at matched d̄ with the crude exponents, 1.01 with the fitted
+ones. The sweep varied D at fixed V, so it never tested the V-dependence;
+the daughters test it for the first time. Three pre-registered outcomes:
+≈0.87 (τ_r-only, no V-dependence), ≈1.0 (the crude balance's V^(−2/3)),
+or shorter than both (the junction-mixing alternative).*
+
+*MEASURED 2026-09-06 (`results/junction_p3_crossover.json`): the
+outcome is the named alternative, in a stronger form than pre-registered.
+The daughters show NO enhancement act at all — collapsed tails at
+0.57–0.85 of the master curve with no above-1 phase — while the mother
+window (the same-instrument straight control inside the same run) shows
+the enhancement through its mid-tail and the straight Langevin baseline
+climbs to 1.3–1.7. Neither the 0.87 (τ_r-only) nor the 1.0 (crude
+balance) prediction applies, because both presuppose the enhancement
+act exists in the daughters; the branch intercepts the mother's
+near-wall reservoir and redistributes it, so the act never forms. The
+extractor needed one dated correction (v1 fired on the arrival-kinematics
+timebase mismatch — the sweep's documented failure class — v2 aligns by
+the two-act collapse; both kept in the tool). Comms consequence: past a
+junction, channel memory is SHORTER than the straight channel's —
+branching improves inter-symbol interference.*
+
+*P3 method, pre-registered 2026-09-06 before the sweep runs: windows at
+five path distances in daughter(+) — 600, 750, 1000, 1250, 1550 µm, with
+mirrors in daughter(−) for the G3 check; the 600 µm window sits ~1.6
+daughter radii past the branch plane and is flagged as entrance-affected.
+The clock is the PEAK-NORMALISED cumulative-excess extractor: both the
+measured window curve and the straight-pipe flow-dominated model at
+matched path are divided by their peaks before the excess integral —
+the amplitude-free adaptation needed because junction amplitudes differ
+from the straight reference by construction. Instrument check, measured
+on straight Langevin data before any junction extraction: the normalised
+clock reproduces the raw sweep clock to factors 1.038/1.018/1.009 at the
+three straight receivers (and the raw 750 µm clock reproduces the
+sweep's 1.717 s anchor exactly), so ratios are quoted with a ±4%
+instrument tolerance.*
 
 **P4 — dispersion beyond closed form.** The junction adds a spreading
 mechanism no straight-duct model carries: path-length dispersal at the

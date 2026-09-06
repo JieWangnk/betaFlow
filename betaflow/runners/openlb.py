@@ -261,7 +261,7 @@ def _run_junction(case, resolution=12, u_lat_target=0.04,
         fluid_meta["flux_balance"] = (qp + qn) / qm - 1.0
         fluid_meta["flux_split_asymmetry"] = qp / qn - 1.0
 
-    sdir = base / f"junction_scalar_res{resolution}_u{u_lat_target:g}"
+    sdir = base / f"junction_scalar_res{resolution}_u{u_lat_target:g}_p3"
     sdir.mkdir(parents=True, exist_ok=True)
     sprov = sdir / "provenance.txt"
     reused = (sprov.is_file() and (sdir / "cir.csv").is_file()
@@ -287,9 +287,10 @@ def _run_junction(case, resolution=12, u_lat_target=0.04,
 
     data = np.loadtxt(sdir / "cir.csv", delimiter=",", skiprows=1)
     t = data[:, 0]
-    mass = data[:, 6]
+    mass = data[:, 12]
     c_x = float(case["receiver"]["axial_length"])
     dists = [float(d) for d in case["receiver"]["distances"]]
+    sweep_um = (600, 750, 1000, 1250, 1550)
 
     def straight_ref(d):
         return ci.cir(t, u_mean, d, c_x)
@@ -299,10 +300,10 @@ def _run_junction(case, resolution=12, u_lat_target=0.04,
                        "t2": ci.peak_time(u_mean, dists[0], c_x),
                        "ref_straight": straight_ref(dists[0])},
     }
-    for kk, (col_p, col_m, d) in {
-            "750": (2, 4, dists[1]), "1550": (3, 5, dists[2])}.items():
-        for tag, col in (("plus", col_p), ("minus", col_m)):
-            windows[f"daughter_{tag}_{kk}"] = {
+    for k, um in enumerate(sweep_um):
+        d = um * 1e-6
+        for tag, col in (("plus", 2 + k), ("minus", 7 + k)):
+            windows[f"daughter_{tag}_{um}"] = {
                 "cir": data[:, col], "dbar": d,
                 "t2": ci.peak_time(u_mean, d, c_x),
                 "ref_straight": straight_ref(d),
