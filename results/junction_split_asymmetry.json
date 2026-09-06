@@ -1,0 +1,52 @@
+{
+  "question": "what class is the junction flux-split asymmetry",
+  "raw_field_ratio": 1.007791747493613,
+  "y_symmetrised_field_ratio": 1.0,
+  "field_y_mirror_defect_over_umax": {
+    "median": 0.0015873085999999889,
+    "p99": 0.00540355599999998,
+    "note": "a few hundred near-zero-velocity carina/cap cells read up to 0.9 in these units on a tiny absolute difference; p99 is the robust bulk level"
+  },
+  "discriminators": {
+    "measurement_quadrature_bias": {
+      "test": "same field, y-symmetrised, same quadrature",
+      "result": 1.0,
+      "verdict": "EXCLUDED (reads 1.00000)"
+    },
+    "outlet_label": {
+      "test": "swap pressure-material 4<->5",
+      "verdict": "EXCLUDED (byte-identical gates)"
+    },
+    "surface_union_order": {
+      "test": "daughter(-) unioned before daughter(+)",
+      "verdict": "EXCLUDED (byte-identical gates)"
+    },
+    "wall_scheme": {
+      "test": "bounce-back vs Bouzidi",
+      "bounce_back_ratio": 0.9974,
+      "bouzidi_ratio": 1.007791747493613,
+      "verdict": "PARTICIPATES: opposite signs (-0.26% bb, +0.78% Bouzidi) \u2014 the wall closure sets it"
+    },
+    "under_convergence": {
+      "test": "res 6, 27000 vs 72000 steps",
+      "ratios": [
+        1.00732,
+        1.0072
+      ],
+      "verdict": "EXCLUDED (flat, steady state reached)"
+    },
+    "under_resolution": {
+      "test": "res 6 vs res 12",
+      "ratios": [
+        1.0073,
+        1.0078
+      ],
+      "verdict": "STRUCTURAL (O(1), does not vanish)"
+    }
+  },
+  "class": "real, converged, O(1) wall-closure mirror asymmetry seeded at the branch and convected flat along both daughters (bulk field y-mirror defect ~0.5% of u_max)",
+  "remaining_unknown": "why the mirror-consistent cell set yields mirror-inconsistent Bouzidi link distances near the carina (ray-cylinder link-distance handling on the two oppositely-tilted daughters) \u2014 an OpenLB-internals question, bounded and named, not chased here",
+  "consequence": "transport unaffected below its precision: scalar mirror windows agree to 0.3% (bifurcation_junction.json); a y-symmetrised field removes it exactly if needed",
+  "git_sha": "737a3059a1a4-dirty",
+  "timestamp": "2026-09-06T12:44:30+00:00"
+}

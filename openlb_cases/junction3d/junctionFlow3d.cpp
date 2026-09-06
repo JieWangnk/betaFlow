@@ -79,6 +79,14 @@ int main(int argc, char* argv[]) {
   const T    horizon = argOpt(argc, argv, "--horizon", 6.5);
   const T    maxt    = argOpt(argc, argv, "--maxt", 3.0);
   const std::string wall = argStr(argc, argv, "--wall", "bouzidi");
+  // Discriminators for the split-asymmetry hunt:
+  //   --swap outlets : daughter(+) gets material 5, daughter(-) gets 4 —
+  //                    if the asymmetry follows the LABEL, the outlet BC
+  //                    implementation is implicated.
+  //   --swap union   : daughterM enters the Bouzidi surface union before
+  //                    daughterP — if the asymmetry follows the ORDER,
+  //                    the indicator/link-distance path is implicated.
+  const std::string swap = argStr(argc, argv, "--swap", "none");
   const std::string outdir = argStr(argc, argv, "--outdir", "./tmp/");
   singleton::directories().setOutputDir(outdir);
 
@@ -123,11 +131,16 @@ int main(int argc, char* argv[]) {
   IndicatorCylinder3D<T> outP(L.pEndPlus + f.dPlus * (0.4*dx),
                               L.pEndPlus + f.dPlus * (2.0*dx),
                               RADIUS_D - 0.1*dx);
-  geometry.rename(2, 4, outP);
   IndicatorCylinder3D<T> outM(L.pEndMinus + f.dMinus * (0.4*dx),
                               L.pEndMinus + f.dMinus * (2.0*dx),
                               RADIUS_D - 0.1*dx);
-  geometry.rename(2, 5, outM);
+  if (swap == "outlets") {
+    geometry.rename(2, 5, outP);
+    geometry.rename(2, 4, outM);
+  } else {
+    geometry.rename(2, 4, outP);
+    geometry.rename(2, 5, outM);
+  }
   geometry.clean();
   geometry.innerClean();
   geometry.checkForErrors();
@@ -148,14 +161,21 @@ int main(int argc, char* argv[]) {
     std::shared_ptr<IndicatorF3D<T>> surf(
       new IndicatorCylinder3D<T>(Vector<T,3>(2.0*dx - 4.0*dx, T(0), T(0)),
                                  Vector<T,3>(f.xj, T(0), T(0)), RADIUS));
-    surf = surf + std::shared_ptr<IndicatorF3D<T>>(
+    std::shared_ptr<IndicatorF3D<T>> segP(
       new IndicatorCylinder3D<T>(f.B - f.dPlus * RADIUS,
                                  L.pEndPlus + f.dPlus * (4.0*dx),
                                  RADIUS_D));
-    surf = surf + std::shared_ptr<IndicatorF3D<T>>(
+    std::shared_ptr<IndicatorF3D<T>> segM(
       new IndicatorCylinder3D<T>(f.B - f.dMinus * RADIUS,
                                  L.pEndMinus + f.dMinus * (4.0*dx),
                                  RADIUS_D));
+    if (swap == "union") {
+      surf = surf + segM;
+      surf = surf + segP;
+    } else {
+      surf = surf + segP;
+      surf = surf + segM;
+    }
     setBouzidiBoundary<T, DESCRIPTOR, BouzidiPostProcessor>(
       lattice, geometry, 2, *surf);
   }
@@ -345,6 +365,39 @@ int main(int argc, char* argv[]) {
       }
     }
   }
+  // Mean density over each outlet disc interior: if the two pressure
+  // BCs realise unequal pressures, that difference drives the split
+  // asymmetry through the daughter resistances.
+  T rhoOut[2] = {T(0), T(0)};
+  {
+    const Vector<T,3> nP(-f.dPlus[1], f.dPlus[0], T(0));
+    const Vector<T,3> nM(-f.dMinus[1], f.dMinus[0], T(0));
+    struct Disc { Vector<T,3> centre, e1; };
+    Disc dc[2] = {
+      {L.pEndPlus - f.dPlus * (1.0*dx), nP},
+      {L.pEndMinus - f.dMinus * (1.0*dx), nM},
+    };
+    for (int sIdx = 0; sIdx < 2; ++sIdx) {
+      const Vector<T,3> e2(T(0), T(0), T(1));
+      const int nr = 16, nth = 12;
+      int cnt = 0;
+      for (int ir = 0; ir < nr; ++ir) {
+        const T r = (T(ir) + 0.5) / T(nr) * (RADIUS_D - 0.51*dx);
+        for (int it = 0; it < nth; ++it) {
+          const T th = 2.0 * M_PI * T(it) / T(nth);
+          const Vector<T,3> pp = dc[sIdx].centre
+            + dc[sIdx].e1 * (r * std::cos(th)) + e2 * (r * std::sin(th));
+          T pt[3] = {pp[0], pp[1], pp[2]};
+          T rho[1] = {T(1)};
+          rhoInterp(rho, pt);
+          rhoOut[sIdx] += rho[0];
+          ++cnt;
+        }
+      }
+      rhoOut[sIdx] /= T(cnt);
+    }
+  }
+
   T uMin = T(1e9);
   for (int sgn : {+1, -1}) {
     const Vector<T,3>& d = (sgn > 0) ? f.dPlus : f.dMinus;
@@ -366,6 +419,8 @@ int main(int argc, char* argv[]) {
         << " flux_daughter_plus=" << flux[1]
         << " flux_daughter_minus=" << flux[2]
         << " u_min_daughter_centreline=" << uMin
+        << " rho_outlet_plus=" << rhoOut[0]
+        << " rho_outlet_minus=" << rhoOut[1]
         << std::endl;
 
   clout << "betaflow-done" << std::endl;
