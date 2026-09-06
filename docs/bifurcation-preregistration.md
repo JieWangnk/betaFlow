@@ -269,11 +269,17 @@ All gates green at production resolution: G2 flux balance +0.14%;
 G5/G7 profiles redeveloped (mother 3.8e-3, daughters ~1e-2); P2
 confirmed — no recirculation, daughter centrelines at 99.2% of full
 speed; scalar mirror windows within 0.3% relative. G3's bring-up
-finding matured into a structural fact: the antisymmetric flux-split
-mode is FLAT under refinement (0.72% at res 6 → 0.78% at res 12 —
-the identity-vs-discretisation doctrine reads flat as structural, and
-the leading candidate is the oblique outlet discs' boundary-normal
-classification; bounded by gates, tracked, not absorbed). P3 awaits its
+finding was hunted to its class 2026-09-06
+(`results/junction_split_asymmetry.json`): the +0.78% flux split is a
+REAL, converged, O(1) wall-closure asymmetry — not measurement (the flux
+quadrature reads Q+/Q- = 1.00000 to five digits on the same field
+y-symmetrised), not the outlet label or surface-union order (both
+byte-identical under swap), sign set by the wall scheme (bounce-back
+−0.26%, Bouzidi +0.78%), flat under convergence and non-vanishing under
+refinement. The residual unknown is why a mirror-consistent cell set
+yields mirror-inconsistent Bouzidi link distances near the carina — an
+OpenLB-internals question, bounded, below the 0.3% scalar-window
+precision; a y-symmetrised field removes it exactly if needed. P3 awaits its
 receiver-distance sweep. P4's inputs (tail metrics per window) are in
 the record.
 

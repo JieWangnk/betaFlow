@@ -315,7 +315,35 @@ their reasons, because how errors present is data. The trail so far:
    instrumentation findings recorded: the compressibility density head
    of the long LB pipe (measured 1.048, matching Δp/c_s²; the field is
    ρu inlet-normalised) and the half-cell hand-off trap (now guarded in
-   the app). Next: the junction itself — every gate is written; HPC
-   resolution shrinks the wall layer per the measured law.
+   the app).
+   The JUNCTION is measured (2026-09-01, `results/bifurcation_junction.json`):
+   the pre-registered Y (Murray daughters at ±30°) with solved flow, all
+   gates green — flux balance +0.14%, no recirculation (99.2% of
+   centreline speed), mirror windows to 0.3%. P1's naive half-split is
+   wrong by the velocity factor: daughter peaks run 1.23–1.28× half the
+   straight peak, and the corrected prediction 1/(2·2^(−1/3)) = 0.63 of
+   the straight peak lands within 3%. The first quantitative
+   impulse-response measurement in a geometry with no closed-form model,
+   on a verified instrument.
+   P3 is measured (2026-09-06, `results/junction_p3_crossover.json`,
+   five-window sweep in one daughter): the junction PREVENTS the
+   enhancement act — daughter collapsed tails at 0.57–0.85 of the
+   model's master curve with no above-1 phase, while the same-instrument
+   mother control shows the enhancement and the straight Langevin
+   baseline climbs to 1.3–1.7. Neither pre-registered ratio (0.87
+   τ_r-only; 1.0 crude-balance, the dated correction) applies: both
+   presuppose the act exists. Mechanism: the branch intercepts the
+   near-wall reservoir that carries the enhancement. Comms consequence:
+   channel memory past a junction is shorter than the straight
+   channel's — branching improves inter-symbol interference. The
+   extractor needed one dated correction, kept in the tool.
+   The flux-split asymmetry is classified
+   (`results/junction_split_asymmetry.json`): a real, converged, O(1)
+   wall-closure mirror asymmetry (+0.78% Bouzidi, −0.26% bounce-back),
+   excluded as measurement/label/union-order by discriminator runs,
+   structural under refinement — the residual unknown is a carina
+   Bouzidi link-distance question, bounded and below the 0.3% transport
+   precision. Open: HPC resolution for the wall-layer budget and
+   bias-corrected tail magnitudes.
 3. **Paper loose ends needing the author:** §1 exemplar citations, the
    Rhie & Chow reference, the author block; BPM120's outlier.
